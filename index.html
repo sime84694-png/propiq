@@ -1243,6 +1243,14 @@
     </div>
   </footer>
 
+  <form name="zahtjev" netlify data-netlify="true" netlify-honeypot="bot-field" hidden>
+    <input type="hidden" name="form-name" value="zahtjev">
+    <input name="bot-field">
+    <input type="text" name="ime">
+    <input type="email" name="email">
+    <input type="text" name="agencija">
+  </form>
+
   <div class="modal-overlay" id="modal" onclick="handleOverlayClick(event)">
     <div class="modal">
       <button class="modal-close" onclick="closeModal()" aria-label="Zatvori">
