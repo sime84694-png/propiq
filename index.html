@@ -130,259 +130,365 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       z-index: 100;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 20px;
     }
 
-    .modal-overlay.open {
-      display: flex;
-    }
+    .modal-overlay.open { display: flex; }
 
     .modal {
-      background: #13131a;
+      background: #0f0f17;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 24px;
-      padding: 48px 44px;
+      border-radius: 28px;
+      padding: 40px;
       width: 100%;
-      max-width: 480px;
+      max-width: 540px;
+      max-height: 92vh;
+      overflow-y: auto;
       position: relative;
-      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
-      animation: modalIn 0.25s ease;
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(108, 99, 255, 0.08);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(108, 99, 255, 0.2) transparent;
+      animation: modalIn 0.28s cubic-bezier(0.34, 1.3, 0.64, 1);
     }
 
     @keyframes modalIn {
-      from { opacity: 0; transform: translateY(16px) scale(0.98); }
+      from { opacity: 0; transform: translateY(20px) scale(0.96); }
       to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    @media (max-width: 520px) {
-      .modal { padding: 36px 28px; }
+    @media (max-width: 580px) {
+      .modal { padding: 32px 24px; border-radius: 20px; }
     }
 
     .modal-close {
       position: absolute;
-      top: 18px;
-      right: 18px;
-      background: rgba(255, 255, 255, 0.06);
+      top: 16px;
+      right: 16px;
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 50%;
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: rgba(255, 255, 255, 0.5);
-      transition: background 0.2s, color 0.2s;
+      color: rgba(255, 255, 255, 0.4);
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
     }
 
     .modal-close:hover {
       background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.18);
       color: #fff;
     }
 
-    .modal-close svg {
-      width: 16px;
-      height: 16px;
+    .modal-close svg { width: 15px; height: 15px; }
+
+    .modal-header {
+      margin-bottom: 28px;
+      padding-right: 32px;
+    }
+
+    .modal-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(108, 99, 255, 0.12);
+      border: 1px solid rgba(108, 99, 255, 0.25);
+      color: #a29bfe;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 99px;
+      margin-bottom: 14px;
     }
 
     .modal h3 {
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       font-weight: 800;
-      letter-spacing: -0.5px;
-      margin-bottom: 8px;
+      letter-spacing: -0.6px;
+      margin-bottom: 6px;
+      line-height: 1.15;
     }
 
     .modal-subtitle {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       color: rgba(255, 255, 255, 0.4);
-      margin-bottom: 32px;
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
+    /* Form */
     .form-group {
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
 
     .form-group label {
       display: block;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.5);
-      letter-spacing: 0.04em;
-      margin-bottom: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.45);
+      letter-spacing: 0.06em;
       text-transform: uppercase;
+      margin-bottom: 7px;
     }
 
-    .form-group input {
+    .form-group input,
+    .form-group textarea {
       width: 100%;
       background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
+      border: 1.5px solid rgba(255, 255, 255, 0.09);
+      border-radius: 12px;
       padding: 13px 16px;
       color: #f0f0f0;
       font-size: 0.95rem;
       font-family: inherit;
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      line-height: 1.6;
     }
 
-    .form-group input::placeholder {
-      color: rgba(255, 255, 255, 0.2);
+    .form-group input::placeholder,
+    .form-group textarea::placeholder {
+      color: rgba(255, 255, 255, 0.18);
+    }
+
+    .form-group input:hover,
+    .form-group textarea:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.055);
     }
 
     .form-group input:focus,
     .form-group textarea:focus {
-      border-color: rgba(108, 99, 255, 0.6);
-      box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.12);
+      border-color: rgba(108, 99, 255, 0.65);
+      background: rgba(108, 99, 255, 0.04);
+      box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.1);
     }
 
     .form-group textarea {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      padding: 13px 16px;
-      color: #f0f0f0;
-      font-size: 0.95rem;
-      font-family: inherit;
-      outline: none;
       resize: vertical;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      line-height: 1.6;
+      min-height: 110px;
     }
 
-    .form-group textarea::placeholder {
-      color: rgba(255, 255, 255, 0.2);
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 480px) {
+      .form-row { grid-template-columns: 1fr; }
     }
 
     .form-submit {
       width: 100%;
-      margin-top: 8px;
+      margin-top: 10px;
       padding: 15px;
       background: #6c63ff;
       color: #fff;
-      font-size: 1rem;
-      font-weight: 600;
+      font-size: 0.97rem;
+      font-weight: 700;
       font-family: inherit;
       border: none;
-      border-radius: 12px;
+      border-radius: 14px;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
       transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 4px 20px rgba(108, 99, 255, 0.35);
+      box-shadow: 0 4px 20px rgba(108, 99, 255, 0.4);
     }
 
     .form-submit:hover {
       background: #7c74ff;
       transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(108, 99, 255, 0.5);
+      box-shadow: 0 8px 28px rgba(108, 99, 255, 0.55);
     }
 
-    .form-submit:active {
-      transform: translateY(0);
-    }
+    .form-submit:active { transform: translateY(0); }
 
     .form-submit:disabled {
-      opacity: 0.6;
+      opacity: 0.7;
       cursor: not-allowed;
       transform: none;
     }
 
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    .form-submit.loading .spinner { display: block; }
+    .form-submit.loading .btn-text { opacity: 0.85; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Result */
     .form-success {
       display: none;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      margin-top: 24px;
-      padding-top: 24px;
+      margin-top: 28px;
+      padding-top: 28px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
     }
 
-    .form-success.visible {
-      display: block;
-    }
+    .form-success.visible { display: block; }
 
-    .form-success-header {
+    .result-header {
       display: flex;
       align-items: center;
-      gap: 14px;
-      margin-bottom: 20px;
+      justify-content: space-between;
+      margin-bottom: 16px;
     }
 
-    .form-success-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
+    .result-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f0f0f0;
+    }
+
+    .result-title-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
       background: rgba(108, 99, 255, 0.15);
-      border: 1px solid rgba(108, 99, 255, 0.35);
+      border: 1px solid rgba(108, 99, 255, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
 
-    .form-success-icon svg {
-      width: 20px;
-      height: 20px;
-      color: #a29bfe;
+    .result-title-icon svg { width: 16px; height: 16px; color: #a29bfe; }
+
+    .recommendation-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 99px;
+      margin-bottom: 16px;
     }
 
-    .form-success-title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #f0f0f0;
+    .recommendation-badge.buy {
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      color: #4ade80;
+    }
+
+    .recommendation-badge.negotiate {
+      background: rgba(234, 179, 8, 0.12);
+      border: 1px solid rgba(234, 179, 8, 0.35);
+      color: #facc15;
+    }
+
+    .recommendation-badge.skip {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #f87171;
     }
 
     .form-result {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 20px 22px;
-      max-height: 340px;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      padding: 22px 24px;
+      max-height: 380px;
       overflow-y: auto;
-      font-size: 0.88rem;
-      line-height: 1.75;
-      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: rgba(255, 255, 255, 0.75);
       scrollbar-width: thin;
-      scrollbar-color: rgba(108, 99, 255, 0.3) transparent;
+      scrollbar-color: rgba(108, 99, 255, 0.25) transparent;
     }
 
     .form-result h1, .form-result h2, .form-result h3 {
       color: #f0f0f0;
       font-weight: 700;
-      margin: 14px 0 6px;
+      margin: 18px 0 8px;
       letter-spacing: -0.3px;
+      line-height: 1.3;
     }
 
-    .form-result h1 { font-size: 1.1rem; }
-    .form-result h2 { font-size: 1rem; }
-    .form-result h3 { font-size: 0.93rem; color: #a29bfe; }
+    .form-result h1 { font-size: 1.15rem; margin-top: 0; }
+    .form-result h2 { font-size: 1.02rem; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px; }
+    .form-result h3 { font-size: 0.92rem; color: #a29bfe; }
 
-    .form-result p { margin-bottom: 10px; }
+    .form-result p { margin-bottom: 12px; }
 
     .form-result ul, .form-result ol {
-      padding-left: 18px;
-      margin-bottom: 10px;
+      padding-left: 20px;
+      margin-bottom: 12px;
     }
 
-    .form-result li { margin-bottom: 4px; }
+    .form-result li { margin-bottom: 5px; }
 
-    .form-result strong { color: #f0f0f0; font-weight: 600; }
+    .form-result strong { color: #fff; font-weight: 700; }
+    .form-result em { color: rgba(255,255,255,0.6); }
 
     .form-result hr {
       border: none;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      margin: 14px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      margin: 18px 0;
     }
 
     .form-result code {
-      background: rgba(108, 99, 255, 0.12);
-      border-radius: 4px;
-      padding: 1px 6px;
-      font-size: 0.85em;
+      background: rgba(108, 99, 255, 0.14);
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: 0.84em;
       color: #a29bfe;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .form-result table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 14px;
+      font-size: 0.86rem;
+    }
+
+    .form-result th {
+      background: rgba(108, 99, 255, 0.1);
+      color: #a29bfe;
+      font-weight: 700;
+      text-align: left;
+      padding: 9px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .form-result td {
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .form-result tr:nth-child(even) td {
+      background: rgba(255, 255, 255, 0.02);
     }
 
     .form-reset-btn {
@@ -390,19 +496,20 @@
       width: 100%;
       padding: 12px;
       background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 10px;
-      color: rgba(255, 255, 255, 0.55);
-      font-size: 0.9rem;
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.88rem;
       font-weight: 600;
       font-family: inherit;
       cursor: pointer;
-      transition: border-color 0.2s, color 0.2s;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
     }
 
     .form-reset-btn:hover {
-      border-color: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.25);
       color: #fff;
+      background: rgba(255, 255, 255, 0.04);
     }
 
     /* How it works */
@@ -1388,38 +1495,52 @@
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
-      <h3>Počni besplatno</h3>
-      <p class="modal-subtitle">Ispuni formu i dobij pristup PropIQ-u odmah. Bez kreditne kartice.</p>
+      <div class="modal-header">
+        <div class="modal-eyebrow">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
+          AI analiza nekretnine
+        </div>
+        <h3>Analiziraj oglas</h3>
+        <p class="modal-subtitle">Zalijepite tekst oglasa i dobijte AI analizu isplativosti u sekundi.</p>
+      </div>
       <form id="zahtjev-form">
-        <div class="form-group">
-          <label for="ime">Ime i prezime</label>
-          <input type="text" id="ime" name="ime" placeholder="Npr. Marko Kovačević" required>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ime">Ime i prezime</label>
+            <input type="text" id="ime" name="ime" placeholder="Marko Kovačević" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email adresa</label>
+            <input type="email" id="email" name="email" placeholder="marko@agencija.hr" required>
+          </div>
         </div>
         <div class="form-group">
-          <label for="email">Email adresa</label>
-          <input type="email" id="email" name="email" placeholder="marko@agencija.hr" required>
-        </div>
-        <div class="form-group">
-          <label for="agencija">Naziv agencije</label>
+          <label for="agencija">Naziv agencije <span style="opacity:.4;font-weight:400;text-transform:none;letter-spacing:0">(opcionalno)</span></label>
           <input type="text" id="agencija" name="agencija" placeholder="Npr. Adriatic Estates d.o.o.">
         </div>
         <div class="form-group">
-          <label for="oglas_tekst">Zalijepite tekst oglasa s Njuškala</label>
-          <textarea id="oglas_tekst" name="oglas_tekst" placeholder="Kopirajte naslov, cijenu, opis i karakteristike nekretnine..." required rows="5"></textarea>
+          <label for="oglas_tekst">Tekst oglasa s Njuškala</label>
+          <textarea id="oglas_tekst" name="oglas_tekst" placeholder="Kopirajte naslov, cijenu, opis i karakteristike nekretnine..." required></textarea>
         </div>
-        <button type="submit" class="form-submit" id="form-submit-btn">Pošalji zahtjev</button>
+        <button type="submit" class="form-submit" id="form-submit-btn">
+          <div class="spinner"></div>
+          <span class="btn-text">Pokreni analizu</span>
+        </button>
       </form>
       <div class="form-success" id="form-success">
-        <div class="form-success-header">
-          <div class="form-success-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
-            </svg>
+        <div class="result-header">
+          <div class="result-title">
+            <div class="result-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
+              </svg>
+            </div>
+            Analiza završena
           </div>
-          <p class="form-success-title">Analiza završena</p>
         </div>
+        <div id="recommendation-badge"></div>
         <div class="form-result" id="form-result"></div>
-        <button class="form-reset-btn" onclick="resetForm()">Nova analiza</button>
+        <button class="form-reset-btn" onclick="resetForm()">↩ Nova analiza</button>
       </div>
     </div>
   </div>
@@ -1433,9 +1554,23 @@
 
     function resetForm() {
       document.getElementById('zahtjev-form').reset();
-      document.getElementById('form-submit-btn').disabled = false;
-      document.getElementById('form-submit-btn').textContent = 'Pošalji zahtjev';
+      const btn = document.getElementById('form-submit-btn');
+      btn.disabled = false;
+      btn.classList.remove('loading');
       document.getElementById('form-success').classList.remove('visible');
+      document.getElementById('recommendation-badge').innerHTML = '';
+      document.getElementById('form-result').innerHTML = '';
+    }
+
+    function detectRecommendation(text) {
+      const t = text.toUpperCase();
+      if (/KUPI|KUPITI|PREPORUČAMO KUPNJU|IZVRSNA INVESTICIJA|IZVRSNA PRILIKA/.test(t))
+        return { cls: 'buy', icon: '✓', label: 'Preporuka: Kupi' };
+      if (/PREGOVARAJ|PREGOVOR|RAZMOTRITI|UVJETNO|MOGUĆE/.test(t))
+        return { cls: 'negotiate', icon: '◎', label: 'Preporuka: Pregovaraj' };
+      if (/PRESKOČI|PRESKOČITI|IZBJEGNI|IZBJEGAVATI|NIJE PREPORUČLJIVO|LOŠA INVESTICIJA/.test(t))
+        return { cls: 'skip', icon: '✕', label: 'Preporuka: Preskoči' };
+      return null;
     }
 
     function closeModal() {
@@ -1452,11 +1587,13 @@
       if (e.key === 'Escape') closeModal();
     });
 
+    marked.use({ breaks: true, gfm: true });
+
     document.getElementById('zahtjev-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       const btn = document.getElementById('form-submit-btn');
       btn.disabled = true;
-      btn.textContent = 'Šaljem...';
+      btn.classList.add('loading');
 
       const data = {
         ime:      document.getElementById('ime').value,
@@ -1478,6 +1615,13 @@
       }
 
       document.getElementById('form-result').innerHTML = marked.parse(markdownText);
+
+      const rec = detectRecommendation(markdownText);
+      const badge = document.getElementById('recommendation-badge');
+      if (rec) {
+        badge.innerHTML = `<div class="recommendation-badge ${rec.cls}">${rec.icon} ${rec.label}</div>`;
+      }
+
       document.getElementById('form-success').classList.add('visible');
       document.getElementById('form-success').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
