@@ -1243,14 +1243,6 @@
     </div>
   </footer>
 
-  <form name="zahtjev" netlify data-netlify="true" netlify-honeypot="bot-field" style="display:none">
-    <input type="hidden" name="form-name" value="zahtjev">
-    <input name="bot-field">
-    <input type="text" name="ime">
-    <input type="email" name="email">
-    <input type="text" name="agencija">
-  </form>
-
   <div class="modal-overlay" id="modal" onclick="handleOverlayClick(event)">
     <div class="modal">
       <button class="modal-close" onclick="closeModal()" aria-label="Zatvori">
@@ -1260,9 +1252,7 @@
       </button>
       <h3>Počni besplatno</h3>
       <p class="modal-subtitle">Ispuni formu i dobij pristup PropIQ-u odmah. Bez kreditne kartice.</p>
-      <form name="zahtjev" method="POST" netlify data-netlify="true" netlify-honeypot="bot-field">
-        <input type="hidden" name="form-name" value="zahtjev">
-        <p hidden><input name="bot-field"></p>
+      <form action="https://formspree.io/f/mjgpakbd" method="POST">
         <div class="form-group">
           <label for="ime">Ime i prezime</label>
           <input type="text" id="ime" name="ime" placeholder="Npr. Marko Kovačević" required>
