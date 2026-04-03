@@ -1427,8 +1427,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         });
-        const json = await res.json();
-        markdownText = typeof json === 'string' ? json : (json.output || json.text || json.message || json.result || JSON.stringify(json, null, 2));
+        markdownText = await res.text();
       } catch (err) {
         markdownText = '_Došlo je do greške pri dohvaćanju analize. Pokušajte ponovo._';
       }
