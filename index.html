@@ -275,36 +275,91 @@
 
     .form-success {
       display: none;
-      text-align: center;
-      padding: 24px 0 8px;
     }
 
     .form-success.visible {
       display: block;
     }
 
+    .form-success-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
     .form-success-icon {
-      width: 56px;
-      height: 56px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: rgba(108, 99, 255, 0.15);
       border: 1px solid rgba(108, 99, 255, 0.35);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 16px;
+      flex-shrink: 0;
     }
 
     .form-success-icon svg {
-      width: 26px;
-      height: 26px;
+      width: 20px;
+      height: 20px;
       color: #a29bfe;
     }
 
-    .form-success p {
-      font-size: 0.97rem;
-      line-height: 1.6;
-      color: rgba(255, 255, 255, 0.75);
+    .form-success-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f0f0f0;
+    }
+
+    .form-result {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 20px 22px;
+      max-height: 340px;
+      overflow-y: auto;
+      font-size: 0.88rem;
+      line-height: 1.75;
+      color: rgba(255, 255, 255, 0.7);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(108, 99, 255, 0.3) transparent;
+    }
+
+    .form-result h1, .form-result h2, .form-result h3 {
+      color: #f0f0f0;
+      font-weight: 700;
+      margin: 14px 0 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .form-result h1 { font-size: 1.1rem; }
+    .form-result h2 { font-size: 1rem; }
+    .form-result h3 { font-size: 0.93rem; color: #a29bfe; }
+
+    .form-result p { margin-bottom: 10px; }
+
+    .form-result ul, .form-result ol {
+      padding-left: 18px;
+      margin-bottom: 10px;
+    }
+
+    .form-result li { margin-bottom: 4px; }
+
+    .form-result strong { color: #f0f0f0; font-weight: 600; }
+
+    .form-result hr {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      margin: 14px 0;
+    }
+
+    .form-result code {
+      background: rgba(108, 99, 255, 0.12);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.85em;
+      color: #a29bfe;
     }
 
     /* How it works */
@@ -1312,16 +1367,20 @@
         <button type="submit" class="form-submit" id="form-submit-btn">Pošalji zahtjev</button>
       </form>
       <div class="form-success" id="form-success">
-        <div class="form-success-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
-          </svg>
+        <div class="form-success-header">
+          <div class="form-success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
+            </svg>
+          </div>
+          <p class="form-success-title">Analiza završena</p>
         </div>
-        <p>Vaš zahtjev je primljen, report stiže na email u roku 5 minuta.</p>
+        <div class="form-result" id="form-result"></div>
       </div>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
     function openModal() {
       document.getElementById('modal').classList.add('open');
@@ -1361,14 +1420,20 @@
         njuskalo: document.getElementById('njuskalo').value,
       };
 
+      let markdownText = '';
       try {
-        await fetch('https://propiq23.app.n8n.cloud/webhook/8db7ead4-c965-4216-b134-91701ad1c42b', {
+        const res = await fetch('https://propiq23.app.n8n.cloud/webhook/8db7ead4-c965-4216-b134-91701ad1c42b', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         });
-      } catch (_) {}
+        const json = await res.json();
+        markdownText = typeof json === 'string' ? json : (json.output || json.text || json.message || json.result || JSON.stringify(json, null, 2));
+      } catch (err) {
+        markdownText = '_Došlo je do greške pri dohvaćanju analize. Pokušajte ponovo._';
+      }
 
+      document.getElementById('form-result').innerHTML = marked.parse(markdownText);
       document.getElementById('zahtjev-form').style.display = 'none';
       document.getElementById('form-success').classList.add('visible');
     });
