@@ -295,6 +295,9 @@
 
     .form-success {
       display: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      margin-top: 24px;
+      padding-top: 24px;
     }
 
     .form-success.visible {
@@ -380,6 +383,26 @@
       padding: 1px 6px;
       font-size: 0.85em;
       color: #a29bfe;
+    }
+
+    .form-reset-btn {
+      margin-top: 14px;
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .form-reset-btn:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #fff;
     }
 
     /* How it works */
@@ -1396,6 +1419,7 @@
           <p class="form-success-title">Analiza završena</p>
         </div>
         <div class="form-result" id="form-result"></div>
+        <button class="form-reset-btn" onclick="resetForm()">Nova analiza</button>
       </div>
     </div>
   </div>
@@ -1407,16 +1431,17 @@
       document.body.style.overflow = 'hidden';
     }
 
+    function resetForm() {
+      document.getElementById('zahtjev-form').reset();
+      document.getElementById('form-submit-btn').disabled = false;
+      document.getElementById('form-submit-btn').textContent = 'Pošalji zahtjev';
+      document.getElementById('form-success').classList.remove('visible');
+    }
+
     function closeModal() {
       document.getElementById('modal').classList.remove('open');
       document.body.style.overflow = '';
-      setTimeout(() => {
-        document.getElementById('zahtjev-form').reset();
-        document.getElementById('zahtjev-form').style.display = '';
-        document.getElementById('form-submit-btn').disabled = false;
-        document.getElementById('form-submit-btn').textContent = 'Pošalji zahtjev';
-        document.getElementById('form-success').classList.remove('visible');
-      }, 300);
+      setTimeout(resetForm, 300);
     }
 
     function handleOverlayClick(e) {
@@ -1453,8 +1478,8 @@
       }
 
       document.getElementById('form-result').innerHTML = marked.parse(markdownText);
-      document.getElementById('zahtjev-form').style.display = 'none';
       document.getElementById('form-success').classList.add('visible');
+      document.getElementById('form-success').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
 
     document.querySelectorAll('.faq-question').forEach(btn => {
