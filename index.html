@@ -236,9 +236,29 @@
       color: rgba(255, 255, 255, 0.2);
     }
 
-    .form-group input:focus {
+    .form-group input:focus,
+    .form-group textarea:focus {
       border-color: rgba(108, 99, 255, 0.6);
       box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.12);
+    }
+
+    .form-group textarea {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 13px 16px;
+      color: #f0f0f0;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      resize: vertical;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      line-height: 1.6;
+    }
+
+    .form-group textarea::placeholder {
+      color: rgba(255, 255, 255, 0.2);
     }
 
     .form-submit {
@@ -1361,8 +1381,8 @@
           <input type="text" id="agencija" name="agencija" placeholder="Npr. Adriatic Estates d.o.o.">
         </div>
         <div class="form-group">
-          <label for="njuskalo">Njuškalo link</label>
-          <input type="url" id="njuskalo" name="njuskalo" placeholder="https://www.njuskalo.hr/..." required>
+          <label for="oglas_tekst">Zalijepite tekst oglasa s Njuškala</label>
+          <textarea id="oglas_tekst" name="oglas_tekst" placeholder="Kopirajte naslov, cijenu, opis i karakteristike nekretnine..." required rows="5"></textarea>
         </div>
         <button type="submit" class="form-submit" id="form-submit-btn">Pošalji zahtjev</button>
       </form>
@@ -1417,7 +1437,7 @@
         ime:      document.getElementById('ime').value,
         email:    document.getElementById('email').value,
         agencija: document.getElementById('agencija').value,
-        njuskalo: document.getElementById('njuskalo').value,
+        oglas_tekst: document.getElementById('oglas_tekst').value,
       };
 
       let markdownText = '';
