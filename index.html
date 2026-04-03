@@ -267,6 +267,46 @@
       transform: translateY(0);
     }
 
+    .form-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .form-success {
+      display: none;
+      text-align: center;
+      padding: 24px 0 8px;
+    }
+
+    .form-success.visible {
+      display: block;
+    }
+
+    .form-success-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(108, 99, 255, 0.15);
+      border: 1px solid rgba(108, 99, 255, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+
+    .form-success-icon svg {
+      width: 26px;
+      height: 26px;
+      color: #a29bfe;
+    }
+
+    .form-success p {
+      font-size: 0.97rem;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
     /* How it works */
     .how {
       width: 100%;
@@ -1252,7 +1292,7 @@
       </button>
       <h3>Počni besplatno</h3>
       <p class="modal-subtitle">Ispuni formu i dobij pristup PropIQ-u odmah. Bez kreditne kartice.</p>
-      <form action="https://formspree.io/f/mjgpakbd" method="POST">
+      <form id="zahtjev-form">
         <div class="form-group">
           <label for="ime">Ime i prezime</label>
           <input type="text" id="ime" name="ime" placeholder="Npr. Marko Kovačević" required>
@@ -1265,8 +1305,20 @@
           <label for="agencija">Naziv agencije</label>
           <input type="text" id="agencija" name="agencija" placeholder="Npr. Adriatic Estates d.o.o.">
         </div>
-        <button type="submit" class="form-submit">Pošalji zahtjev</button>
+        <div class="form-group">
+          <label for="njuskalo">Njuškalo link</label>
+          <input type="url" id="njuskalo" name="njuskalo" placeholder="https://www.njuskalo.hr/..." required>
+        </div>
+        <button type="submit" class="form-submit" id="form-submit-btn">Pošalji zahtjev</button>
       </form>
+      <div class="form-success" id="form-success">
+        <div class="form-success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
+          </svg>
+        </div>
+        <p>Vaš zahtjev je primljen, report stiže na email u roku 5 minuta.</p>
+      </div>
     </div>
   </div>
 
@@ -1279,6 +1331,13 @@
     function closeModal() {
       document.getElementById('modal').classList.remove('open');
       document.body.style.overflow = '';
+      setTimeout(() => {
+        document.getElementById('zahtjev-form').reset();
+        document.getElementById('zahtjev-form').style.display = '';
+        document.getElementById('form-submit-btn').disabled = false;
+        document.getElementById('form-submit-btn').textContent = 'Pošalji zahtjev';
+        document.getElementById('form-success').classList.remove('visible');
+      }, 300);
     }
 
     function handleOverlayClick(e) {
@@ -1287,6 +1346,31 @@
 
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') closeModal();
+    });
+
+    document.getElementById('zahtjev-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('form-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Šaljem...';
+
+      const data = {
+        ime:      document.getElementById('ime').value,
+        email:    document.getElementById('email').value,
+        agencija: document.getElementById('agencija').value,
+        njuskalo: document.getElementById('njuskalo').value,
+      };
+
+      try {
+        await fetch('https://propiq23.app.n8n.cloud/webhook-test/8db7ead4-c965-4216-b134-91701ad1c42b', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+      } catch (_) {}
+
+      document.getElementById('zahtjev-form').style.display = 'none';
+      document.getElementById('form-success').classList.add('visible');
     });
 
     document.querySelectorAll('.faq-question').forEach(btn => {
