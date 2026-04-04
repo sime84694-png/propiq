@@ -5,135 +5,668 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PropIQ – AI Investment Advisor</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --bg: #0a0806;
+      --cream: #f0ece4;
+      --cream-70: rgba(240,236,228,0.7);
+      --cream-40: rgba(240,236,228,0.4);
+      --cream-15: rgba(240,236,228,0.15);
+      --cream-08: rgba(240,236,228,0.08);
+      --cream-04: rgba(240,236,228,0.04);
     }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0f;
-      color: #f0f0f0;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--cream);
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+      overflow-x: hidden;
     }
 
-    header {
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 90;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 24px 48px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 22px 48px;
+      transition: background 0.4s, backdrop-filter 0.4s;
     }
 
-    .logo {
-      font-size: 1.5rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
+    nav.scrolled {
+      background: rgba(10,8,6,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--cream-08);
     }
 
-    .logo span {
-      color: #6c63ff;
-    }
-
-    nav a {
-      color: rgba(255, 255, 255, 0.6);
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       text-decoration: none;
-      font-size: 0.9rem;
+      color: var(--cream);
+    }
+
+    .nav-logo-text {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .nav-logo-text span { opacity: 0.45; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+      list-style: none;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .nav-links a {
+      color: var(--cream-70);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
       transition: color 0.2s;
     }
 
-    nav a:hover {
-      color: #fff;
+    .nav-links a:hover { color: var(--cream); }
+
+    .nav-cta {
+      background: var(--cream);
+      color: var(--bg);
+      border: none;
+      padding: 12px 28px;
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s, transform 0.2s;
     }
 
-    main {
-      flex: 1;
+    .nav-cta:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    @media (max-width: 768px) {
+      nav { padding: 18px 24px; }
+      .nav-links { display: none; }
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      height: 100vh;
+      min-height: 640px;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 80px 24px 0;
+      justify-content: flex-end;
+      padding: 0 48px 60px;
     }
 
-    .hero {
-      text-align: center;
-      max-width: 680px;
+    .hero-bg {
+      position: absolute;
+      inset: -20% 0 -20% 0;
+      background: url('https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1800&q=90') center/cover no-repeat;
+      will-change: transform;
     }
 
-    .badge {
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(10,8,6,0.25) 0%,
+        rgba(10,8,6,0.1) 40%,
+        rgba(10,8,6,0.75) 85%,
+        rgba(10,8,6,1) 100%
+      );
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 40px;
+    }
+
+    .hero-title {
+      font-size: clamp(3.2rem, 8vw, 7.5rem);
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -3px;
+      max-width: 780px;
+    }
+
+    .hero-title .line2 {
+      display: block;
+      font-weight: 300;
+      letter-spacing: -2px;
+      font-style: italic;
+    }
+
+    .hero-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+
+    .hero-sub {
+      font-size: 0.88rem;
+      color: var(--cream-70);
+      text-align: right;
+      max-width: 220px;
+      line-height: 1.6;
+    }
+
+    .btn-primary {
+      background: var(--cream);
+      color: var(--bg);
+      border: none;
+      padding: 20px 56px;
+      border-radius: 100px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s, transform 0.2s;
+      text-decoration: none;
       display: inline-block;
-      background: rgba(108, 99, 255, 0.15);
-      border: 1px solid rgba(108, 99, 255, 0.4);
-      color: #a29bfe;
+    }
+
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-2px); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--cream);
+      border: 1.5px solid var(--cream-40);
+      padding: 20px 56px;
+      border-radius: 100px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.2s, background 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--cream);
+      background: var(--cream-08);
+    }
+
+    @media (max-width: 768px) {
+      .hero { padding: 0 24px 48px; }
+      .hero-content { flex-direction: column; align-items: flex-start; }
+      .hero-right { align-items: flex-start; }
+      .hero-sub { text-align: left; }
+    }
+
+    /* ─── STATS ─── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--cream-08);
+      border-bottom: 1px solid var(--cream-08);
+    }
+
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat {
+      padding: 48px 40px;
+      border-right: 1px solid var(--cream-08);
+    }
+
+    .stat:last-child { border-right: none; }
+
+    .stat-value {
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
       font-size: 0.8rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
+      color: var(--cream-40);
       text-transform: uppercase;
-      padding: 6px 14px;
-      border-radius: 99px;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+    }
+
+    /* ─── GALLERY ─── */
+    .gallery {
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      grid-template-rows: 300px 300px;
+      gap: 3px;
+      background: var(--bg);
+      margin: 3px 0;
+    }
+
+    .gallery-img {
+      overflow: hidden;
+      grid-row: span 2;
+    }
+
+    .gallery-img:nth-child(2),
+    .gallery-img:nth-child(3) {
+      grid-row: span 1;
+    }
+
+    .gallery-img img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .gallery-img:hover img { transform: scale(1.04); }
+
+    @media (max-width: 640px) {
+      .gallery { grid-template-columns: 1fr; grid-template-rows: auto; }
+      .gallery-img { grid-row: span 1 !important; height: 240px; }
+    }
+
+    /* ─── MARQUEE ─── */
+    .marquee-wrap {
+      overflow: hidden;
+      border-top: 1px solid var(--cream-08);
+      border-bottom: 1px solid var(--cream-08);
+      padding: 22px 0;
+      background: var(--bg);
+    }
+
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marquee 28s linear infinite;
+    }
+
+    .marquee-track:hover { animation-play-state: paused; }
+
+    .marquee-item {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      padding: 0 28px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--cream-40);
+      white-space: nowrap;
+    }
+
+    .marquee-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--cream-40);
+      flex-shrink: 0;
+    }
+
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* ─── FEATURES ─── */
+    .features {
+      padding: 120px 48px;
+    }
+
+    @media (max-width: 768px) { .features { padding: 80px 24px; } }
+
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 64px;
+      gap: 24px;
+    }
+
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--cream-40);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.05;
+    }
+
+    .section-desc {
+      font-size: 0.92rem;
+      color: var(--cream-40);
+      max-width: 300px;
+      line-height: 1.7;
+      text-align: right;
+    }
+
+    @media (max-width: 640px) {
+      .section-header { flex-direction: column; align-items: flex-start; }
+      .section-desc { text-align: left; max-width: 100%; }
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+    }
+
+    @media (max-width: 900px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .features-grid { grid-template-columns: 1fr; } }
+
+    .feature-card {
+      background: var(--cream-04);
+      border: 1px solid var(--cream-08);
+      padding: 44px 36px;
+      cursor: default;
+      transform-style: preserve-3d;
+      transition: border-color 0.3s;
+      will-change: transform;
+    }
+
+    .feature-card:hover { border-color: var(--cream-15); }
+
+    .feature-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      background: var(--cream-08);
+      border: 1px solid var(--cream-15);
+      display: flex; align-items: center; justify-content: center;
       margin-bottom: 28px;
     }
 
-    h1 {
-      font-size: clamp(2.4rem, 6vw, 4rem);
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -1.5px;
-      margin-bottom: 24px;
+    .feature-icon svg { width: 22px; height: 22px; color: var(--cream); }
+
+    .feature-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--cream-40);
+      text-transform: uppercase;
+      margin-bottom: 12px;
     }
 
-    h1 em {
-      font-style: normal;
-      background: linear-gradient(135deg, #6c63ff 0%, #a29bfe 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .feature-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      margin-bottom: 12px;
     }
 
-    .description {
-      font-size: 1.15rem;
+    .feature-desc {
+      font-size: 0.87rem;
+      color: var(--cream-40);
       line-height: 1.7;
-      color: rgba(255, 255, 255, 0.55);
-      margin-bottom: 44px;
-      max-width: 520px;
-      margin-left: auto;
-      margin-right: auto;
     }
 
-    .cta {
-      display: inline-block;
-      background: #6c63ff;
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 600;
-      padding: 16px 36px;
-      border-radius: 12px;
+    /* ─── PRICING ─── */
+    .pricing {
+      padding: 120px 48px;
+      border-top: 1px solid var(--cream-08);
+    }
+
+    @media (max-width: 768px) { .pricing { padding: 80px 24px; } }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      margin-top: 64px;
+    }
+
+    @media (max-width: 860px) { .pricing-grid { grid-template-columns: 1fr; max-width: 420px; } }
+
+    .plan {
+      padding: 44px 36px;
+      background: var(--cream-04);
+      border: 1px solid var(--cream-08);
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s;
+    }
+
+    .plan:hover { border-color: var(--cream-15); }
+
+    .plan.featured {
+      background: var(--cream);
+      color: var(--bg);
+      border-color: var(--cream);
+    }
+
+    .plan-tier {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.5;
+      margin-bottom: 32px;
+    }
+
+    .plan.featured .plan-tier { opacity: 0.45; }
+
+    .plan-price-wrap { margin-bottom: 32px; }
+
+    .plan-price {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -3px;
+      line-height: 1;
+    }
+
+    .plan-price sup {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      vertical-align: super;
+    }
+
+    .plan-period {
+      font-size: 0.8rem;
+      opacity: 0.4;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .plan-divider {
+      height: 1px;
+      background: currentColor;
+      opacity: 0.1;
+      margin-bottom: 28px;
+    }
+
+    .plan-features {
+      list-style: none;
+      flex: 1;
+      margin-bottom: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+
+    .plan-features li {
+      font-size: 0.88rem;
+      opacity: 0.75;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.4;
+    }
+
+    .plan-features li::before {
+      content: '—';
+      opacity: 0.4;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .plan-btn-wrap { margin-top: auto; }
+
+    .plan .btn-outline-sm {
+      display: block;
+      text-align: center;
+      padding: 14px 24px;
+      border-radius: 100px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
       text-decoration: none;
-      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 4px 24px rgba(108, 99, 255, 0.35);
+      border: 1.5px solid var(--cream-40);
+      color: var(--cream);
+      background: transparent;
+      transition: border-color 0.2s, background 0.2s;
     }
 
-    .cta:hover {
-      background: #7c74ff;
-      transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(108, 99, 255, 0.5);
+    .plan .btn-outline-sm:hover {
+      border-color: var(--cream);
+      background: var(--cream-08);
     }
 
-    .cta:active {
+    .plan.featured .btn-dark {
+      display: block;
+      text-align: center;
+      padding: 14px 24px;
+      border-radius: 100px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      background: var(--bg);
+      color: var(--cream);
+      border: none;
+      transition: opacity 0.2s;
+    }
+
+    .plan.featured .btn-dark:hover { opacity: 0.8; }
+
+    /* ─── CTA SECTION ─── */
+    .cta-section {
+      padding: 160px 48px;
+      text-align: center;
+      border-top: 1px solid var(--cream-08);
+    }
+
+    @media (max-width: 768px) { .cta-section { padding: 100px 24px; } }
+
+    .cta-section .cta-title {
+      font-size: clamp(2.8rem, 7vw, 6.5rem);
+      font-weight: 800;
+      letter-spacing: -3px;
+      line-height: 1;
+      margin-bottom: 48px;
+    }
+
+    .cta-section .cta-title em {
+      font-style: italic;
+      font-weight: 300;
+    }
+
+    .cta-btns {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      border-top: 1px solid var(--cream-08);
+      padding: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    @media (max-width: 640px) {
+      footer { flex-direction: column; align-items: flex-start; padding: 36px 24px; }
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--cream);
+    }
+
+    .footer-logo-text {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .footer-logo-text span { opacity: 0.45; }
+
+    .footer-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-size: 0.82rem;
+      color: var(--cream-40);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--cream); }
+
+    .footer-copy {
+      font-size: 0.78rem;
+      color: var(--cream-40);
+    }
+
+    /* ─── FADE-IN ─── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
       transform: translateY(0);
     }
 
-    /* Modal */
+    /* ─── MODAL ─── */
     .modal-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 100;
+      background: rgba(10,8,6,0.88);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 200;
       align-items: center;
       justify-content: center;
       padding: 20px;
@@ -142,141 +675,74 @@
     .modal-overlay.open { display: flex; }
 
     .modal {
-      background: #0f0f17;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 28px;
-      padding: 40px;
+      background: #13110e;
+      border: 1px solid var(--cream-15);
+      border-radius: 24px;
+      padding: 44px;
       width: 100%;
-      max-width: 540px;
+      max-width: 560px;
       max-height: 92vh;
       overflow-y: auto;
       position: relative;
-      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(108, 99, 255, 0.08);
+      box-shadow: 0 48px 120px rgba(0,0,0,0.8);
       scrollbar-width: thin;
-      scrollbar-color: rgba(108, 99, 255, 0.2) transparent;
-      animation: modalIn 0.28s cubic-bezier(0.34, 1.3, 0.64, 1);
+      scrollbar-color: var(--cream-15) transparent;
+      animation: modalIn 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
     }
 
     @keyframes modalIn {
-      from { opacity: 0; transform: translateY(20px) scale(0.96); }
+      from { opacity: 0; transform: translateY(24px) scale(0.96); }
       to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    @media (max-width: 580px) {
-      .modal { padding: 32px 24px; border-radius: 20px; }
-    }
+    @media (max-width: 580px) { .modal { padding: 32px 24px; border-radius: 20px; } }
 
     .modal-close {
       position: absolute;
-      top: 16px;
-      right: 16px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      top: 18px; right: 18px;
+      background: var(--cream-08);
+      border: 1px solid var(--cream-08);
       border-radius: 50%;
-      width: 36px;
-      height: 36px;
+      width: 36px; height: 36px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: rgba(255, 255, 255, 0.4);
-      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--cream-40);
+      transition: background 0.2s, color 0.2s;
     }
 
-    .modal-close:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.18);
-      color: #fff;
-    }
-
-    .modal-close svg { width: 15px; height: 15px; }
-
-    .modal-header {
-      margin-bottom: 28px;
-      padding-right: 32px;
-    }
+    .modal-close:hover { background: var(--cream-15); color: var(--cream); }
+    .modal-close svg { width: 14px; height: 14px; }
 
     .modal-eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(108, 99, 255, 0.12);
-      border: 1px solid rgba(108, 99, 255, 0.25);
-      color: #a29bfe;
-      font-size: 0.72rem;
+      background: var(--cream-08);
+      border: 1px solid var(--cream-15);
+      color: var(--cream-70);
+      font-size: 0.7rem;
       font-weight: 700;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      padding: 4px 10px;
-      border-radius: 99px;
-      margin-bottom: 14px;
-    }
-
-    .modal h3 {
-      font-size: 1.6rem;
-      font-weight: 800;
-      letter-spacing: -0.6px;
-      margin-bottom: 6px;
-      line-height: 1.15;
-    }
-
-    .modal-subtitle {
-      font-size: 0.88rem;
-      color: rgba(255, 255, 255, 0.4);
-      line-height: 1.6;
-    }
-
-    /* Form */
-    .form-group {
+      padding: 5px 12px;
+      border-radius: 100px;
       margin-bottom: 16px;
     }
 
-    .form-group label {
-      display: block;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.45);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-bottom: 7px;
+    .modal h3 {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      margin-bottom: 6px;
+      line-height: 1.1;
+      padding-right: 36px;
     }
 
-    .form-group input,
-    .form-group textarea {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1.5px solid rgba(255, 255, 255, 0.09);
-      border-radius: 12px;
-      padding: 13px 16px;
-      color: #f0f0f0;
-      font-size: 0.95rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    .modal-subtitle {
+      font-size: 0.87rem;
+      color: var(--cream-40);
       line-height: 1.6;
-    }
-
-    .form-group input::placeholder,
-    .form-group textarea::placeholder {
-      color: rgba(255, 255, 255, 0.18);
-    }
-
-    .form-group input:hover,
-    .form-group textarea:hover {
-      border-color: rgba(255, 255, 255, 0.16);
-      background: rgba(255, 255, 255, 0.055);
-    }
-
-    .form-group input:focus,
-    .form-group textarea:focus {
-      border-color: rgba(108, 99, 255, 0.65);
-      background: rgba(108, 99, 255, 0.04);
-      box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.1);
-    }
-
-    .form-group textarea {
-      resize: vertical;
-      min-height: 110px;
+      margin-bottom: 32px;
     }
 
     .form-row {
@@ -285,68 +751,91 @@
       gap: 12px;
     }
 
-    @media (max-width: 480px) {
-      .form-row { grid-template-columns: 1fr; }
+    @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+
+    .form-group { margin-bottom: 14px; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--cream-40);
+      margin-bottom: 7px;
     }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      background: var(--cream-04);
+      border: 1.5px solid var(--cream-08);
+      border-radius: 10px;
+      padding: 13px 16px;
+      color: var(--cream);
+      font-size: 0.93rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      line-height: 1.6;
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: var(--cream-15); }
+
+    .form-group input:hover,
+    .form-group textarea:hover { border-color: var(--cream-15); }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      border-color: var(--cream-40);
+      background: var(--cream-08);
+      box-shadow: 0 0 0 3px rgba(240,236,228,0.06);
+    }
+
+    .form-group textarea { resize: vertical; min-height: 110px; }
 
     .form-submit {
       width: 100%;
-      margin-top: 10px;
-      padding: 15px;
-      background: #6c63ff;
-      color: #fff;
-      font-size: 0.97rem;
+      margin-top: 8px;
+      padding: 16px;
+      background: var(--cream);
+      color: var(--bg);
+      font-size: 0.95rem;
       font-weight: 700;
       font-family: inherit;
       border: none;
-      border-radius: 14px;
+      border-radius: 100px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       gap: 10px;
-      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 4px 20px rgba(108, 99, 255, 0.4);
+      transition: opacity 0.2s, transform 0.15s;
     }
 
-    .form-submit:hover {
-      background: #7c74ff;
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(108, 99, 255, 0.55);
-    }
-
+    .form-submit:hover { opacity: 0.88; transform: translateY(-1px); }
     .form-submit:active { transform: translateY(0); }
-
-    .form-submit:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-      transform: none;
-    }
+    .form-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
     .spinner {
       display: none;
-      width: 18px;
-      height: 18px;
-      border: 2.5px solid rgba(255, 255, 255, 0.3);
-      border-top-color: #fff;
+      width: 17px; height: 17px;
+      border: 2px solid rgba(10,8,6,0.25);
+      border-top-color: var(--bg);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       flex-shrink: 0;
     }
 
     .form-submit.loading .spinner { display: block; }
-    .form-submit.loading .btn-text { opacity: 0.85; }
+    .form-submit.loading .btn-text { opacity: 0.8; }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Result */
     .form-success {
       display: none;
       margin-top: 28px;
       padding-top: 28px;
-      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      border-top: 1px solid var(--cream-08);
     }
 
     .form-success.visible { display: block; }
@@ -355,1154 +844,383 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .result-title {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 700;
-      color: #f0f0f0;
     }
 
     .result-title-icon {
-      width: 32px;
-      height: 32px;
+      width: 30px; height: 30px;
       border-radius: 8px;
-      background: rgba(108, 99, 255, 0.15);
-      border: 1px solid rgba(108, 99, 255, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
+      background: var(--cream-08);
+      border: 1px solid var(--cream-15);
+      display: flex; align-items: center; justify-content: center;
     }
 
-    .result-title-icon svg { width: 16px; height: 16px; color: #a29bfe; }
+    .result-title-icon svg { width: 14px; height: 14px; color: var(--cream); }
 
     .recommendation-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 800;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      padding: 5px 12px;
-      border-radius: 99px;
-      margin-bottom: 16px;
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 14px;
     }
 
-    .recommendation-badge.buy {
-      background: rgba(34, 197, 94, 0.12);
-      border: 1px solid rgba(34, 197, 94, 0.35);
-      color: #4ade80;
-    }
-
-    .recommendation-badge.negotiate {
-      background: rgba(234, 179, 8, 0.12);
-      border: 1px solid rgba(234, 179, 8, 0.35);
-      color: #facc15;
-    }
-
-    .recommendation-badge.skip {
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.35);
-      color: #f87171;
-    }
+    .recommendation-badge.buy   { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; }
+    .recommendation-badge.negotiate { background: rgba(234,179,8,0.12); border: 1px solid rgba(234,179,8,0.3); color: #facc15; }
+    .recommendation-badge.skip  { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #f87171; }
 
     .form-result {
-      background: rgba(255, 255, 255, 0.025);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      border-radius: 16px;
-      padding: 22px 24px;
-      max-height: 380px;
+      background: var(--cream-04);
+      border: 1px solid var(--cream-08);
+      border-radius: 14px;
+      padding: 20px 22px;
+      max-height: 360px;
       overflow-y: auto;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       line-height: 1.8;
-      color: rgba(255, 255, 255, 0.75);
+      color: var(--cream-70);
       scrollbar-width: thin;
-      scrollbar-color: rgba(108, 99, 255, 0.25) transparent;
+      scrollbar-color: var(--cream-15) transparent;
     }
 
     .form-result h1, .form-result h2, .form-result h3 {
-      color: #f0f0f0;
+      color: var(--cream);
       font-weight: 700;
-      margin: 18px 0 8px;
+      margin: 16px 0 8px;
       letter-spacing: -0.3px;
-      line-height: 1.3;
     }
 
-    .form-result h1 { font-size: 1.15rem; margin-top: 0; }
-    .form-result h2 { font-size: 1.02rem; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px; }
-    .form-result h3 { font-size: 0.92rem; color: #a29bfe; }
+    .form-result h1 { font-size: 1.1rem; margin-top: 0; }
+    .form-result h2 { font-size: 1rem; border-bottom: 1px solid var(--cream-08); padding-bottom: 6px; }
+    .form-result h3 { font-size: 0.9rem; opacity: 0.7; }
+    .form-result p  { margin-bottom: 10px; }
+    .form-result ul, .form-result ol { padding-left: 18px; margin-bottom: 10px; }
+    .form-result li { margin-bottom: 4px; }
+    .form-result strong { color: var(--cream); font-weight: 700; }
+    .form-result hr { border: none; border-top: 1px solid var(--cream-08); margin: 14px 0; }
 
-    .form-result p { margin-bottom: 12px; }
-
-    .form-result ul, .form-result ol {
-      padding-left: 20px;
-      margin-bottom: 12px;
-    }
-
-    .form-result li { margin-bottom: 5px; }
-
-    .form-result strong { color: #fff; font-weight: 700; }
-    .form-result em { color: rgba(255,255,255,0.6); }
-
-    .form-result hr {
-      border: none;
-      border-top: 1px solid rgba(255, 255, 255, 0.07);
-      margin: 18px 0;
-    }
-
-    .form-result code {
-      background: rgba(108, 99, 255, 0.14);
-      border-radius: 5px;
-      padding: 2px 7px;
-      font-size: 0.84em;
-      color: #a29bfe;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-    }
-
-    .form-result table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 14px;
-      font-size: 0.86rem;
-    }
-
-    .form-result th {
-      background: rgba(108, 99, 255, 0.1);
-      color: #a29bfe;
-      font-weight: 700;
-      text-align: left;
-      padding: 9px 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .form-result td {
-      padding: 8px 12px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      color: rgba(255, 255, 255, 0.72);
-    }
-
-    .form-result tr:nth-child(even) td {
-      background: rgba(255, 255, 255, 0.02);
-    }
+    .form-result table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 0.84rem; }
+    .form-result th { background: var(--cream-08); color: var(--cream); font-weight: 700; text-align: left; padding: 8px 12px; border: 1px solid var(--cream-08); }
+    .form-result td { padding: 7px 12px; border: 1px solid var(--cream-08); color: var(--cream-70); }
+    .form-result tr:nth-child(even) td { background: var(--cream-04); }
 
     .form-reset-btn {
       margin-top: 14px;
       width: 100%;
-      padding: 12px;
+      padding: 13px;
       background: transparent;
-      border: 1.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 0.88rem;
-      font-weight: 600;
+      border: 1.5px solid var(--cream-15);
+      border-radius: 100px;
+      color: var(--cream-40);
+      font-size: 0.87rem;
+      font-weight: 700;
       font-family: inherit;
       cursor: pointer;
-      transition: border-color 0.2s, color 0.2s, background 0.2s;
+      transition: border-color 0.2s, color 0.2s;
     }
 
-    .form-reset-btn:hover {
-      border-color: rgba(255, 255, 255, 0.25);
-      color: #fff;
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    /* How it works */
-    .how {
-      width: 100%;
-      max-width: 1080px;
-      padding: 100px 24px 0;
-    }
-
-    .how-header {
-      text-align: center;
-      margin-bottom: 64px;
-    }
-
-    .how-header h2 {
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      font-weight: 800;
-      letter-spacing: -1px;
-      margin-bottom: 12px;
-    }
-
-    .how-header p {
-      color: rgba(255, 255, 255, 0.45);
-      font-size: 1.05rem;
-    }
-
-    .how-steps {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr auto 1fr;
-      align-items: start;
-      gap: 0;
-    }
-
-    @media (max-width: 768px) {
-      .how-steps {
-        grid-template-columns: 1fr;
-        max-width: 400px;
-        margin: 0 auto;
-        gap: 12px;
-      }
-      .how-connector {
-        display: none;
-      }
-    }
-
-    .how-step {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 36px 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-
-    .how-step:hover {
-      border-color: rgba(108, 99, 255, 0.3);
-      transform: translateY(-4px);
-    }
-
-    .how-connector {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 8px;
-      padding-top: 52px;
-      color: rgba(108, 99, 255, 0.4);
-    }
-
-    .how-connector svg {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
-    }
-
-    .step-top {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .step-number {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: rgba(108, 99, 255, 0.15);
-      border: 1px solid rgba(108, 99, 255, 0.35);
-      color: #a29bfe;
-      font-size: 0.8rem;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      letter-spacing: 0;
-    }
-
-    .step-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: rgba(108, 99, 255, 0.12);
-      border: 1px solid rgba(108, 99, 255, 0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .step-icon svg {
-      width: 22px;
-      height: 22px;
-      color: #a29bfe;
-    }
-
-    .step-body h3 {
-      font-size: 1.05rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-      letter-spacing: -0.3px;
-    }
-
-    .step-body p {
-      font-size: 0.88rem;
-      color: rgba(255, 255, 255, 0.45);
-      line-height: 1.6;
-    }
-
-    /* Pricing */
-    .pricing {
-      width: 100%;
-      max-width: 1080px;
-      padding: 100px 24px 80px;
-    }
-
-    .pricing-header {
-      text-align: center;
-      margin-bottom: 56px;
-    }
-
-    .pricing-header h2 {
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      font-weight: 800;
-      letter-spacing: -1px;
-      margin-bottom: 12px;
-    }
-
-    .pricing-header p {
-      color: rgba(255, 255, 255, 0.45);
-      font-size: 1.05rem;
-    }
-
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
-
-    @media (max-width: 768px) {
-      .pricing-grid {
-        grid-template-columns: 1fr;
-        max-width: 400px;
-        margin: 0 auto;
-      }
-    }
-
-    .plan {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 36px 32px;
-      display: flex;
-      flex-direction: column;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-
-    .plan:hover {
-      border-color: rgba(108, 99, 255, 0.3);
-      transform: translateY(-4px);
-    }
-
-    .plan.featured {
-      background: rgba(108, 99, 255, 0.08);
-      border-color: rgba(108, 99, 255, 0.45);
-      position: relative;
-    }
-
-    .plan-badge {
-      position: absolute;
-      top: -14px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #6c63ff;
-      color: #fff;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      padding: 5px 16px;
-      border-radius: 99px;
-      white-space: nowrap;
-    }
-
-    .plan-name {
-      font-size: 1rem;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.6);
-      margin-bottom: 16px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .plan-price {
-      display: flex;
-      align-items: flex-end;
-      gap: 4px;
-      margin-bottom: 8px;
-    }
-
-    .plan-price .amount {
-      font-size: 3rem;
-      font-weight: 800;
-      line-height: 1;
-      letter-spacing: -2px;
-    }
-
-    .plan.featured .amount {
-      background: linear-gradient(135deg, #6c63ff 0%, #a29bfe 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .plan-price .currency {
-      font-size: 1.4rem;
-      font-weight: 700;
-      padding-bottom: 6px;
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    .plan-price .period {
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.35);
-      padding-bottom: 8px;
-    }
-
-    .plan-desc {
-      font-size: 0.88rem;
-      color: rgba(255, 255, 255, 0.4);
-      margin-bottom: 28px;
-      line-height: 1.5;
-    }
-
-    .plan-features {
-      list-style: none;
-      margin-bottom: 36px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .plan-features li {
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.7);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .plan-features li::before {
-      content: '';
-      display: block;
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-      background: rgba(108, 99, 255, 0.2);
-      border-radius: 50%;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6l3 3 5-5' stroke='%23a29bfe' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: center;
-    }
-
-    .plan-btn {
-      display: block;
-      text-align: center;
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-    }
-
-    .plan-btn.outline {
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: rgba(255, 255, 255, 0.75);
-    }
-
-    .plan-btn.outline:hover {
-      border-color: rgba(255, 255, 255, 0.35);
-      color: #fff;
-    }
-
-    .plan-btn.solid {
-      background: #6c63ff;
-      color: #fff;
-      box-shadow: 0 4px 20px rgba(108, 99, 255, 0.35);
-    }
-
-    .plan-btn.solid:hover {
-      background: #7c74ff;
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(108, 99, 255, 0.5);
-    }
-
-    /* Testimonials */
-    .testimonials {
-      width: 100%;
-      max-width: 1080px;
-      padding: 0 24px 100px;
-    }
-
-    .testimonials-header {
-      text-align: center;
-      margin-bottom: 56px;
-    }
-
-    .testimonials-header h2 {
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      font-weight: 800;
-      letter-spacing: -1px;
-      margin-bottom: 12px;
-    }
-
-    .testimonials-header p {
-      color: rgba(255, 255, 255, 0.45);
-      font-size: 1.05rem;
-    }
-
-    .testimonials-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
-
-    @media (max-width: 768px) {
-      .testimonials-grid {
-        grid-template-columns: 1fr;
-        max-width: 400px;
-        margin: 0 auto;
-      }
-    }
-
-    .testimonial {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 36px 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-
-    .testimonial:hover {
-      border-color: rgba(108, 99, 255, 0.25);
-      transform: translateY(-4px);
-    }
-
-    .testimonial-stars {
-      display: flex;
-      gap: 4px;
-    }
-
-    .testimonial-stars span {
-      color: #a29bfe;
-      font-size: 1rem;
-    }
-
-    .testimonial-quote {
-      font-size: 0.97rem;
-      line-height: 1.7;
-      color: rgba(255, 255, 255, 0.7);
-      flex: 1;
-    }
-
-    .testimonial-quote::before {
-      content: '\201C';
-      color: #6c63ff;
-      font-size: 1.4rem;
-      line-height: 0;
-      vertical-align: -0.3em;
-      margin-right: 2px;
-    }
-
-    .testimonial-author {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-      padding-top: 20px;
-    }
-
-    .author-avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: rgba(108, 99, 255, 0.2);
-      border: 1px solid rgba(108, 99, 255, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #a29bfe;
-      flex-shrink: 0;
-      letter-spacing: 0.02em;
-    }
-
-    .author-info .name {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #f0f0f0;
-    }
-
-    .author-info .role {
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.35);
-      margin-top: 2px;
-    }
-
-    /* FAQ */
-    .faq {
-      width: 100%;
-      max-width: 720px;
-      padding: 100px 24px 80px;
-    }
-
-    .faq-header {
-      text-align: center;
-      margin-bottom: 56px;
-    }
-
-    .faq-header h2 {
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      font-weight: 800;
-      letter-spacing: -1px;
-      margin-bottom: 12px;
-    }
-
-    .faq-header p {
-      color: rgba(255, 255, 255, 0.45);
-      font-size: 1.05rem;
-    }
-
-    .faq-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .faq-item {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      overflow: hidden;
-      transition: border-color 0.2s;
-    }
-
-    .faq-item.open {
-      border-color: rgba(108, 99, 255, 0.35);
-    }
-
-    .faq-question {
-      width: 100%;
-      background: none;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 22px 28px;
-      text-align: left;
-      color: #f0f0f0;
-      font-size: 0.98rem;
-      font-weight: 600;
-      font-family: inherit;
-      line-height: 1.4;
-    }
-
-    .faq-question:hover {
-      color: #fff;
-    }
-
-    .faq-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: rgba(108, 99, 255, 0.12);
-      border: 1px solid rgba(108, 99, 255, 0.25);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: background 0.2s, transform 0.3s;
-    }
-
-    .faq-item.open .faq-icon {
-      background: rgba(108, 99, 255, 0.25);
-      transform: rotate(45deg);
-    }
-
-    .faq-icon svg {
-      width: 14px;
-      height: 14px;
-      color: #a29bfe;
-    }
-
-    .faq-answer {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.35s ease, padding 0.35s ease;
-      padding: 0 28px;
-    }
-
-    .faq-item.open .faq-answer {
-      max-height: 300px;
-      padding: 0 28px 22px;
-    }
-
-    .faq-answer p {
-      font-size: 0.92rem;
-      line-height: 1.75;
-      color: rgba(255, 255, 255, 0.5);
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-      padding-top: 18px;
-    }
-
-    footer {
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 64px 48px 32px;
-    }
-
-    .footer-grid {
-      max-width: 1080px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1.6fr 1fr 1fr;
-      gap: 48px;
-      margin-bottom: 48px;
-    }
-
-    @media (max-width: 768px) {
-      footer { padding: 48px 24px 28px; }
-      .footer-grid {
-        grid-template-columns: 1fr;
-        gap: 36px;
-      }
-    }
-
-    .footer-logo {
-      font-size: 1.4rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      margin-bottom: 14px;
-    }
-
-    .footer-logo span { color: #6c63ff; }
-
-    .footer-desc {
-      font-size: 0.88rem;
-      line-height: 1.7;
-      color: rgba(255, 255, 255, 0.35);
-      max-width: 260px;
-    }
-
-    .footer-col h4 {
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.35);
-      margin-bottom: 18px;
-    }
-
-    .footer-col ul {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .footer-col ul a {
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.55);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .footer-col ul a:hover { color: #fff; }
-
-    .footer-contact-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.55);
-      margin-bottom: 10px;
-    }
-
-    .footer-contact-item svg {
-      width: 15px;
-      height: 15px;
-      color: #6c63ff;
-      flex-shrink: 0;
-    }
-
-    .footer-contact-item a {
-      color: rgba(255, 255, 255, 0.55);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .footer-contact-item a:hover { color: #fff; }
-
-    .footer-bottom {
-      max-width: 1080px;
-      margin: 0 auto;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-      padding-top: 24px;
-      text-align: center;
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.2);
-    }
+    .form-reset-btn:hover { border-color: var(--cream-40); color: var(--cream); }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="logo">Prop<span>IQ</span></div>
-    <nav>
-      <a href="#">Kontakt</a>
-    </nav>
-  </header>
+  <!-- NAV -->
+  <nav id="navbar">
+    <a href="#" class="nav-logo">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0.75" y="0.75" width="24.5" height="24.5" rx="4.25" stroke="#f0ece4" stroke-width="1.5"/>
+        <rect x="4" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="14" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="4" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="14" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
+      </svg>
+      <span class="nav-logo-text">Prop<span>IQ</span></span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#kako">Kako funkcionira</a></li>
+      <li><a href="#cijene">Cijene</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <button class="nav-cta" onclick="openModal()">Pokreni analizu</button>
+  </nav>
 
-  <main>
-    <div class="hero">
-      <div class="badge">AI · Nekretnine · Investicije</div>
-      <h1>Pametnije investiraj<br>u <em>nekretnine</em></h1>
-      <p class="description">
-        PropIQ analizira tržišne podatke, lokacije i trendove u realnom vremenu
-        kako bi ti pružio jasne, pouzdane preporuke za svaku investicijsku odluku.
-      </p>
-      <button class="cta" onclick="openModal()">Počni besplatno</button>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg" id="heroBg"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1 class="hero-title">
+        AI NEKRETNINE
+        <span class="line2">Redefined.</span>
+      </h1>
+      <div class="hero-right">
+        <p class="hero-sub">AI analiza svakog oglasa u manje od 10 sekundi. Za investitore koji donose odluke brže.</p>
+        <button class="btn-primary" onclick="openModal()">Pokreni analizu</button>
+      </div>
     </div>
-    <section class="how">
-      <div class="how-header">
-        <h2>Kako funkcionira</h2>
-        <p>Tri koraka do investicijske odluke potkrijepljene podacima.</p>
-      </div>
-      <div class="how-steps">
+  </section>
 
-        <!-- Korak 1 -->
-        <div class="how-step">
-          <div class="step-top">
-            <div class="step-number">01</div>
-            <div class="step-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-              </svg>
-            </div>
-          </div>
-          <div class="step-body">
-            <h3>Uneseš Njuškalo link</h3>
-            <p>Zalijepi URL oglasa s Njuškala. PropIQ automatski preuzima sve podatke o nekretnini — bez ručnog unosa.</p>
-          </div>
-        </div>
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat fade-in">
+      <div class="stat-value">&lt;10s</div>
+      <div class="stat-label">Analiza oglasa</div>
+    </div>
+    <div class="stat fade-in" style="transition-delay:0.1s">
+      <div class="stat-value">AI</div>
+      <div class="stat-label">Powered analiza</div>
+    </div>
+    <div class="stat fade-in" style="transition-delay:0.2s">
+      <div class="stat-value">HR</div>
+      <div class="stat-label">Tržišni fokus</div>
+    </div>
+    <div class="stat fade-in" style="transition-delay:0.3s">
+      <div class="stat-value">B2B</div>
+      <div class="stat-label">Za agencije</div>
+    </div>
+  </div>
 
-        <div class="how-connector">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14M13 6l6 6-6 6"/>
-          </svg>
-        </div>
+  <!-- GALLERY -->
+  <div class="gallery">
+    <div class="gallery-img">
+      <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=900&q=85" alt="Luksuzna nekretnina" loading="lazy">
+    </div>
+    <div class="gallery-img">
+      <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=700&q=85" alt="Moderni interijer" loading="lazy">
+    </div>
+    <div class="gallery-img">
+      <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=700&q=85" alt="Moderna villa" loading="lazy">
+    </div>
+  </div>
 
-        <!-- Korak 2 -->
-        <div class="how-step">
-          <div class="step-top">
-            <div class="step-number">02</div>
-            <div class="step-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-                <path d="M11 8v6M8 11h6"/>
-              </svg>
-            </div>
-          </div>
-          <div class="step-body">
-            <h3>AI analizira lokaciju, cijenu i trendove</h3>
-            <p>Naš model uspoređuje kvadraturu, mikrolokaciju, kretanje cijena i prinos najma s tisućama sličnih transakcija.</p>
-          </div>
-        </div>
+  <!-- MARQUEE -->
+  <div class="marquee-wrap">
+    <div class="marquee-track">
+      <!-- Duplicated for seamless loop -->
+      <div class="marquee-item">PropIQ<div class="marquee-dot"></div></div>
+      <div class="marquee-item">AI Analiza<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Nekretnine<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Zagreb<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Split<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Rijeka<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Investicije<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Prinos najma<div class="marquee-dot"></div></div>
+      <div class="marquee-item">ROI<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Tržišni trendovi<div class="marquee-dot"></div></div>
+      <div class="marquee-item">PropIQ<div class="marquee-dot"></div></div>
+      <div class="marquee-item">AI Analiza<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Nekretnine<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Zagreb<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Split<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Rijeka<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Investicije<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Prinos najma<div class="marquee-dot"></div></div>
+      <div class="marquee-item">ROI<div class="marquee-dot"></div></div>
+      <div class="marquee-item">Tržišni trendovi<div class="marquee-dot"></div></div>
+    </div>
+  </div>
 
-        <div class="how-connector">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14M13 6l6 6-6 6"/>
-          </svg>
-        </div>
-
-        <!-- Korak 3 -->
-        <div class="how-step">
-          <div class="step-top">
-            <div class="step-number">03</div>
-            <div class="step-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10 9 9 9 8 9"/>
-              </svg>
-            </div>
-          </div>
-          <div class="step-body">
-            <h3>Dobivaš PDF report s preporukom</h3>
-            <p>Za nekoliko sekundi stigne kompletan izvještaj s ocjenom isplativosti, procijenjenim ROI-em i jasnom preporukom: kupi, pregovaraj ili preskoči.</p>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <section class="pricing">
-      <div class="pricing-header">
-        <h2>Jednostavne cijene,<br>bez iznenađenja</h2>
-        <p>Odaberi plan koji odgovara tvojim potrebama. Otkaži kad god želiš.</p>
-      </div>
-      <div class="pricing-grid">
-
-        <!-- Free -->
-        <div class="plan">
-          <div class="plan-name">Free</div>
-          <div class="plan-price">
-            <span class="amount">0</span>
-            <span class="currency">€</span>
-          </div>
-          <p class="plan-desc">Idealno za početak i istraživanje tržišta.</p>
-          <ul class="plan-features">
-            <li>5 analiza nekretnina / mj.</li>
-            <li>Osnovna tržišna izvješća</li>
-            <li>Pregled ROI kalkulatora</li>
-            <li>Email podrška</li>
-          </ul>
-          <button class="plan-btn outline" onclick="openModal()">Počni besplatno</button>
-        </div>
-
-        <!-- Pro -->
-        <div class="plan featured">
-          <div class="plan-badge">Najpopularnije</div>
-          <div class="plan-name">Pro</div>
-          <div class="plan-price">
-            <span class="currency">€</span>
-            <span class="amount">49</span>
-            <span class="period">/mj.</span>
-          </div>
-          <p class="plan-desc">Za ozbiljne investitore koji žele pune uvide.</p>
-          <ul class="plan-features">
-            <li>Neograničene analize</li>
-            <li>AI preporuke u realnom vremenu</li>
-            <li>Napredni trendovi i predviđanja</li>
-            <li>Portfelj praćenje</li>
-            <li>Prioritetna podrška</li>
-          </ul>
-          <a href="#" class="plan-btn solid">Kreni s Pro</a>
-        </div>
-
-        <!-- Agency -->
-        <div class="plan">
-          <div class="plan-name">Agency</div>
-          <div class="plan-price">
-            <span class="currency">€</span>
-            <span class="amount">199</span>
-            <span class="period">/mj.</span>
-          </div>
-          <p class="plan-desc">Za agencije i timove s više korisnika.</p>
-          <ul class="plan-features">
-            <li>Sve iz Pro plana</li>
-            <li>Do 10 korisnika</li>
-            <li>White-label izvješća</li>
-            <li>API pristup</li>
-            <li>Dedicirani account manager</li>
-          </ul>
-          <a href="#" class="plan-btn outline">Kontaktiraj nas</a>
-        </div>
-
-      </div>
-    </section>
-    <section class="testimonials">
-      <div class="testimonials-header">
-        <h2>Što kažu naši korisnici</h2>
-        <p>Agencije diljem Hrvatske već donose bolje odluke uz PropIQ.</p>
-      </div>
-      <div class="testimonials-grid">
-
-        <div class="testimonial">
-          <div class="testimonial-stars">
-            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-          </div>
-          <p class="testimonial-quote">
-            PropIQ nam je skratio proces procjene investicijske isplativosti s tjedana na nekoliko sati. AI preporuke su iznenađujuće precizne — već na prvom projektu smo izbjegli skupu pogrešku.
-          </p>
-          <div class="testimonial-author">
-            <div class="author-avatar">MK</div>
-            <div class="author-info">
-              <div class="name">Marko Kovačević</div>
-              <div class="role">Direktor, Adriatic Estates d.o.o. · Split</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="testimonial">
-          <div class="testimonial-stars">
-            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-          </div>
-          <p class="testimonial-quote">
-            Kao agencija koja radi s inozemnim kupcima, trebali smo alat koji brzo daje usporedive podatke. PropIQ je točno to — naši agenti sada dolaze na sastanke s konkretnim brojevima.
-          </p>
-          <div class="testimonial-author">
-            <div class="author-avatar">IH</div>
-            <div class="author-info">
-              <div class="name">Ivana Horvat</div>
-              <div class="role">Suosnivačica, Jadran Invest · Rijeka</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="testimonial">
-          <div class="testimonial-stars">
-            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-          </div>
-          <p class="testimonial-quote">
-            Koristimo Agency plan s cijelim timom od 7 agenata. White-label izvješća su nam postala standardni dio ponude klijentima. Povrat na investiciju osjetili smo već u prvom mjesecu.
-          </p>
-          <div class="testimonial-author">
-            <div class="author-avatar">TP</div>
-            <div class="author-info">
-              <div class="name">Tomislav Perić</div>
-              <div class="role">Vlasnik, Kapital Nekretnine · Zagreb</div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-    <section class="faq">
-      <div class="faq-header">
-        <h2>Česta pitanja</h2>
-        <p>Sve što te zanima o PropIQ-u na jednom mjestu.</p>
-      </div>
-      <div class="faq-list">
-
-        <div class="faq-item">
-          <button class="faq-question">
-            Kako PropIQ dobiva podatke?
-            <span class="faq-icon">
-              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/>
-              </svg>
-            </span>
-          </button>
-          <div class="faq-answer">
-            <p>PropIQ kombinira javno dostupne oglase nekretnina, službene podatke Državnog zavoda za statistiku, zemljišnoknjižne evidencije i vlastitu bazu povijesnih transakcija. Sve izvore ažuriramo svakodnevno kako bi analize bile što svježije.</p>
-          </div>
-        </div>
-
-        <div class="faq-item">
-          <button class="faq-question">
-            Radi li PropIQ s Njuškalom?
-            <span class="faq-icon">
-              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/>
-              </svg>
-            </span>
-          </button>
-          <div class="faq-answer">
-            <p>Da. Dovoljno je zalijepiti URL oglasa s Njuškala — PropIQ automatski preuzima sve relevantne podatke o nekretnini i odmah kreće s analizom. Podržavamo i oglase s Crozille i Index Oglasnika.</p>
-          </div>
-        </div>
-
-        <div class="faq-item">
-          <button class="faq-question">
-            Koliko traje analiza?
-            <span class="faq-icon">
-              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/>
-              </svg>
-            </span>
-          </button>
-          <div class="faq-answer">
-            <p>Prosječna analiza završava za 20–40 sekundi. U tom vremenu AI prolazi kroz mikrolokaciju, usporedne prodaje, procijenjeni prinos najma i tržišne trendove te generira kompletan PDF izvještaj spreman za preuzimanje ili slanje klijentu.</p>
-          </div>
-        </div>
-
-        <div class="faq-item">
-          <button class="faq-question">
-            Mogu li testirati PropIQ besplatno?
-            <span class="faq-icon">
-              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/>
-              </svg>
-            </span>
-          </button>
-          <div class="faq-answer">
-            <p>Apsolutno. Free plan uključuje 5 potpunih analiza svaki mjesec bez unosa kartice. Možeš testirati sve funkcionalnosti i uvjeriti se u kvalitetu izvještaja prije nego se odlučiš za plaćeni plan.</p>
-          </div>
-        </div>
-
-        <div class="faq-item">
-          <button class="faq-question">
-            Je li PropIQ siguran za podatke mojih klijenata?
-            <span class="faq-icon">
-              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/>
-              </svg>
-            </span>
-          </button>
-          <div class="faq-answer">
-            <p>Da. PropIQ je usklađen s GDPR regulativom i pohranjen na EU serverima. Podaci se prenose isključivo šifriranim kanalima (TLS 1.3), a osobni podaci klijenata nikad ne napuštaju tvoj račun niti se dijele s trećim stranama.</p>
-          </div>
-        </div>
-
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <div class="footer-grid">
-
+  <!-- FEATURES -->
+  <section class="features" id="kako">
+    <div class="section-header fade-in">
       <div>
-        <div class="footer-logo">Prop<span>IQ</span></div>
-        <p class="footer-desc">AI platforma koja analizira isplativost nekretnina u realnom vremenu — za investitore i agencije koje donose odluke temeljene na podacima.</p>
+        <div class="section-label">Mogućnosti</div>
+        <h2 class="section-title">Sve što trebate<br>za pametno investiranje</h2>
       </div>
+      <p class="section-desc">Šest alata koji mijenjaju način na koji agencije i investitori procjenjuju nekretnine.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card fade-in">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+          </svg>
+        </div>
+        <div class="feature-num">01</div>
+        <div class="feature-title">Instant analiza</div>
+        <p class="feature-desc">Rezultati za manje od 10 sekundi. Unesite tekst oglasa i dobijte kompletnu investicijsku procjenu.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.08s">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </div>
+        <div class="feature-num">02</div>
+        <div class="feature-title">Njuškalo integracija</div>
+        <p class="feature-desc">Kopirajte tekst oglasa direktno s Njuškala. Bez API-ja, bez tehničkog znanja.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.16s">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </div>
+        <div class="feature-num">03</div>
+        <div class="feature-title">ROI kalkulator</div>
+        <p class="feature-desc">Procijenjeni prinos najma, godišnji ROI i usporedba s tržišnim prosjekom za lokaciju.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.24s">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <div class="feature-num">04</div>
+        <div class="feature-title">PDF izvještaj</div>
+        <p class="feature-desc">Brendirani izvještaj koji možete odmah podijeliti s klijentima. White-label u Agency planu.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.32s">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+        <div class="feature-num">05</div>
+        <div class="feature-title">Tržišni trendovi</div>
+        <p class="feature-desc">Kretanje cijena po mikrolokaciji, potražnja i predviđanja temeljena na stvarnim transakcijama.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.4s">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div class="feature-num">06</div>
+        <div class="feature-title">GDPR sigurnost</div>
+        <p class="feature-desc">Podaci se obrađuju isključivo na EU serverima. Usklađeno s GDPR regulativom. TLS 1.3.</p>
+      </div>
+    </div>
+  </section>
 
-      <div class="footer-col">
-        <h4>Navigacija</h4>
-        <ul>
-          <li><a href="#">Početna</a></li>
-          <li><a href="#">Kako funkcionira</a></li>
-          <li><a href="#">Cijene</a></li>
-          <li><a href="#">FAQ</a></li>
+  <!-- PRICING -->
+  <section class="pricing" id="cijene">
+    <div class="section-header fade-in">
+      <div>
+        <div class="section-label">Cijene</div>
+        <h2 class="section-title">Jednostavno.<br>Transparentno.</h2>
+      </div>
+      <p class="section-desc">Bez skrivenih naknada. Otkaži bilo kad. Počni besplatno bez kartice.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="plan fade-in">
+        <div class="plan-tier">Free</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price"><sup>€</sup>0</div>
+          <div class="plan-period">zauvijek</div>
+        </div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li>5 analiza nekretnina / mj.</li>
+          <li>Osnovna tržišna izvješća</li>
+          <li>ROI kalkulator</li>
+          <li>Email podrška</li>
         </ul>
-      </div>
-
-      <div class="footer-col">
-        <h4>Kontakt</h4>
-        <div class="footer-contact-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-          </svg>
-          <a href="mailto:info@propiq.ai">info@propiq.ai</a>
-        </div>
-        <div class="footer-contact-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/>
-          </svg>
-          <span>Zagreb, Hrvatska</span>
+        <div class="plan-btn-wrap">
+          <button class="btn-outline-sm" onclick="openModal()">Počni besplatno</button>
         </div>
       </div>
+      <div class="plan featured fade-in" style="transition-delay:0.1s">
+        <div class="plan-tier">Pro — Najpopularnije</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price"><sup>€</sup>49</div>
+          <div class="plan-period">po mjesecu</div>
+        </div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li>Neograničene analize</li>
+          <li>AI preporuke u realnom vremenu</li>
+          <li>Napredni trendovi i predviđanja</li>
+          <li>Portfelj praćenje</li>
+          <li>Prioritetna podrška</li>
+        </ul>
+        <div class="plan-btn-wrap">
+          <button class="btn-dark" onclick="openModal()">Kreni s Pro</button>
+        </div>
+      </div>
+      <div class="plan fade-in" style="transition-delay:0.2s">
+        <div class="plan-tier">Agency</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price"><sup>€</sup>199</div>
+          <div class="plan-period">po mjesecu</div>
+        </div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li>Sve iz Pro plana</li>
+          <li>Do 10 korisnika</li>
+          <li>White-label izvješća</li>
+          <li>API pristup</li>
+          <li>Dedicirani account manager</li>
+        </ul>
+        <div class="plan-btn-wrap">
+          <button class="btn-outline-sm" onclick="openModal()">Kontaktiraj nas</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- CTA -->
+  <section class="cta-section fade-in">
+    <p class="cta-title">Počnite analizirati<br><em>danas.</em></p>
+    <div class="cta-btns">
+      <button class="btn-primary" onclick="openModal()">Pokreni prvu analizu</button>
+      <a href="mailto:info@propiq.ai" class="btn-outline">Kontaktirajte nas</a>
     </div>
-    <div class="footer-bottom">
-      &copy; 2026 PropIQ. Sva prava pridržana.
-    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer id="faq">
+    <a href="#" class="footer-logo">
+      <svg width="22" height="22" viewBox="0 0 26 26" fill="none">
+        <rect x="0.75" y="0.75" width="24.5" height="24.5" rx="4.25" stroke="#f0ece4" stroke-width="1.5"/>
+        <rect x="4" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="14" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="4" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="14" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
+      </svg>
+      <span class="footer-logo-text">Prop<span>IQ</span></span>
+    </a>
+    <ul class="footer-links">
+      <li><a href="#kako">Kako funkcionira</a></li>
+      <li><a href="#cijene">Cijene</a></li>
+      <li><a href="mailto:info@propiq.ai">info@propiq.ai</a></li>
+    </ul>
+    <span class="footer-copy">&copy; 2026 PropIQ</span>
   </footer>
 
+  <!-- MODAL -->
   <div class="modal-overlay" id="modal" onclick="handleOverlayClick(event)">
     <div class="modal">
       <button class="modal-close" onclick="closeModal()" aria-label="Zatvori">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
-      <div class="modal-header">
-        <div class="modal-eyebrow">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
-          AI analiza nekretnine
-        </div>
-        <h3>Analiziraj oglas</h3>
-        <p class="modal-subtitle">Zalijepite tekst oglasa i dobijte AI analizu isplativosti u sekundi.</p>
+      <div class="modal-eyebrow">
+        <svg width="7" height="7" viewBox="0 0 7 7" fill="currentColor"><circle cx="3.5" cy="3.5" r="3.5"/></svg>
+        AI analiza nekretnine
       </div>
+      <h3>Analiziraj oglas</h3>
+      <p class="modal-subtitle">Zalijepite tekst oglasa i dobijte AI analizu isplativosti u sekundi.</p>
       <form id="zahtjev-form">
         <div class="form-row">
           <div class="form-group">
@@ -1547,6 +1265,46 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
+    // ── NAV scroll ──
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 40);
+    }, { passive: true });
+
+    // ── Hero parallax ──
+    const heroBg = document.getElementById('heroBg');
+    window.addEventListener('scroll', () => {
+      heroBg.style.transform = `translateY(${window.scrollY * 0.38}px)`;
+    }, { passive: true });
+
+    // ── Scroll fade-in ──
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // ── 3D Tilt ──
+    document.querySelectorAll('.feature-card').forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const r = card.getBoundingClientRect();
+        const x = e.clientX - r.left - r.width / 2;
+        const y = e.clientY - r.top - r.height / 2;
+        const rotX = -(y / r.height) * 22;
+        const rotY =  (x / r.width)  * 22;
+        const sx   =  (x / r.width)  * 18;
+        const sy   =  (y / r.height) * 18;
+        card.style.transition = 'transform 0.08s ease, box-shadow 0.08s ease';
+        card.style.transform  = `perspective(500px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.02)`;
+        card.style.boxShadow  = `${sx}px ${sy}px 40px rgba(0,0,0,0.55)`;
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transition = 'transform 0.55s ease, box-shadow 0.55s ease';
+        card.style.transform  = 'perspective(500px) rotateX(0deg) rotateY(0deg) scale(1)';
+        card.style.boxShadow  = '';
+      });
+    });
+
+    // ── Modal ──
     function openModal() {
       document.getElementById('modal').classList.add('open');
       document.body.style.overflow = 'hidden';
@@ -1560,17 +1318,6 @@
       document.getElementById('form-success').classList.remove('visible');
       document.getElementById('recommendation-badge').innerHTML = '';
       document.getElementById('form-result').innerHTML = '';
-    }
-
-    function detectRecommendation(text) {
-      const t = text.toUpperCase();
-      if (/KUPI|KUPITI|PREPORUČAMO KUPNJU|IZVRSNA INVESTICIJA|IZVRSNA PRILIKA/.test(t))
-        return { cls: 'buy', icon: '✓', label: 'Preporuka: Kupi' };
-      if (/PREGOVARAJ|PREGOVOR|RAZMOTRITI|UVJETNO|MOGUĆE/.test(t))
-        return { cls: 'negotiate', icon: '◎', label: 'Preporuka: Pregovaraj' };
-      if (/PRESKOČI|PRESKOČITI|IZBJEGNI|IZBJEGAVATI|NIJE PREPORUČLJIVO|LOŠA INVESTICIJA/.test(t))
-        return { cls: 'skip', icon: '✕', label: 'Preporuka: Preskoči' };
-      return null;
     }
 
     function closeModal() {
@@ -1587,6 +1334,18 @@
       if (e.key === 'Escape') closeModal();
     });
 
+    // ── Form submit ──
+    function detectRecommendation(text) {
+      const t = text.toUpperCase();
+      if (/KUPI|KUPITI|PREPORUČAMO KUPNJU|IZVRSNA INVESTICIJA|IZVRSNA PRILIKA/.test(t))
+        return { cls: 'buy', label: '✓ Preporuka: Kupi' };
+      if (/PREGOVARAJ|PREGOVOR|RAZMOTRITI|UVJETNO|MOGUĆE/.test(t))
+        return { cls: 'negotiate', label: '◎ Preporuka: Pregovaraj' };
+      if (/PRESKOČI|PRESKOČITI|IZBJEGNI|IZBJEGAVATI|NIJE PREPORUČLJIVO|LOŠA INVESTICIJA/.test(t))
+        return { cls: 'skip', label: '✕ Preporuka: Preskoči' };
+      return null;
+    }
+
     marked.use({ breaks: true, gfm: true });
 
     document.getElementById('zahtjev-form').addEventListener('submit', async function(e) {
@@ -1596,9 +1355,9 @@
       btn.classList.add('loading');
 
       const data = {
-        ime:      document.getElementById('ime').value,
-        email:    document.getElementById('email').value,
-        agencija: document.getElementById('agencija').value,
+        ime:         document.getElementById('ime').value,
+        email:       document.getElementById('email').value,
+        agencija:    document.getElementById('agencija').value,
         oglas_tekst: document.getElementById('oglas_tekst').value,
       };
 
@@ -1610,29 +1369,20 @@
           body: JSON.stringify(data),
         });
         markdownText = await res.text();
-      } catch (err) {
+      } catch {
         markdownText = '_Došlo je do greške pri dohvaćanju analize. Pokušajte ponovo._';
       }
 
       document.getElementById('form-result').innerHTML = marked.parse(markdownText);
 
       const rec = detectRecommendation(markdownText);
-      const badge = document.getElementById('recommendation-badge');
       if (rec) {
-        badge.innerHTML = `<div class="recommendation-badge ${rec.cls}">${rec.icon} ${rec.label}</div>`;
+        document.getElementById('recommendation-badge').innerHTML =
+          `<div class="recommendation-badge ${rec.cls}">${rec.label}</div>`;
       }
 
       document.getElementById('form-success').classList.add('visible');
       document.getElementById('form-success').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-
-    document.querySelectorAll('.faq-question').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const item = btn.closest('.faq-item');
-        const isOpen = item.classList.contains('open');
-        document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
-        if (!isOpen) item.classList.add('open');
-      });
     });
   </script>
 </body>
