@@ -836,6 +836,9 @@
       transform: translateY(0);
     }
 
+    /* ─── SCROLL OFFSET ─── */
+    [id] { scroll-margin-top: 80px; }
+
     /* ─── COOKIE BANNER ─── */
     .cookie-banner {
       position: fixed;
@@ -1221,9 +1224,10 @@
       <span class="nav-logo-text">Prop<span>IQ</span></span>
     </a>
     <ul class="nav-links">
-      <li><a href="#kako">Kako funkcionira</a></li>
+      <li><a href="#analiza">Analiza</a></li>
+      <li><a href="#agencije">Agencije</a></li>
       <li><a href="#cijene">Cijene</a></li>
-      <li><a href="#faq">FAQ</a></li>
+      <li><a href="#kontakt">Kontakt</a></li>
     </ul>
     <button class="nav-cta" onclick="openModal()">Pokreni analizu</button>
   </nav>
@@ -1305,7 +1309,7 @@
   </div>
 
   <!-- TESTIMONIALS -->
-  <section class="testimonials">
+  <section class="testimonials" id="agencije">
     <div class="section-header fade-in">
       <div>
         <div class="section-label">Recenzije</div>
@@ -1361,7 +1365,7 @@
   </section>
 
   <!-- FEATURES -->
-  <section class="features" id="kako">
+  <section class="features" id="analiza">
     <div class="section-header fade-in">
       <div>
         <div class="section-label">Mogućnosti</div>
@@ -1590,7 +1594,7 @@
   </section>
 
   <!-- CTA -->
-  <section class="cta-section fade-in">
+  <section class="cta-section fade-in" id="kontakt">
     <p class="cta-title">Počnite analizirati<br><em>danas.</em></p>
     <div class="cta-btns">
       <button class="btn-primary" onclick="openModal()">Pokreni prvu analizu</button>
@@ -1599,7 +1603,7 @@
   </section>
 
   <!-- FOOTER -->
-  <footer id="faq">
+  <footer>
     <a href="#" class="footer-logo">
       <svg width="22" height="22" viewBox="0 0 26 26" fill="none">
         <rect x="0.75" y="0.75" width="24.5" height="24.5" rx="4.25" stroke="#f0ece4" stroke-width="1.5"/>
@@ -1611,7 +1615,7 @@
       <span class="footer-logo-text">Prop<span>IQ</span></span>
     </a>
     <ul class="footer-links">
-      <li><a href="#kako">Kako funkcionira</a></li>
+      <li><a href="#analiza">Analiza</a></li>
       <li><a href="#cijene">Cijene</a></li>
       <li><a href="mailto:info@propiq.ai">info@propiq.ai</a></li>
     </ul>
@@ -1685,6 +1689,17 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
+    // ── Smooth scroll ──
+    document.querySelectorAll('a[href^="#"]').forEach(link => {
+      link.addEventListener('click', e => {
+        const id = link.getAttribute('href').slice(1);
+        const target = document.getElementById(id);
+        if (!target) return;
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+
     // ── Cookie banner ──
     (function() {
       if (localStorage.getItem('propiq_cookie')) {
