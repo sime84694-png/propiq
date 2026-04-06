@@ -307,6 +307,79 @@
       font-weight: 600;
     }
 
+    /* ─── HOW IT WORKS ─── */
+    .how-it-works {
+      display: grid;
+      grid-template-columns: 1fr 40px 1fr 40px 1fr;
+      align-items: start;
+      padding: 80px 48px;
+      border-bottom: 1px solid var(--cream-08);
+      gap: 0;
+    }
+
+    @media (max-width: 768px) {
+      .how-it-works {
+        grid-template-columns: 1fr;
+        padding: 64px 24px;
+        gap: 0;
+      }
+      .how-divider { display: none; }
+    }
+
+    .how-step {
+      padding: 0 40px;
+    }
+
+    .how-step:first-child { padding-left: 0; }
+    .how-step:last-child  { padding-right: 0; }
+
+    @media (max-width: 768px) {
+      .how-step {
+        padding: 32px 0;
+        border-bottom: 1px solid var(--cream-08);
+      }
+      .how-step:last-child { border-bottom: none; }
+    }
+
+    .how-divider {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 18px;
+    }
+
+    .how-divider::after {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 48px;
+      background: linear-gradient(to bottom, var(--cream-15), transparent);
+    }
+
+    .how-num {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -3px;
+      line-height: 1;
+      color: var(--cream-08);
+      margin-bottom: 20px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .how-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      margin-bottom: 10px;
+      color: var(--cream);
+    }
+
+    .how-desc {
+      font-size: 0.87rem;
+      color: var(--cream-40);
+      line-height: 1.75;
+    }
+
     /* ─── GALLERY ─── */
     .gallery {
       display: grid;
@@ -1346,6 +1419,27 @@
     <div class="stat fade-in" style="transition-delay:0.3s">
       <div class="stat-value">B2B</div>
       <div class="stat-label">Za agencije</div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="how-it-works">
+    <div class="how-step fade-in">
+      <div class="how-num">01</div>
+      <div class="how-title">Zalijepi oglas</div>
+      <p class="how-desc">Kopiraj naslov, cijenu, opis i karakteristike nekretnine s Njuškala ili drugog oglasnika. Nema potrebe za linkom ni tehničkom integracijom.</p>
+    </div>
+    <div class="how-divider"></div>
+    <div class="how-step fade-in" style="transition-delay:0.12s">
+      <div class="how-num">02</div>
+      <div class="how-title">AI analizira</div>
+      <p class="how-desc">PropIQ za manje od 10 sekundi obrađuje lokaciju, cijenu, kvadraturu i tržišne trendove te uspoređuje s tisućama sličnih transakcija.</p>
+    </div>
+    <div class="how-divider"></div>
+    <div class="how-step fade-in" style="transition-delay:0.24s">
+      <div class="how-num">03</div>
+      <div class="how-title">Dobiješ preporuku</div>
+      <p class="how-desc">Strukturirana investicijska procjena s ocjenom isplativosti, procijenjenim ROI-em i jasnom preporukom: kupi, pregovaraj ili preskoči.</p>
     </div>
   </div>
 
