@@ -212,6 +212,51 @@
       background: var(--cream-08);
     }
 
+    .live-counter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: rgba(240,236,228,0.55);
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .live-dot::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      background: #4ade80;
+      opacity: 0.35;
+      animation: pulse-dot 2s ease-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%   { transform: scale(1); opacity: 0.35; }
+      70%  { transform: scale(2.2); opacity: 0; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+
+    .counter-num {
+      display: inline-block;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .counter-num.flip {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+
     @media (max-width: 768px) {
       .hero { padding: 0 24px 48px; min-height: 100svh; }
       .hero-title { letter-spacing: -1.5px; }
@@ -1260,6 +1305,10 @@
       </h1>
       <div class="hero-right">
         <p class="hero-sub">AI analiza svakog oglasa u manje od 10 sekundi. Za investitore koji donose odluke brže.</p>
+        <div class="live-counter">
+          <span class="live-dot"></span>
+          Već <span class="counter-num" id="liveCounter">1.247</span> analiza napravljeno
+        </div>
         <button class="btn-primary" onclick="openModal()">Pokreni analizu</button>
       </div>
     </div>
@@ -1729,6 +1778,32 @@
       const banner = document.getElementById('cookieBanner');
       banner.classList.add('hidden');
     }
+
+    // ── Live counter ──
+    (function() {
+      let count = 1247;
+      const el = document.getElementById('liveCounter');
+
+      function fmt(n) {
+        return n.toLocaleString('hr-HR').replace(/\./g, '.');
+      }
+
+      function tick() {
+        const inc = Math.floor(Math.random() * 3) + 1;
+        count += inc;
+
+        el.classList.add('flip');
+        setTimeout(() => {
+          el.textContent = fmt(count);
+          el.classList.remove('flip');
+        }, 180);
+
+        const next = (Math.random() * 4000 + 3000) | 0;
+        setTimeout(tick, next);
+      }
+
+      setTimeout(tick, (Math.random() * 4000 + 3000) | 0);
+    })();
 
     // ── NAV scroll ──
     const navbar = document.getElementById('navbar');
