@@ -1037,6 +1037,106 @@
       transform: translateY(0);
     }
 
+    /* ─── EXIT INTENT ─── */
+    .exit-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10,8,6,0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 400;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .exit-overlay.open { display: flex; }
+
+    .exit-modal {
+      background: #0f0e0c;
+      border: 1px solid var(--cream-15);
+      border-radius: 24px;
+      padding: 52px 48px;
+      width: 100%;
+      max-width: 460px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 48px 120px rgba(0,0,0,0.8);
+      animation: exitIn 0.32s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+
+    @keyframes exitIn {
+      from { opacity: 0; transform: scale(0.93) translateY(16px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @media (max-width: 480px) { .exit-modal { padding: 40px 28px; } }
+
+    .exit-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: var(--cream-08);
+      border: 1px solid var(--cream-08);
+      border-radius: 50%;
+      width: 34px; height: 34px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--cream-40);
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .exit-close:hover { background: var(--cream-15); color: var(--cream); }
+    .exit-close svg { width: 14px; height: 14px; }
+
+    .exit-eyebrow {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--cream-40);
+      margin-bottom: 16px;
+    }
+
+    .exit-title {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+
+    .exit-sub {
+      font-size: 1rem;
+      color: var(--cream-70);
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+
+    .exit-cta {
+      display: block;
+      width: 100%;
+      padding: 18px;
+      background: var(--cream);
+      color: var(--bg);
+      border: none;
+      border-radius: 100px;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      margin-bottom: 14px;
+    }
+
+    .exit-cta:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .exit-note {
+      font-size: 0.75rem;
+      color: var(--cream-40);
+    }
+
     /* ─── SCROLL OFFSET ─── */
     [id] { scroll-margin-top: 80px; }
 
@@ -1918,6 +2018,22 @@
     </div>
   </div>
 
+  <!-- EXIT INTENT POPUP -->
+  <div class="exit-overlay" id="exitPopup" onclick="closeExit(event)">
+    <div class="exit-modal">
+      <button class="exit-close" onclick="dismissExit()" aria-label="Zatvori">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <div class="exit-eyebrow">Posebna ponuda</div>
+      <h2 class="exit-title">Čekaj!</h2>
+      <p class="exit-sub">Prvih 5 analiza potpuno besplatno —<br>bez kreditne kartice.</p>
+      <button class="exit-cta" onclick="dismissExit(); openModal();">Počni besplatno</button>
+      <p class="exit-note">Bez obaveza. Otkaži kad god želiš.</p>
+    </div>
+  </div>
+
   <!-- COOKIE BANNER -->
   <div class="cookie-banner" id="cookieBanner">
     <p class="cookie-text">Koristimo kolačiće za poboljšanje iskustva. Nastavkom korištenja pristajete na našu <a href="#">politiku privatnosti</a>.</p>
@@ -1939,6 +2055,36 @@
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
+
+    // ── Exit intent ──
+    (function() {
+      if (sessionStorage.getItem('propiq_exit')) return;
+
+      function showExit() {
+        sessionStorage.setItem('propiq_exit', '1');
+        document.getElementById('exitPopup').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        document.removeEventListener('mouseleave', onMouseLeave);
+      }
+
+      function onMouseLeave(e) {
+        if (e.clientY < 20) showExit();
+      }
+
+      // Small delay so it doesn't fire immediately on page load
+      setTimeout(() => {
+        document.addEventListener('mouseleave', onMouseLeave);
+      }, 3000);
+    })();
+
+    function dismissExit() {
+      document.getElementById('exitPopup').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function closeExit(e) {
+      if (e.target === document.getElementById('exitPopup')) dismissExit();
+    }
 
     // ── Cookie banner ──
     (function() {
