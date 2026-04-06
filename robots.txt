@@ -1,0 +1,4 @@
+User-agent: *
+Disallow:
+
+Sitemap: https://propiq-hr.netlify.app/sitemap.xml
