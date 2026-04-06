@@ -329,6 +329,101 @@
       to   { transform: translateX(-50%); }
     }
 
+    /* ─── TESTIMONIALS ─── */
+    .testimonials {
+      padding: 120px 48px;
+      border-top: 1px solid var(--cream-08);
+    }
+
+    @media (max-width: 768px) { .testimonials { padding: 80px 24px; } }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      margin-top: 64px;
+    }
+
+    @media (max-width: 900px) { .testimonials-grid { grid-template-columns: 1fr; max-width: 480px; } }
+
+    .testimonial {
+      background: var(--cream-04);
+      border: 1px solid var(--cream-08);
+      padding: 44px 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      transition: border-color 0.3s;
+    }
+
+    .testimonial:hover { border-color: var(--cream-15); }
+
+    .testimonial-stars {
+      display: flex;
+      gap: 3px;
+    }
+
+    .testimonial-stars span {
+      font-size: 0.85rem;
+      color: var(--cream-40);
+    }
+
+    .testimonial-quote {
+      font-size: 1rem;
+      line-height: 1.75;
+      color: var(--cream-70);
+      flex: 1;
+      font-style: italic;
+      position: relative;
+    }
+
+    .testimonial-quote::before {
+      content: '\201C';
+      font-size: 3rem;
+      line-height: 0;
+      vertical-align: -0.55em;
+      color: var(--cream-15);
+      font-style: normal;
+      margin-right: 2px;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-top: 24px;
+      border-top: 1px solid var(--cream-08);
+    }
+
+    .author-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: var(--cream-08);
+      border: 1px solid var(--cream-15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--cream-70);
+      flex-shrink: 0;
+      letter-spacing: 0.03em;
+    }
+
+    .author-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--cream);
+      margin-bottom: 3px;
+    }
+
+    .author-role {
+      font-size: 0.78rem;
+      color: var(--cream-40);
+      line-height: 1.4;
+    }
+
     /* ─── FEATURES ─── */
     .features {
       padding: 120px 48px;
@@ -1032,6 +1127,62 @@
       <div class="marquee-item">Tržišni trendovi<div class="marquee-dot"></div></div>
     </div>
   </div>
+
+  <!-- TESTIMONIALS -->
+  <section class="testimonials">
+    <div class="section-header fade-in">
+      <div>
+        <div class="section-label">Recenzije</div>
+        <h2 class="section-title">Što kažu naši<br>korisnici</h2>
+      </div>
+      <p class="section-desc">Agencije diljem Hrvatske već donose bolje investicijske odluke uz PropIQ.</p>
+    </div>
+    <div class="testimonials-grid">
+
+      <div class="testimonial fade-in">
+        <div class="testimonial-stars">
+          <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+        </div>
+        <p class="testimonial-quote">PropIQ nam je skratio proces procjene investicijske isplativosti s tjedana na nekoliko sati. AI preporuke su iznenađujuće precizne — već na prvom projektu smo izbjegli skupu pogrešku.</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">MK</div>
+          <div>
+            <div class="author-name">Marko Kovačević</div>
+            <div class="author-role">Direktor prodaje · Adriatic Estates d.o.o., Split</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testimonial fade-in" style="transition-delay:0.1s">
+        <div class="testimonial-stars">
+          <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+        </div>
+        <p class="testimonial-quote">Radimo s inozemnim kupcima koji traže konkretne brojke odmah. PropIQ nam daje upravo to — naši agenti dolaze na sastanke s preciznim podacima umjesto pretpostavki.</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">IH</div>
+          <div>
+            <div class="author-name">Ivana Horvat</div>
+            <div class="author-role">Suosnivačica · Jadran Invest d.o.o., Rijeka</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testimonial fade-in" style="transition-delay:0.2s">
+        <div class="testimonial-stars">
+          <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+        </div>
+        <p class="testimonial-quote">Koristimo Agency plan s timom od sedam agenata. White-label izvješća postala su naš standardni alat u radu s klijentima. Povrat na investiciju osjetili smo već u prvom mjesecu.</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">TP</div>
+          <div>
+            <div class="author-name">Tomislav Perić</div>
+            <div class="author-role">Vlasnik · Kapital Nekretnine d.o.o., Zagreb</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
 
   <!-- FEATURES -->
   <section class="features" id="kako">
