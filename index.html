@@ -836,6 +836,99 @@
       transform: translateY(0);
     }
 
+    /* ─── COOKIE BANNER ─── */
+    .cookie-banner {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(0);
+      z-index: 300;
+      background: #111;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      width: calc(100% - 48px);
+      max-width: 780px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .cookie-banner.hidden {
+      opacity: 0;
+      transform: translateX(-50%) translateY(16px);
+      pointer-events: none;
+    }
+
+    .cookie-text {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.6;
+      flex: 1;
+    }
+
+    .cookie-text a {
+      color: rgba(255,255,255,0.85);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .cookie-text a:hover { color: #fff; }
+
+    .cookie-btns {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .cookie-accept {
+      background: var(--cream);
+      color: var(--bg);
+      border: none;
+      padding: 10px 22px;
+      border-radius: 100px;
+      font-size: 0.83rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .cookie-accept:hover { opacity: 0.85; }
+
+    .cookie-decline {
+      background: transparent;
+      color: rgba(255,255,255,0.55);
+      border: 1.5px solid rgba(255,255,255,0.15);
+      padding: 10px 22px;
+      border-radius: 100px;
+      font-size: 0.83rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+
+    .cookie-decline:hover {
+      border-color: rgba(255,255,255,0.35);
+      color: #fff;
+    }
+
+    @media (max-width: 600px) {
+      .cookie-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        bottom: 16px;
+        width: calc(100% - 32px);
+      }
+      .cookie-btns { width: 100%; }
+      .cookie-accept, .cookie-decline { flex: 1; text-align: center; }
+    }
+
     /* ─── MODAL ─── */
     .modal-overlay {
       display: none;
@@ -1581,8 +1674,30 @@
     </div>
   </div>
 
+  <!-- COOKIE BANNER -->
+  <div class="cookie-banner" id="cookieBanner">
+    <p class="cookie-text">Koristimo kolačiće za poboljšanje iskustva. Nastavkom korištenja pristajete na našu <a href="#">politiku privatnosti</a>.</p>
+    <div class="cookie-btns">
+      <button class="cookie-accept" onclick="cookieConsent('accept')">Prihvati sve</button>
+      <button class="cookie-decline" onclick="cookieConsent('decline')">Odbij</button>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
+    // ── Cookie banner ──
+    (function() {
+      if (localStorage.getItem('propiq_cookie')) {
+        document.getElementById('cookieBanner').classList.add('hidden');
+      }
+    })();
+
+    function cookieConsent(choice) {
+      localStorage.setItem('propiq_cookie', choice);
+      const banner = document.getElementById('cookieBanner');
+      banner.classList.add('hidden');
+    }
+
     // ── NAV scroll ──
     const navbar = document.getElementById('navbar');
     window.addEventListener('scroll', () => {
