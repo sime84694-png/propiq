@@ -2339,17 +2339,6 @@
         markdownText = '_Došlo je do greške pri dohvaćanju analize. Pokušajte ponovo._';
       }
 
-      document.getElementById('form-result').innerHTML = marked.parse(markdownText);
-
-      const rec = detectRecommendation(markdownText);
-      if (rec) {
-        document.getElementById('recommendation-badge').innerHTML =
-          `<div class="recommendation-badge ${rec.cls}">${rec.label}</div>`;
-      }
-
-      document.getElementById('form-success').classList.add('visible');
-      document.getElementById('form-success').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
       // Email notifikacija korisniku putem Formspree
       const agencija = data.agencija ? ` (${data.agencija})` : '';
       fetch('https://formspree.io/f/mjgpakbd', {
@@ -2363,6 +2352,8 @@
           _replyto: data.email,
         }),
       }).catch(() => {});
+
+      window.location.href = 'thank-you.html';
     });
   </script>
 </body>
