@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — PropIQ</title>
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #0a0806;
+      color: #f0ece4;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      padding: 28px 48px;
+      border-bottom: 1px solid rgba(240,236,228,0.08);
+      position: relative;
+      z-index: 2;
+    }
+
+    @media (max-width: 600px) { header { padding: 22px 24px; } }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #f0ece4;
+    }
+
+    .logo-text {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-text span { opacity: 0.45; }
+
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      position: relative;
+    }
+
+    .bg-num {
+      position: absolute;
+      font-size: clamp(180px, 38vw, 420px);
+      font-weight: 800;
+      letter-spacing: -16px;
+      color: rgba(240,236,228,0.03);
+      line-height: 1;
+      user-select: none;
+      pointer-events: none;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+    }
+
+    .card {
+      text-align: center;
+      max-width: 440px;
+      width: 100%;
+      position: relative;
+      z-index: 2;
+      animation: fadeUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .error-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(240,236,228,0.3);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.05;
+      margin-bottom: 16px;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: rgba(240,236,228,0.45);
+      line-height: 1.7;
+      margin-bottom: 44px;
+    }
+
+    .back-btn {
+      display: inline-block;
+      background: #f0ece4;
+      color: #0a0806;
+      border: none;
+      padding: 18px 48px;
+      border-radius: 100px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: inherit;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+
+    .back-btn:hover { opacity: 0.88; transform: translateY(-2px); }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 0.78rem;
+      color: rgba(240,236,228,0.2);
+      border-top: 1px solid rgba(240,236,228,0.06);
+      position: relative;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="index.html" class="logo">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <rect x="0.75" y="0.75" width="24.5" height="24.5" rx="4.25" stroke="#f0ece4" stroke-width="1.5"/>
+        <rect x="4" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="14" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="4" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="14" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
+      </svg>
+      <span class="logo-text">Prop<span>IQ</span></span>
+    </a>
+  </header>
+
+  <main>
+    <div class="bg-num">404</div>
+    <div class="card">
+      <p class="error-label">Greška 404</p>
+      <h1>Stranica nije<br>pronađena</h1>
+      <p class="subtitle">Ova stranica ne postoji ili je uklonjena.</p>
+      <a href="index.html" class="back-btn">Povratak na PropIQ</a>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 PropIQ. Sva prava pridržana.</footer>
+
+</body>
+</html>
