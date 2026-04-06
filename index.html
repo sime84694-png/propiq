@@ -663,6 +663,89 @@
 
     .plan.featured .btn-dark:hover { opacity: 0.8; }
 
+    /* ─── FAQ ─── */
+    .faq {
+      padding: 120px 48px;
+      border-top: 1px solid var(--cream-08);
+    }
+
+    @media (max-width: 768px) { .faq { padding: 80px 24px; } }
+
+    .faq-list {
+      margin-top: 64px;
+      max-width: 800px;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid var(--cream-08);
+      overflow: hidden;
+    }
+
+    .faq-item:first-child { border-top: 1px solid var(--cream-08); }
+
+    .faq-question {
+      width: 100%;
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 28px 0;
+      text-align: left;
+      color: var(--cream);
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      line-height: 1.4;
+      transition: opacity 0.2s;
+    }
+
+    .faq-question:hover { opacity: 0.75; }
+
+    .faq-indicator {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid var(--cream-15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.25s, border-color 0.25s, transform 0.35s;
+      color: var(--cream-70);
+    }
+
+    .faq-indicator svg { width: 12px; height: 12px; }
+
+    .faq-item.open .faq-indicator {
+      background: var(--cream);
+      border-color: var(--cream);
+      color: var(--bg);
+      transform: rotate(45deg);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                  padding 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+      padding-bottom: 0;
+    }
+
+    .faq-item.open .faq-answer {
+      max-height: 280px;
+      padding-bottom: 28px;
+    }
+
+    .faq-answer p {
+      font-size: 0.92rem;
+      line-height: 1.8;
+      color: var(--cream-40);
+      max-width: 680px;
+    }
+
     /* ─── CTA SECTION ─── */
     .cta-section {
       padding: 160px 48px;
@@ -1329,6 +1412,90 @@
     </div>
   </section>
 
+  <!-- FAQ -->
+  <section class="faq" id="faq">
+    <div class="section-header fade-in">
+      <div>
+        <div class="section-label">FAQ</div>
+        <h2 class="section-title">Česta pitanja</h2>
+      </div>
+      <p class="section-desc">Odgovori na pitanja koja najčešće postavljaju agencije i investitori.</p>
+    </div>
+    <div class="faq-list fade-in">
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Kako PropIQ analizira nekretnine?
+          <span class="faq-indicator">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/>
+            </svg>
+          </span>
+        </button>
+        <div class="faq-answer">
+          <p>PropIQ kombinira veliki jezični model (LLM) s bazom hrvatskih tržišnih podataka. Iz teksta oglasa automatski prepoznaje ključne parametre — kvadraturu, lokaciju, stanje, cijenu — te ih uspoređuje s tisućama sličnih transakcija i trendovima mikrolokacije. Rezultat je strukturirana procjena investicijske isplativosti s jasnom preporukom.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Radi li s Njuškalom i ostalim oglasnicima?
+          <span class="faq-indicator">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/>
+            </svg>
+          </span>
+        </button>
+        <div class="faq-answer">
+          <p>Da. PropIQ radi s tekstom oglasa s bilo kojeg izvora — Njuškalo, Crozilla, Index Oglasnik i drugi. Dovoljno je kopirati naslov, opis, cijenu i karakteristike nekretnine u polje za analizu. Nije potreban link niti tehnička integracija.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Koliko traje analiza?
+          <span class="faq-indicator">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/>
+            </svg>
+          </span>
+        </button>
+        <div class="faq-answer">
+          <p>Prosječna analiza završava za manje od 10 sekundi. U tom vremenu AI prolazi kroz lokaciju, usporedne prodaje, procijenjeni prinos najma i tržišne trendove te generira kompletan izvještaj spreman za preuzimanje ili slanje klijentu.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Je li PropIQ siguran za podatke mojih klijenata?
+          <span class="faq-indicator">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/>
+            </svg>
+          </span>
+        </button>
+        <div class="faq-answer">
+          <p>Da. PropIQ je potpuno usklađen s GDPR regulativom, a svi podaci obrađuju se isključivo na EU serverima. Komunikacija je šifrirana TLS 1.3 protokolom, a osobni podaci klijenata nikad se ne dijele s trećim stranama niti koriste za treniranje modela.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Mogu li testirati PropIQ besplatno?
+          <span class="faq-indicator">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/>
+            </svg>
+          </span>
+        </button>
+        <div class="faq-answer">
+          <p>Apsolutno. Free plan uključuje 5 potpunih analiza svaki mjesec bez unosa kartice. Možete testirati sve funkcionalnosti i uvjeriti se u kvalitetu izvještaja prije nego se odlučite za plaćeni plan. Nadogradnja je dostupna u bilo kojem trenutku.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
   <!-- CTA -->
   <section class="cta-section fade-in">
     <p class="cta-title">Počnite analizirati<br><em>danas.</em></p>
@@ -1498,6 +1665,16 @@
     }
 
     marked.use({ breaks: true, gfm: true });
+
+    // ── FAQ accordion ──
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.faq-item');
+        const isOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
+        if (!isOpen) item.classList.add('open');
+      });
+    });
 
     document.getElementById('zahtjev-form').addEventListener('submit', async function(e) {
       e.preventDefault();
