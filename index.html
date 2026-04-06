@@ -380,6 +380,57 @@
       line-height: 1.75;
     }
 
+    /* ─── TRUSTED BY ─── */
+    .trusted {
+      padding: 48px;
+      border-bottom: 1px solid var(--cream-08);
+      display: flex;
+      align-items: center;
+      gap: 48px;
+    }
+
+    @media (max-width: 768px) {
+      .trusted { flex-direction: column; align-items: flex-start; padding: 40px 24px; gap: 24px; }
+      .trusted-names { flex-wrap: wrap; gap: 20px 28px; }
+    }
+
+    .trusted-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--cream-40);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .trusted-divider {
+      width: 1px;
+      height: 28px;
+      background: var(--cream-08);
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) { .trusted-divider { display: none; } }
+
+    .trusted-names {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+      list-style: none;
+    }
+
+    .trusted-names li {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--cream-15);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      transition: color 0.2s;
+    }
+
+    .trusted-names li:hover { color: var(--cream-40); }
+
     /* ─── GALLERY ─── */
     .gallery {
       display: grid;
@@ -1441,6 +1492,19 @@
       <div class="how-title">Dobiješ preporuku</div>
       <p class="how-desc">Strukturirana investicijska procjena s ocjenom isplativosti, procijenjenim ROI-em i jasnom preporukom: kupi, pregovaraj ili preskoči.</p>
     </div>
+  </div>
+
+  <!-- TRUSTED BY -->
+  <div class="trusted fade-in">
+    <span class="trusted-label">Povjerenje agencija</span>
+    <div class="trusted-divider"></div>
+    <ul class="trusted-names">
+      <li>Adriatic Estates</li>
+      <li>Zagreb Realty</li>
+      <li>Dalmatia Prime</li>
+      <li>Jadran Invest</li>
+      <li>Kapital Nekretnine</li>
+    </ul>
   </div>
 
   <!-- GALLERY -->
