@@ -1137,6 +1137,61 @@
       color: var(--cream-40);
     }
 
+    /* ─── MOBILE STICKY BAR ─── */
+    .sticky-bar {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .sticky-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 80;
+        background: rgba(17,17,17,0.92);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid rgba(255,255,255,0.08);
+        padding: 14px 20px;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
+        transform: translateY(0);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .sticky-bar.hidden {
+        transform: translateY(110%);
+      }
+
+      .sticky-bar-text {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: rgba(240,236,228,0.7);
+        line-height: 1.3;
+      }
+
+      .sticky-bar-btn {
+        background: var(--cream);
+        color: var(--bg);
+        border: none;
+        padding: 12px 22px;
+        border-radius: 100px;
+        font-size: 0.83rem;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: opacity 0.2s;
+      }
+
+      .sticky-bar-btn:hover { opacity: 0.88; }
+    }
+
     /* ─── SCROLL OFFSET ─── */
     [id] { scroll-margin-top: 80px; }
 
@@ -2018,6 +2073,12 @@
     </div>
   </div>
 
+  <!-- MOBILE STICKY BAR -->
+  <div class="sticky-bar" id="stickyBar">
+    <span class="sticky-bar-text">AI analiza nekretnina</span>
+    <button class="sticky-bar-btn" onclick="openModal()">Počni besplatno</button>
+  </div>
+
   <!-- EXIT INTENT POPUP -->
   <div class="exit-overlay" id="exitPopup" onclick="closeExit(event)">
     <div class="exit-modal">
@@ -2055,6 +2116,17 @@
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
+
+    // ── Mobile sticky bar ──
+    (function() {
+      const bar = document.getElementById('stickyBar');
+      let lastY = 0;
+      window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        bar.classList.toggle('hidden', y < lastY || y < 100);
+        lastY = y;
+      }, { passive: true });
+    })();
 
     // ── Exit intent ──
     (function() {
