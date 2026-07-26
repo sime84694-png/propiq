@@ -797,7 +797,7 @@
 
     .testimonials-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 3px;
       margin-top: 48px;
     }
@@ -1021,15 +1021,34 @@
       border: 1px solid var(--cream-08);
       display: flex;
       flex-direction: column;
-      transition: border-color 0.2s;
+      position: relative;
+      transition: border-color 0.2s, transform 0.25s ease, box-shadow 0.25s ease;
     }
 
-    .plan:hover { border-color: var(--cream-15); }
+    .plan:hover { border-color: var(--cream-15); transform: translateY(-6px); }
 
     .plan.featured {
       background: var(--cream);
       color: var(--bg);
-      border-color: var(--cream);
+      border-color: #d4af37;
+      box-shadow: 0 0 40px var(--gold-glow), 0 24px 60px rgba(0,0,0,0.45);
+    }
+
+    .plan.featured:hover { border-color: #d4af37; }
+
+    .plan-badge {
+      position: absolute;
+      top: 18px;
+      right: 22px;
+      background: #d4af37;
+      color: #0a0806;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 6px 12px;
+      border-radius: 100px;
+      box-shadow: 0 0 18px var(--gold-glow);
     }
 
     .plan-tier {
@@ -1864,7 +1883,6 @@
     </a>
     <ul class="nav-links">
       <li><a href="#analiza">Analiza</a></li>
-      <li><a href="#agencije">Agencije</a></li>
       <li><a href="#cijene">Cijene</a></li>
       <li><a href="#kontakt">Kontakt</a></li>
     </ul>
@@ -1918,10 +1936,6 @@
 
       <div class="hero-right">
         <p class="hero-sub">AI analiza svakog oglasa u manje od 10 sekundi. Za investitore koji donose odluke brže.</p>
-        <div class="live-counter">
-          <span class="live-dot"></span>
-          Već <span class="counter-num" id="liveCounter">1.247</span> analiza napravljeno
-        </div>
         <button class="btn-primary" onclick="openModal()">Pokreni analizu</button>
       </div>
     </div>
@@ -1968,19 +1982,6 @@
     </div>
   </div>
 
-  <!-- TRUSTED BY -->
-  <div class="trusted fade-in">
-    <span class="trusted-label">Povjerenje agencija</span>
-    <div class="trusted-divider"></div>
-    <ul class="trusted-names">
-      <li>Adriatic Estates</li>
-      <li>Zagreb Realty</li>
-      <li>Dalmatia Prime</li>
-      <li>Jadran Invest</li>
-      <li>Kapital Nekretnine</li>
-    </ul>
-  </div>
-
   <!-- GALLERY -->
   <div class="gallery">
     <div class="gallery-img">
@@ -2020,62 +2021,6 @@
       <div class="marquee-item">Tržišni trendovi<div class="marquee-dot"></div></div>
     </div>
   </div>
-
-  <!-- TESTIMONIALS -->
-  <section class="testimonials" id="agencije">
-    <div class="section-header fade-in">
-      <div>
-        <div class="section-label">Recenzije</div>
-        <h2 class="section-title">Što kažu naši<br>korisnici</h2>
-      </div>
-      <p class="section-desc">Agencije diljem Hrvatske već donose bolje investicijske odluke uz PropIQ.</p>
-    </div>
-    <div class="testimonials-grid">
-
-      <div class="testimonial fade-in">
-        <div class="testimonial-stars">
-          <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-        </div>
-        <p class="testimonial-quote">PropIQ nam je skratio proces procjene investicijske isplativosti s tjedana na nekoliko sati. AI preporuke su iznenađujuće precizne — već na prvom projektu smo izbjegli skupu pogrešku.</p>
-        <div class="testimonial-author">
-          <div class="author-avatar">MK</div>
-          <div>
-            <div class="author-name">Marko Kovačević</div>
-            <div class="author-role">Direktor prodaje · Adriatic Estates d.o.o., Split</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="testimonial fade-in" style="transition-delay:0.1s">
-        <div class="testimonial-stars">
-          <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-        </div>
-        <p class="testimonial-quote">Radimo s inozemnim kupcima koji traže konkretne brojke odmah. PropIQ nam daje upravo to — naši agenti dolaze na sastanke s preciznim podacima umjesto pretpostavki.</p>
-        <div class="testimonial-author">
-          <div class="author-avatar">IH</div>
-          <div>
-            <div class="author-name">Ivana Horvat</div>
-            <div class="author-role">Suosnivačica · Jadran Invest d.o.o., Rijeka</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="testimonial fade-in" style="transition-delay:0.2s">
-        <div class="testimonial-stars">
-          <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-        </div>
-        <p class="testimonial-quote">Koristimo Agency plan s timom od sedam agenata. White-label izvješća postala su naš standardni alat u radu s klijentima. Povrat na investiciju osjetili smo već u prvom mjesecu.</p>
-        <div class="testimonial-author">
-          <div class="author-avatar">TP</div>
-          <div>
-            <div class="author-name">Tomislav Perić</div>
-            <div class="author-role">Vlasnik · Kapital Nekretnine d.o.o., Zagreb</div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </section>
 
   <!-- FEATURES -->
   <section class="features" id="analiza">
@@ -2130,7 +2075,7 @@
         </div>
         <div class="feature-num">04</div>
         <div class="feature-title">PDF izvještaj</div>
-        <p class="feature-desc">Brendirani izvještaj koji možete odmah podijeliti s klijentima. White-label u Agency planu.</p>
+        <p class="feature-desc">Brendirani izvještaj koji možete odmah podijeliti s klijentima. White-label u Business planu.</p>
       </div>
       <div class="feature-card fade-in" style="transition-delay:0.32s">
         <div class="feature-icon">
@@ -2165,19 +2110,18 @@
       </div>
       <p class="section-desc">Bez skrivenih naknada. Otkaži bilo kad. Počni besplatno bez kartice.</p>
     </div>
-    <p class="pricing-urgency">⚡ Besplatni plan ograničen na prvih 50 agencija — ostalo još 12 mjesta</p>
     <div class="pricing-grid">
       <div class="plan fade-in">
         <div class="plan-tier">Free</div>
         <div class="plan-price-wrap">
           <div class="plan-price"><sup>€</sup>0</div>
-          <div class="plan-period">zauvijek</div>
+          <div class="plan-period">bez kartice</div>
         </div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li>5 analiza nekretnina / mj.</li>
+          <li>3 analize besplatno</li>
+          <li>Bez kreditne kartice</li>
           <li>Osnovna tržišna izvješća</li>
-          <li>ROI kalkulator</li>
           <li>Email podrška</li>
         </ul>
         <div class="plan-btn-wrap">
@@ -2185,7 +2129,8 @@
         </div>
       </div>
       <div class="plan featured fade-in" style="transition-delay:0.1s">
-        <div class="plan-tier">Pro — Najpopularnije</div>
+        <div class="plan-badge">Najpopularnije</div>
+        <div class="plan-tier">Pro</div>
         <div class="plan-price-wrap">
           <div class="plan-price"><sup>€</sup>49</div>
           <div class="plan-period">po mjesecu</div>
@@ -2193,31 +2138,32 @@
         <div class="plan-divider"></div>
         <ul class="plan-features">
           <li>Neograničene analize</li>
-          <li>AI preporuke u realnom vremenu</li>
-          <li>Napredni trendovi i predviđanja</li>
-          <li>Portfelj praćenje</li>
+          <li>Puna dubina analize</li>
+          <li>PDF export izvješća</li>
           <li>Prioritetna podrška</li>
         </ul>
         <div class="plan-btn-wrap">
-          <button class="btn-dark" onclick="openModal()">Kreni s Pro</button>
+          <!-- Stripe dolazi kasnije — za sad vodi na #kontakt sekciju -->
+          <a href="#kontakt" class="btn-dark">Odaberi Pro</a>
         </div>
       </div>
       <div class="plan fade-in" style="transition-delay:0.2s">
-        <div class="plan-tier">Agency</div>
+        <div class="plan-tier">Business</div>
         <div class="plan-price-wrap">
-          <div class="plan-price"><sup>€</sup>199</div>
+          <div class="plan-price"><sup>€</sup>149</div>
           <div class="plan-period">po mjesecu</div>
         </div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
           <li>Sve iz Pro plana</li>
-          <li>Do 10 korisnika</li>
+          <li>Više korisnika</li>
           <li>White-label izvješća</li>
           <li>API pristup</li>
-          <li>Dedicirani account manager</li>
+          <li>Prioritetna obrada</li>
         </ul>
         <div class="plan-btn-wrap">
-          <button class="btn-outline-sm" onclick="openModal()">Kontaktiraj nas</button>
+          <!-- Stripe dolazi kasnije — za sad vodi na #kontakt sekciju -->
+          <a href="#kontakt" class="btn-outline-sm">Kontaktiraj nas</a>
         </div>
       </div>
     </div>
@@ -2408,7 +2354,7 @@
       </button>
       <div class="exit-eyebrow">Posebna ponuda</div>
       <h2 class="exit-title">Čekaj!</h2>
-      <p class="exit-sub">Prvih 5 analiza potpuno besplatno —<br>bez kreditne kartice.</p>
+      <p class="exit-sub">Prve 3 analize potpuno besplatno —<br>bez kreditne kartice.</p>
       <button class="exit-cta" onclick="dismissExit(); openModal();">Počni besplatno</button>
       <p class="exit-note">Bez obaveza. Otkaži kad god želiš.</p>
     </div>
@@ -2490,31 +2436,6 @@
       banner.classList.add('hidden');
     }
 
-    // ── Live counter ──
-    (function() {
-      let count = 1247;
-      const el = document.getElementById('liveCounter');
-
-      function fmt(n) {
-        return n.toLocaleString('hr-HR').replace(/\./g, '.');
-      }
-
-      function tick() {
-        const inc = Math.floor(Math.random() * 3) + 1;
-        count += inc;
-
-        el.classList.add('flip');
-        setTimeout(() => {
-          el.textContent = fmt(count);
-          el.classList.remove('flip');
-        }, 180);
-
-        const next = (Math.random() * 4000 + 3000) | 0;
-        setTimeout(tick, next);
-      }
-
-      setTimeout(tick, (Math.random() * 4000 + 3000) | 0);
-    })();
 
     // ── NAV scroll ──
     const navbar = document.getElementById('navbar');
