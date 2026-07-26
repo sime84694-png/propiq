@@ -1,0 +1,13 @@
+.claude/
+.claude-flow/
+.swarm/
+.mcp.json
+*.db
+*.db-shm
+*.db-wal
+ruvector.db
+index.html.backup-*
+index.html.bak
+.DS_Store
+node_modules/
+.env
