@@ -2811,17 +2811,11 @@
         oglas_tekst: document.getElementById('oglas_tekst').value,
       };
 
-      let markdownText = '';
+      // Podaci forme se spremaju za rezultat.html, koja poziva Netlify Function
+      // (/.netlify/functions/analiza) i tamo prikazuje AI analizu.
       try {
-        const res = await fetch('https://propiq23.app.n8n.cloud/webhook/8db7ead4-c965-4216-b134-91701ad1c42b', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-        markdownText = await res.text();
-      } catch {
-        markdownText = '_Došlo je do greške pri dohvaćanju analize. Pokušajte ponovo._';
-      }
+        sessionStorage.setItem('propiq_analiza_data', JSON.stringify(data));
+      } catch {}
 
       // Email notifikacija korisniku putem Formspree
       const agencija = data.agencija ? ` (${data.agencija})` : '';
@@ -2837,7 +2831,7 @@
         }),
       }).catch(() => {});
 
-      window.location.href = 'thank-you.html';
+      window.location.href = 'rezultat.html';
     });
   </script>
 </body>

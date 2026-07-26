@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vaša analiza — PropIQ</title>
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    :root {
+      --bg: #0a0806;
+      --cream: #f0ece4;
+      --cream-70: rgba(240,236,228,0.7);
+      --cream-40: rgba(240,236,228,0.4);
+      --cream-15: rgba(240,236,228,0.15);
+      --cream-08: rgba(240,236,228,0.08);
+      --cream-04: rgba(240,236,228,0.04);
+      --gold: #d4af37;
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--cream);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .wrap {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ─── Header ─── */
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 40px;
+    }
+    .logo {
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+    .logo span { color: var(--gold); }
+    .back-link {
+      color: var(--cream-70);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--cream); }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      background: rgba(240,236,228,0.06);
+      border: 1px solid var(--cream-15);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--cream-70);
+      margin-bottom: 18px;
+    }
+    .eyebrow-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--gold); box-shadow: 0 0 10px var(--gold);
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .subtitle { color: var(--cream-70); font-size: 0.95rem; margin-bottom: 36px; }
+
+    /* ─── Loading ─── */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 80px 0;
+      text-align: center;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--cream-15);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading p { color: var(--cream-70); font-size: 0.95rem; }
+
+    /* ─── Analiza card ─── */
+    .analiza-card {
+      background: var(--cream-04);
+      border: 1px solid var(--cream-08);
+      border-radius: 20px;
+      padding: 36px 32px;
+    }
+    .analiza-card h1, .analiza-card h2, .analiza-card h3 {
+      color: var(--cream);
+      margin: 26px 0 12px;
+      line-height: 1.3;
+    }
+    .analiza-card h1 { font-size: 1.5rem; }
+    .analiza-card h2 { font-size: 1.25rem; }
+    .analiza-card h3 { font-size: 1.05rem; }
+    .analiza-card h1:first-child, .analiza-card h2:first-child, .analiza-card h3:first-child { margin-top: 0; }
+    .analiza-card p { margin: 12px 0; color: var(--cream-70); }
+    .analiza-card ul, .analiza-card ol { margin: 12px 0 12px 22px; color: var(--cream-70); }
+    .analiza-card li { margin: 6px 0; }
+    .analiza-card strong { color: var(--cream); font-weight: 700; }
+    .analiza-card hr { border: none; border-top: 1px solid var(--cream-08); margin: 24px 0; }
+    .analiza-card table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+    .analiza-card th, .analiza-card td { border: 1px solid var(--cream-15); padding: 8px 12px; text-align: left; }
+    .analiza-card th { background: var(--cream-08); color: var(--cream); }
+
+    /* ─── Greška ─── */
+    .error-box {
+      background: rgba(220, 80, 60, 0.08);
+      border: 1px solid rgba(220, 80, 60, 0.3);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+    }
+    .error-box p { color: var(--cream); margin-bottom: 18px; }
+    .btn-primary {
+      background: var(--cream);
+      color: var(--bg);
+      border: none;
+      padding: 14px 32px;
+      border-radius: 100px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: none;
+      display: inline-block;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-2px); }
+
+    /* ═══════════════════════════════════════════════════════════
+       UPSELL PLACEHOLDER — prostor za budući Pro plan CTA.
+       Za sad prazno; ovdje ide upsell na Pro (usporedba nekretnina,
+       PDF izvještaj, povijest analiza, itd.).
+       ═══════════════════════════════════════════════════════════ */
+    #upsell-pro {
+      /* namjerno prazno — popuniti kasnije */
+    }
+
+    @media (max-width: 600px) {
+      .wrap { padding: 32px 18px 60px; }
+      h1 { font-size: 1.6rem; }
+      .analiza-card { padding: 26px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="logo">Prop<span>IQ</span></div>
+      <a href="index.html" class="back-link">← Natrag na početnu</a>
+    </div>
+
+    <div class="eyebrow"><span class="eyebrow-dot"></span>AI analiza nekretnine</div>
+    <h1 id="greeting">Vaša analiza</h1>
+    <p class="subtitle">Generirano na temelju oglasa koji ste poslali.</p>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Analiziramo nekretninu… ovo traje nekoliko sekundi.</p>
+    </div>
+
+    <!-- Rezultat -->
+    <div class="analiza-card" id="analiza" style="display:none;"></div>
+
+    <!-- Greška -->
+    <div class="error-box" id="error" style="display:none;">
+      <p id="error-msg">Došlo je do greške pri dohvaćanju analize.</p>
+      <button class="btn-primary" onclick="location.reload()">Pokušaj ponovo</button>
+    </div>
+
+    <!-- UPSELL PLACEHOLDER (Pro plan) — za sad prazno, popuniti kasnije -->
+    <section id="upsell-pro"></section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    marked.use({ breaks: true, gfm: true });
+
+    const loadingEl = document.getElementById('loading');
+    const analizaEl = document.getElementById('analiza');
+    const errorEl = document.getElementById('error');
+    const errorMsgEl = document.getElementById('error-msg');
+
+    function showError(msg) {
+      loadingEl.style.display = 'none';
+      analizaEl.style.display = 'none';
+      if (msg) errorMsgEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+
+    async function loadAnaliza() {
+      let raw;
+      try {
+        raw = sessionStorage.getItem('propiq_analiza_data');
+      } catch {
+        raw = null;
+      }
+
+      if (!raw) {
+        showError('Nema podataka za analizu. Vratite se na početnu i ispunite formu.');
+        return;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        showError('Podaci za analizu su neispravni. Pokušajte ponovo s početne stranice.');
+        return;
+      }
+
+      // Personalizirani pozdrav ako imamo ime
+      if (data.ime) {
+        const first = String(data.ime).trim().split(/\s+/)[0];
+        if (first) document.getElementById('greeting').textContent = `Analiza za ${first}`;
+      }
+
+      try {
+        const res = await fetch('/.netlify/functions/analiza', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        const payload = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          showError(payload.error || 'Analiza trenutno nije dostupna. Pokušajte ponovo.');
+          return;
+        }
+
+        if (!payload.analiza) {
+          showError('Analiza je vraćena prazna. Pokušajte ponovo.');
+          return;
+        }
+
+        analizaEl.innerHTML = marked.parse(payload.analiza);
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'none';
+        analizaEl.style.display = 'block';
+
+        // Podaci više nisu potrebni — očisti da se ista analiza ne ponavlja na refresh.
+        try { sessionStorage.removeItem('propiq_analiza_data'); } catch {}
+      } catch {
+        showError('Došlo je do greške pri dohvaćanju analize. Provjerite vezu i pokušajte ponovo.');
+      }
+    }
+
+    loadAnaliza();
+  </script>
+</body>
+</html>
