@@ -15,19 +15,19 @@ const json = (statusCode, body) => ({
 });
 
 const SYSTEM_PROMPT = `Ti si PropIQ — AI investicijski savjetnik za hrvatsko tržište nekretnina.
-Na temelju podataka iz forme (ime, agencija i tekst oglasa nekretnine) izradi profesionalnu, sažetu i konkretnu analizu na hrvatskom jeziku.
+Na temelju teksta oglasa izradi KONCIZNU analizu na hrvatskom: maksimalno 400–500 riječi, strukturirano ali sažeto.
 
-Analiza OBAVEZNO uključuje sljedeće cjeline (koristi Markdown naslove i liste):
-1. **Procjena vrijednosti** — realan raspon tržišne vrijednosti i je li tražena cijena precijenjena, poštena ili prilika.
-2. **Tržišni kontekst** — lokacija, tip nekretnine i pozicioniranje u odnosu na hrvatsko tržište.
-3. **Investicijska preporuka** — isplativost, potencijalni ROI/najam ako je primjenjivo, te rizici.
-4. **Preporuke** — 3–5 konkretnih idućih koraka za agenta ili investitora.
+Koristi Markdown naslove i kratke liste, obavezno ove 4 cjeline:
+1. **Procjena vrijednosti** — realan raspon i je li tražena cijena precijenjena, poštena ili prilika.
+2. **Tržišni kontekst** — lokacija, tip nekretnine, pozicioniranje na hrvatskom tržištu.
+3. **Investicijska preporuka** — isplativost, potencijalni ROI/najam ako je primjenjivo, ključni rizici.
+4. **Preporuke** — 3–5 konkretnih idućih koraka.
 
 Pravila:
-- Piši isključivo na hrvatskom, profesionalnim ali jasnim tonom.
-- Vrati SAMO Markdown analizu, bez uvodnih fraza poput "Evo analize".
-- Ako u oglasu nedostaju ključni podaci (npr. cijena ili kvadratura), jasno naznači pretpostavke.
-- Ne izmišljaj precizne brojke kao činjenice — koristi raspone i naznači da je riječ o procjeni.`;
+- Piši isključivo na hrvatskom, profesionalno i jasno. Bez uvodnih fraza ("Evo analize"), bez ponavljanja.
+- Kratke rečenice, natuknice gdje god ide. Cilj je brz, čitljiv sažetak, ne esej.
+- Ako nedostaju ključni podaci (cijena, kvadratura), kratko naznači pretpostavku.
+- Ne izmišljaj precizne brojke kao činjenice — koristi raspone i naznači da je procjena.`;
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -63,6 +63,11 @@ exports.handler = async (event) => {
     (agencija ? ` (agencija: ${agencija})` : '') +
     `\n\nTekst oglasa nekretnine:\n"""\n${oglasTekst}\n"""`;
 
+  // Prekini poziv prema Anthropicu na 25 s da funkcija stigne vratiti
+  // jasnu poruku unutar Netlify 30 s limita, umjesto da bude "ubijena".
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -73,10 +78,11 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
+        max_tokens: 1500,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
       }),
+      signal: controller.signal,
     });
 
     if (!res.ok) {
@@ -98,7 +104,13 @@ exports.handler = async (event) => {
 
     return json(200, { analiza });
   } catch (err) {
+    if (err && err.name === 'AbortError') {
+      console.error('Anthropic API timeout (25 s).');
+      return json(504, { error: 'Analiza traje predugo. Pokušajte ponovo s kraćim tekstom oglasa.' });
+    }
     console.error('Neočekivana greška pri pozivu Anthropic API-ja:', err);
     return json(500, { error: 'Došlo je do greške pri dohvaćanju analize. Pokušajte ponovo.' });
+  } finally {
+    clearTimeout(timeout);
   }
 };
