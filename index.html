@@ -1005,9 +1005,13 @@
 
     .pricing-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 3px;
       margin-top: 48px;
+    }
+
+    @media (max-width: 1100px) {
+      .pricing-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
     @media (max-width: 768px) {
@@ -2128,7 +2132,24 @@
           <button class="btn-outline-sm" onclick="openModal()">Počni besplatno</button>
         </div>
       </div>
-      <div class="plan featured fade-in" style="transition-delay:0.1s">
+      <div class="plan fade-in" style="transition-delay:0.1s">
+        <div class="plan-tier">Standard</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price"><sup>€</sup>24</div>
+          <div class="plan-period">po mjesecu</div>
+        </div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li>10 analiza mjesečno</li>
+          <li>Puna dubina analize</li>
+          <li>Web izvješće</li>
+          <li>Email podrška</li>
+        </ul>
+        <div class="plan-btn-wrap">
+          <a href="https://buy.stripe.com/7sY3cw2Kh671e56gaKbwk01" class="btn-outline-sm">Odaberi Standard</a>
+        </div>
+      </div>
+      <div class="plan featured fade-in" style="transition-delay:0.2s">
         <div class="plan-badge">Najpopularnije</div>
         <div class="plan-tier">Pro</div>
         <div class="plan-price-wrap">
@@ -2143,11 +2164,10 @@
           <li>Prioritetna podrška</li>
         </ul>
         <div class="plan-btn-wrap">
-          <!-- Stripe dolazi kasnije — za sad vodi na #kontakt sekciju -->
-          <a href="#kontakt" class="btn-dark">Odaberi Pro</a>
+          <a href="https://buy.stripe.com/9B69AU4Sp3YT2moaQqbwk00" class="btn-dark">Odaberi Pro</a>
         </div>
       </div>
-      <div class="plan fade-in" style="transition-delay:0.2s">
+      <div class="plan fade-in" style="transition-delay:0.3s">
         <div class="plan-tier">Business</div>
         <div class="plan-price-wrap">
           <div class="plan-price"><sup>€</sup>149</div>
