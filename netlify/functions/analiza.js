@@ -63,10 +63,10 @@ exports.handler = async (event) => {
     (agencija ? ` (agencija: ${agencija})` : '') +
     `\n\nTekst oglasa nekretnine:\n"""\n${oglasTekst}\n"""`;
 
-  // Prekini poziv prema Anthropicu na 25 s da funkcija stigne vratiti
-  // jasnu poruku unutar Netlify 30 s limita, umjesto da bude "ubijena".
+  // Prekini poziv prema Anthropicu na 55 s da funkcija stigne vratiti
+  // jasnu poruku unutar Netlify 60 s limita, umjesto da bude "ubijena".
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000);
+  const timeout = setTimeout(() => controller.abort(), 55000);
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -105,7 +105,7 @@ exports.handler = async (event) => {
     return json(200, { analiza });
   } catch (err) {
     if (err && err.name === 'AbortError') {
-      console.error('Anthropic API timeout (25 s).');
+      console.error('Anthropic API timeout (55 s).');
       return json(504, { error: 'Analiza traje predugo. Pokušajte ponovo s kraćim tekstom oglasa.' });
     }
     console.error('Neočekivana greška pri pozivu Anthropic API-ja:', err);
