@@ -68,16 +68,6 @@
       mix-blend-mode: screen;
     }
 
-    #hero3dCanvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      pointer-events: none;
-      opacity: 0.8;
-    }
-
     /* ─── HERO 3D SHOWCASE ─── */
     .hero-eyebrow-badge {
       display: inline-flex;
@@ -1893,7 +1883,6 @@
 
   <!-- HERO -->
   <section class="hero" id="heroSection">
-    <canvas id="hero3dCanvas"></canvas>
     <div class="hero-bg" id="heroBg"></div>
     <div class="hero-overlay"></div>
     <div class="hero-content">
@@ -2446,164 +2435,6 @@
         requestAnimationFrame(animateSpot);
       }
       animateSpot();
-    })();
-
-    // ── 3D Particle Mesh & Holographic 3D Wireframe Cube Canvas ──
-    (function() {
-      const canvas = document.getElementById('hero3dCanvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      let w, h;
-      let mouseX = 0, mouseY = 0;
-
-      function resize() {
-        const rect = canvas.parentElement.getBoundingClientRect();
-        w = canvas.width = rect.width;
-        h = canvas.height = rect.height;
-      }
-      window.addEventListener('resize', resize);
-      resize();
-
-      window.addEventListener('mousemove', e => {
-        mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-        mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-      }, { passive: true });
-
-      // 1. Background particle nodes
-      const count = 54;
-      const nodes = [];
-      for (let i = 0; i < count; i++) {
-        nodes.push({
-          x: (Math.random() - 0.5) * 900,
-          y: (Math.random() - 0.5) * 700,
-          z: (Math.random() - 0.5) * 900,
-          vy: Math.random() * 0.4 + 0.1
-        });
-      }
-
-      // 2. 3D Wireframe Holographic Cube
-      const s = 130;
-      const cubeVertices = [
-        {x: -s, y: -s, z: -s}, {x: s, y: -s, z: -s},
-        {x: s, y: s, z: -s},  {x: -s, y: s, z: -s},
-        {x: -s, y: -s, z: s},  {x: s, y: -s, z: s},
-        {x: s, y: s, z: s},   {x: -s, y: s, z: s}
-      ];
-      const cubeEdges = [
-        [0,1],[1,2],[2,3],[3,0],
-        [4,5],[5,6],[6,7],[7,4],
-        [0,4],[1,5],[2,6],[3,7]
-      ];
-
-      let angleY = 0, angleX = 0, cubeAngle = 0;
-
-      function render() {
-        ctx.clearRect(0, 0, w, h);
-
-        angleY += 0.0018 + mouseX * 0.0005;
-        angleX += 0.0010 + mouseY * 0.0005;
-        cubeAngle += 0.008;
-
-        const cosY = Math.cos(angleY), sinY = Math.sin(angleY);
-        const cosX = Math.cos(angleX), sinX = Math.sin(angleX);
-
-        const projected = [];
-        const focal = 500;
-
-        // Render Background Nodes
-        for (let i = 0; i < count; i++) {
-          let n = nodes[i];
-          n.y -= n.vy;
-          if (n.y < -350) n.y = 350;
-
-          let x1 = n.x * cosY - n.z * sinY;
-          let z1 = n.z * cosY + n.x * sinY;
-          let y2 = n.y * cosX - z1 * sinX;
-          let z2 = z1 * cosX + n.y * sinX;
-
-          let scale = focal / (focal + z2 + 550);
-          let px = w / 2 + x1 * scale;
-          let py = h / 2 + y2 * scale;
-
-          projected.push({ px, py, scale, z: z2 });
-        }
-
-        // Draw connections
-        ctx.lineWidth = 0.8;
-        for (let i = 0; i < count; i++) {
-          for (let j = i + 1; j < count; j++) {
-            let p1 = projected[i];
-            let p2 = projected[j];
-            let dx = p1.px - p2.px;
-            let dy = p1.py - p2.py;
-            let dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 140) {
-              let alpha = (1 - dist / 140) * 0.22 * Math.min(p1.scale, p2.scale);
-              ctx.strokeStyle = `rgba(240, 236, 228, ${alpha})`;
-              ctx.beginPath();
-              ctx.moveTo(p1.px, p1.py);
-              ctx.lineTo(p2.px, p2.py);
-              ctx.stroke();
-            }
-          }
-        }
-
-        // Draw node points
-        for (let i = 0; i < count; i++) {
-          let p = projected[i];
-          let r = Math.max(1, 2.5 * p.scale);
-          let alpha = Math.min(1, 0.7 * p.scale);
-          ctx.fillStyle = (i % 5 === 0) ? `rgba(212, 175, 55, ${alpha})` : `rgba(240, 236, 228, ${alpha})`;
-          ctx.beginPath();
-          ctx.arc(p.px, p.py, r, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        // 3D Wireframe Holographic Cube Rendering (Center-Right in Hero)
-        const cubeCenterX = w * 0.75;
-        const cubeCenterY = h * 0.45;
-        const cosC = Math.cos(cubeAngle), sinC = Math.sin(cubeAngle);
-        const cosCM = Math.cos(cubeAngle * 0.7), sinCM = Math.sin(cubeAngle * 0.7);
-
-        const projCube = cubeVertices.map(v => {
-          let x1 = v.x * cosC - v.z * sinC;
-          let z1 = v.z * cosC + v.x * sinC;
-          let y2 = v.y * cosCM - z1 * sinCM;
-          let z2 = z1 * cosCM + v.y * sinCM;
-
-          let scale = focal / (focal + z2 + 400);
-          let px = cubeCenterX + (x1 + mouseX * 40) * scale;
-          let py = cubeCenterY + (y2 + mouseY * 40) * scale;
-          return { px, py, scale };
-        });
-
-        // Draw Cube Edges with Golden Glow
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#d4af37';
-        ctx.strokeStyle = 'rgba(212, 175, 55, 0.45)';
-        ctx.lineWidth = 1.6;
-
-        cubeEdges.forEach(([i, j]) => {
-          let p1 = projCube[i];
-          let p2 = projCube[j];
-          ctx.beginPath();
-          ctx.moveTo(p1.px, p1.py);
-          ctx.lineTo(p2.px, p2.py);
-          ctx.stroke();
-        });
-
-        // Draw Cube Vertices
-        projCube.forEach(p => {
-          ctx.fillStyle = '#f0ece4';
-          ctx.beginPath();
-          ctx.arc(p.px, p.py, 3.5 * p.scale, 0, Math.PI * 2);
-          ctx.fill();
-        });
-        ctx.shadowBlur = 0;
-
-        requestAnimationFrame(render);
-      }
-      render();
     })();
 
     // ── Multi-Layer 3D Tilt Engine ──
