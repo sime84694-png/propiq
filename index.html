@@ -1331,13 +1331,15 @@
     /* ─── FADE-IN ─── */
     .fade-in {
       opacity: 0;
-      transform: translateY(28px);
+      transform: translate3d(0, 28px, 0);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
       transition: opacity 0.7s ease, transform 0.7s ease;
     }
 
     .fade-in.visible {
       opacity: 1;
-      transform: translateY(0);
+      transform: translate3d(0, 0, 0);
     }
 
     /* ─── EXIT INTENT ─── */
