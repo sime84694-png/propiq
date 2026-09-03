@@ -2,6 +2,8 @@
 // Poziva se s POST-om iz rezultat.html; vraća { analiza: "...markdown..." }.
 // API ključ NIKAD nije u kodu — čita se iz Netlify env varijable ANTHROPIC_API_KEY.
 
+const { connectLambda, getStore } = require('@netlify/blobs');
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -53,9 +55,30 @@ exports.handler = async (event) => {
   const ime = (data.ime || '').toString().trim();
   const agencija = (data.agencija || '').toString().trim();
   const oglasTekst = (data.oglas_tekst || '').toString().trim();
+  const email = (data.email || '').toString().trim().toLowerCase();
+  const plan = (data.plan || '').toString().trim().toLowerCase();
 
   if (!oglasTekst) {
     return json(400, { error: 'Nedostaje tekst oglasa za analizu.' });
+  }
+
+  if (!email) {
+    return json(400, { error: 'Nedostaje email adresa.' });
+  }
+
+  // Besplatni plan: max 3 analize po emailu. Standard i Pro (plaćeni) nemaju ovo ograničenje.
+  const jePlacenPlan = plan === 'standard' || plan === 'pro';
+  let store;
+  let trenutnoIskoristeno = 0;
+  if (!jePlacenPlan) {
+    connectLambda(event);
+    store = getStore('propiq-free-quota');
+    trenutnoIskoristeno = parseInt((await store.get(email)) || '0', 10);
+    if (trenutnoIskoristeno >= 3) {
+      return json(403, {
+        error: 'Iskoristili ste sve 3 besplatne analize. Nadogradite na Standard ili Pro plan za daljnje analize.',
+      });
+    }
   }
 
   const userMessage =
@@ -100,6 +123,10 @@ exports.handler = async (event) => {
 
     if (!analiza) {
       return json(502, { error: 'Analiza je vraćena prazna. Pokušajte ponovo.' });
+    }
+
+    if (!jePlacenPlan && store) {
+      await store.set(email, String(trenutnoIskoristeno + 1));
     }
 
     return json(200, { analiza });

@@ -2531,6 +2531,7 @@
         email:       document.getElementById('email').value,
         agencija:    document.getElementById('agencija').value,
         oglas_tekst: document.getElementById('oglas_tekst').value,
+        plan:        new URLSearchParams(window.location.search).get('plan') || '',
       };
 
       // Podaci forme se spremaju za rezultat.html, koja poziva Netlify Function
