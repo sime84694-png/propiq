@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Politika privatnosti — PropIQ</title>
+  <meta name="robots" content="noindex, follow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0806;
+      --cream: #f0ece4;
+      --cream-70: rgba(240,236,228,0.7);
+      --cream-40: rgba(240,236,228,0.4);
+      --cream-15: rgba(240,236,228,0.15);
+      --cream-08: rgba(240,236,228,0.08);
+      --cream-04: rgba(240,236,228,0.04);
+      --gold: #d4af37;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --font-serif: 'Playfair Display', Georgia, serif;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--cream);
+      min-height: 100vh;
+      line-height: 1.7;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 100px; }
+    .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; }
+    .logo { font-weight: 700; font-size: 1.15rem; letter-spacing: -0.02em; }
+    .logo span { color: var(--gold); }
+    .back-link { color: var(--cream-70); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: color 0.35s var(--ease); }
+    .back-link:hover { color: var(--cream); }
+    h1 { font-family: var(--font-serif); font-size: 2.2rem; margin-bottom: 8px; letter-spacing: -0.01em; }
+    .updated { color: var(--cream-40); font-size: 0.85rem; margin-bottom: 40px; }
+    .placeholder-box {
+      background: rgba(212, 175, 55, 0.07);
+      border: 1px dashed rgba(212, 175, 55, 0.4);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 40px;
+      font-size: 0.9rem;
+      color: var(--cream-70);
+    }
+    .placeholder-box strong { color: var(--gold); }
+    article h2 { font-family: var(--font-serif); font-size: 1.35rem; margin: 40px 0 14px; color: var(--cream); }
+    article h2:first-of-type { margin-top: 0; }
+    article p { color: var(--cream-70); margin-bottom: 14px; }
+    article ul { margin: 0 0 14px 22px; color: var(--cream-70); }
+    article li { margin-bottom: 8px; }
+    article strong { color: var(--cream); }
+    article table { width: 100%; border-collapse: collapse; margin: 8px 0 20px; font-size: 0.88rem; }
+    article th, article td { border: 1px solid var(--cream-15); padding: 10px 12px; text-align: left; vertical-align: top; }
+    article th { background: var(--cream-08); color: var(--cream); font-weight: 700; }
+    footer.legal-footer { margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--cream-08); color: var(--cream-40); font-size: 0.82rem; }
+    footer.legal-footer a { color: var(--cream-70); }
+    @media (max-width: 600px) { .wrap { padding: 32px 18px 80px; } h1 { font-size: 1.7rem; } article table, article thead, article tbody, article th, article td, article tr { display: block; } article th { border-bottom: none; } article td { border-top: none; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="logo">Prop<span>IQ</span></div>
+      <a href="index.html" class="back-link">← Natrag na početnu</a>
+    </div>
+
+    <h1>Politika privatnosti</h1>
+    <p class="updated">Zadnja izmjena: rujan 2026.</p>
+
+    <div class="placeholder-box">
+      <strong>Napomena:</strong> podaci o voditelju obrade (naziv obrta/tvrtke, OIB, sjedište) bit će upisani ovdje čim registracija bude dovršena.
+    </div>
+
+    <article>
+      <h2>1. Voditelj obrade podataka</h2>
+      <p>Voditelj obrade osobnih podataka prikupljenih putem usluge PropIQ je: <strong>[NAZIV OBRTA/TVRTKE]</strong>, OIB: <strong>[OIB]</strong>, sa sjedištem na adresi <strong>[ADRESA]</strong>, e-mail za pitanja o privatnosti: <strong>[EMAIL]</strong>.</p>
+
+      <h2>2. Koje podatke prikupljamo</h2>
+      <ul>
+        <li><strong>Podaci koje sami unesete:</strong> ime i prezime, e-mail adresa, naziv agencije (neobavezno), tekst oglasa nekretnine koji šaljete na analizu.</li>
+        <li><strong>Podaci o pretplati:</strong> odabrani plan (Free/Standard/Pro), status pretplate — same podatke o transakciji i broju kartice obrađuje i pohranjuje isključivo Stripe, mi im nemamo pristup.</li>
+        <li><strong>Tehnički podaci:</strong> standardni podaci poslužitelja (IP adresa, vrijeme pristupa) automatski bilježi naš hosting davatelj (Netlify) radi rada i sigurnosti stranice.</li>
+      </ul>
+
+      <h2>3. Svrha i pravna osnova obrade</h2>
+      <ul>
+        <li><strong>Izvršenje ugovora</strong> — obrada teksta oglasa radi generiranja AI analize koju ste naručili; upravljanje pretplatom i naplatom.</li>
+        <li><strong>Legitimni interes</strong> — sprječavanje zlouporabe besplatnog plana (brojanje broja iskorištenih besplatnih analiza po e-mail adresi), sigurnost i stabilnost usluge.</li>
+        <li><strong>Privola</strong> — neobavezni kolačići za analitiku, ako ih u budućnosti uvedemo (trenutno koristimo samo tehnički nužne kolačiće).</li>
+      </ul>
+
+      <h2>4. Kome dijelimo podatke (podobrađivači)</h2>
+      <p>Ne prodajemo osobne podatke trećim stranama. Radi pružanja same usluge, dio podataka nužno prolazi kroz sljedeće pružatelje usluga (podobrađivače), svaki obvezan vlastitim uvjetima privatnosti:</p>
+      <table>
+        <tr><th>Pružatelj</th><th>Svrha</th><th>Koji podaci</th></tr>
+        <tr><td>Anthropic (Claude API)</td><td>Generiranje AI analize nekretnine</td><td>Tekst oglasa, ime, naziv agencije (unutar upita)</td></tr>
+        <tr><td>Stripe</td><td>Obrada plaćanja i pretplata</td><td>E-mail, podaci o transakciji, podaci kartice (mi ih ne vidimo)</td></tr>
+        <tr><td>Netlify</td><td>Hosting stranice, pohrana brojača korištenja</td><td>E-mail (za brojač), tehnički podaci poslužitelja</td></tr>
+        <tr><td>Formspree</td><td>Slanje e-mail obavijesti o gotovoj analizi</td><td>Ime, e-mail adresa</td></tr>
+      </table>
+
+      <h2>5. Razdoblje čuvanja podataka</h2>
+      <p>Podatke čuvamo onoliko dugo koliko je potrebno za pružanje usluge i ispunjenje zakonskih obveza (npr. računovodstvenih). Brojač besplatnih/mjesečnih analiza vezan uz vašu e-mail adresu čuva se dok koristite uslugu; na zahtjev ga možemo obrisati.</p>
+
+      <h2>6. Vaša prava</h2>
+      <p>Sukladno Općoj uredbi o zaštiti podataka (GDPR), imate pravo na:</p>
+      <ul>
+        <li>pristup svojim osobnim podacima,</li>
+        <li>ispravak netočnih podataka,</li>
+        <li>brisanje podataka ("pravo na zaborav"),</li>
+        <li>prenosivost podataka,</li>
+        <li>prigovor na obradu temeljenu na legitimnom interesu,</li>
+        <li>podnošenje pritužbe Agenciji za zaštitu osobnih podataka (AZOP).</li>
+      </ul>
+      <p>Zahtjeve možete poslati na <strong>[EMAIL]</strong>.</p>
+
+      <h2>7. Kolačići</h2>
+      <p>Stranica koristi tehnički nužne kolačiće potrebne za osnovni rad (npr. pamćenje vašeg izbora na cookie banneru). Trenutno ne koristimo kolačiće za analitiku ili oglašavanje treće strane.</p>
+
+      <h2>8. Sigurnost podataka</h2>
+      <p>Poduzimamo razumne tehničke i organizacijske mjere za zaštitu podataka od neovlaštenog pristupa. Plaćanja se u cijelosti obrađuju kroz Stripe, certificiranog PCI DSS pružatelja usluga, izvan naših sustava.</p>
+
+      <h2>9. Izmjene ove politike</h2>
+      <p>Ovu politiku možemo povremeno ažurirati. Datum zadnje izmjene naveden je na vrhu stranice.</p>
+
+      <h2>10. Kontakt</h2>
+      <p>Za sva pitanja o privatnosti podataka: <strong>[EMAIL]</strong>.</p>
+    </article>
+
+    <footer class="legal-footer">
+      <p>PropIQ · <a href="index.html">Početna</a> · <a href="uvjeti-koristenja.html">Uvjeti korištenja</a></p>
+    </footer>
+  </div>
+</body>
+</html>
