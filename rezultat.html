@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vaša analiza — PropIQ</title>
   <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #0a0806;
@@ -16,6 +19,7 @@
       --cream-04: rgba(240,236,228,0.04);
       --gold: #d4af37;
       --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --font-serif: 'Playfair Display', Georgia, serif;
     }
 
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -90,9 +94,10 @@
     }
 
     h1 {
-      font-size: 2rem;
+      font-family: var(--font-serif);
+      font-size: 2.15rem;
       font-weight: 700;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.01em;
       margin-bottom: 8px;
       animation: fadeUp 0.8s var(--ease) both;
       animation-delay: 0.16s;
@@ -205,24 +210,63 @@
       background: rgba(212, 175, 55, 0.05);
       border-color: rgba(212, 175, 55, 0.28);
     }
+    .error-icon-wrap {
+      position: relative;
+      width: 64px; height: 64px;
+      margin: 0 auto 22px;
+    }
+    .error-icon-pulse {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(220,80,60,0.22), transparent 70%);
+      animation: pulse 2.4s var(--ease) infinite;
+      transition: background 0.4s var(--ease);
+    }
+    .error-box.upgrade .error-icon-pulse {
+      background: radial-gradient(circle, rgba(212,175,55,0.26), transparent 70%);
+    }
     .error-icon {
-      width: 48px; height: 48px;
+      position: absolute;
+      top: 10px; left: 10px;
+      width: 44px; height: 44px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 20px;
       color: #e0705a;
       background: rgba(220, 80, 60, 0.12);
-      box-shadow: 0 0 26px rgba(220, 80, 60, 0.16);
-      transition: color 0.4s var(--ease), background 0.4s var(--ease), box-shadow 0.4s var(--ease);
+      transition: color 0.4s var(--ease), background 0.4s var(--ease);
     }
     .error-box.upgrade .error-icon {
       color: var(--gold);
       background: rgba(212, 175, 55, 0.12);
-      box-shadow: 0 0 26px rgba(212, 175, 55, 0.2);
     }
-    .error-box p { color: var(--cream); margin-bottom: 26px; font-size: 0.98rem; }
+    .error-eyebrow {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #e0705a;
+      margin-bottom: 10px;
+      transition: color 0.4s var(--ease);
+    }
+    .error-box.upgrade .error-eyebrow { color: var(--gold); }
+    .error-title {
+      font-family: var(--font-serif);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--cream);
+      margin-bottom: 12px;
+    }
+    .error-box p {
+      color: var(--cream-70);
+      margin-bottom: 28px;
+      font-size: 0.98rem;
+      max-width: 440px;
+      margin-left: auto;
+      margin-right: auto;
+    }
     .error-actions {
       display: flex;
       gap: 12px;
@@ -320,13 +364,18 @@
 
     <!-- Greška -->
     <div class="error-box" id="error" style="display:none;">
-      <div class="error-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
+      <div class="error-icon-wrap">
+        <div class="error-icon-pulse"></div>
+        <div class="error-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
       </div>
+      <div class="error-eyebrow" id="error-eyebrow">Greška</div>
+      <h2 class="error-title" id="error-title">Nešto nije u redu</h2>
       <p id="error-msg">Došlo je do greške pri dohvaćanju analize.</p>
       <div class="error-actions">
         <a href="index.html#cijene" class="btn-primary" id="error-upgrade-btn" style="display:none;">Pogledaj planove</a>
@@ -347,6 +396,8 @@
     const errorEl = document.getElementById('error');
     const errorMsgEl = document.getElementById('error-msg');
     const errorUpgradeBtn = document.getElementById('error-upgrade-btn');
+    const errorEyebrowEl = document.getElementById('error-eyebrow');
+    const errorTitleEl = document.getElementById('error-title');
 
     // Glatko prikazivanje elementa: postavi display, pa na sljedećem
     // frameu dodaj klasu koja pokreće CSS tranziciju (fade + slide up).
@@ -366,6 +417,8 @@
       hide(analizaEl);
       if (msg) errorMsgEl.textContent = msg;
       errorEl.classList.toggle('upgrade', !!isQuota);
+      errorEyebrowEl.textContent = isQuota ? 'Nadogradnja' : 'Greška';
+      errorTitleEl.textContent = isQuota ? 'Iskoristili ste besplatan plan' : 'Nešto nije u redu';
       errorUpgradeBtn.style.display = isQuota ? 'inline-block' : 'none';
       reveal(errorEl);
     }

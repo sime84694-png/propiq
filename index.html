@@ -28,6 +28,9 @@
   <meta name="twitter:title" content="PropIQ — AI Investicijski Savjetnik za Nekretnine">
   <meta name="twitter:description" content="Analizirajte svaku nekretninu u sekundi s AI. Investicijska preporuka, tržišna usporedba i procjena rizika za hrvatsko tržište nekretnina.">
   <meta name="twitter:image" content="https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&q=80">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,300;1,600&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #0a0806;
@@ -39,6 +42,9 @@
       --cream-04: rgba(240,236,228,0.04);
       --gold-glow: rgba(212, 175, 55, 0.25);
       --emerald-glow: rgba(74, 222, 128, 0.3);
+      --gold: #d4af37;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --font-serif: 'Playfair Display', Georgia, serif;
     }
 
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -415,17 +421,18 @@
     }
 
     .hero-title {
+      font-family: var(--font-serif);
       font-size: clamp(3.2rem, 8vw, 7.5rem);
       font-weight: 800;
-      line-height: 0.95;
-      letter-spacing: -3px;
+      line-height: 0.97;
+      letter-spacing: -1px;
       max-width: 780px;
     }
 
     .hero-title .line2 {
       display: block;
       font-weight: 300;
-      letter-spacing: -2px;
+      letter-spacing: -0.5px;
       font-style: italic;
     }
 
@@ -455,12 +462,16 @@
       font-weight: 700;
       cursor: pointer;
       font-family: inherit;
-      transition: opacity 0.2s, transform 0.2s;
+      transition: opacity 0.4s var(--ease), transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
       text-decoration: none;
       display: inline-block;
     }
 
-    .btn-primary:hover { opacity: 0.88; transform: translateY(-2px); }
+    .btn-primary:hover {
+      opacity: 0.92;
+      transform: translateY(-3px);
+      box-shadow: 0 16px 36px rgba(212,175,55,0.16);
+    }
 
     .btn-outline {
       background: transparent;
@@ -897,10 +908,11 @@
     }
 
     .section-title {
+      font-family: var(--font-serif);
       font-size: clamp(2rem, 4vw, 3.2rem);
       font-weight: 800;
-      letter-spacing: -1.5px;
-      line-height: 1.05;
+      letter-spacing: -0.5px;
+      line-height: 1.08;
     }
 
     .section-desc {
@@ -1122,12 +1134,13 @@
       border: 1.5px solid var(--cream-40);
       color: var(--cream);
       background: transparent;
-      transition: border-color 0.2s, background 0.2s;
+      transition: border-color 0.4s var(--ease), background 0.4s var(--ease), transform 0.4s var(--ease);
     }
 
     .plan .btn-outline-sm:hover {
       border-color: var(--cream);
       background: var(--cream-08);
+      transform: translateY(-2px);
     }
 
     .plan.featured .btn-dark {
@@ -1143,10 +1156,10 @@
       background: var(--bg);
       color: var(--cream);
       border: none;
-      transition: opacity 0.2s;
+      transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
     }
 
-    .plan.featured .btn-dark:hover { opacity: 0.8; }
+    .plan.featured .btn-dark:hover { opacity: 0.85; transform: translateY(-2px); }
 
     /* ─── FAQ ─── */
     .faq {
