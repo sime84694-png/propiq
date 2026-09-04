@@ -15,6 +15,7 @@
       --cream-08: rgba(240,236,228,0.08);
       --cream-04: rgba(240,236,228,0.04);
       --gold: #d4af37;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -33,12 +34,18 @@
       padding: 48px 24px 80px;
     }
 
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     /* ─── Header ─── */
     .top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 40px;
+      animation: fadeUp 0.8s var(--ease) both;
     }
     .logo {
       font-weight: 700;
@@ -51,7 +58,7 @@
       text-decoration: none;
       font-size: 0.85rem;
       font-weight: 600;
-      transition: color 0.2s;
+      transition: color 0.35s var(--ease);
     }
     .back-link:hover { color: var(--cream); }
 
@@ -69,10 +76,17 @@
       text-transform: uppercase;
       color: var(--cream-70);
       margin-bottom: 18px;
+      animation: fadeUp 0.8s var(--ease) both;
+      animation-delay: 0.08s;
     }
     .eyebrow-dot {
       width: 6px; height: 6px; border-radius: 50%;
       background: var(--gold); box-shadow: 0 0 10px var(--gold);
+      animation: dotPulse 2.2s var(--ease) infinite;
+    }
+    @keyframes dotPulse {
+      0%, 100% { opacity: 0.6; box-shadow: 0 0 6px var(--gold); }
+      50% { opacity: 1; box-shadow: 0 0 14px var(--gold); }
     }
 
     h1 {
@@ -80,35 +94,83 @@
       font-weight: 700;
       letter-spacing: -0.02em;
       margin-bottom: 8px;
+      animation: fadeUp 0.8s var(--ease) both;
+      animation-delay: 0.16s;
     }
-    .subtitle { color: var(--cream-70); font-size: 0.95rem; margin-bottom: 36px; }
+    .subtitle {
+      color: var(--cream-70);
+      font-size: 0.95rem;
+      margin-bottom: 36px;
+      animation: fadeUp 0.8s var(--ease) both;
+      animation-delay: 0.24s;
+    }
 
     /* ─── Loading ─── */
     .loading {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
+      gap: 22px;
       padding: 80px 0;
       text-align: center;
+      animation: fadeUp 0.8s var(--ease) both;
+      animation-delay: 0.32s;
+    }
+    .spinner-wrap { position: relative; width: 56px; height: 56px; }
+    .spinner-pulse {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(212,175,55,0.28), transparent 70%);
+      animation: pulse 1.8s var(--ease) infinite;
     }
     .spinner {
+      position: absolute;
+      top: 8px; left: 8px;
       width: 40px; height: 40px;
       border: 3px solid var(--cream-15);
       border-top-color: var(--gold);
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      animation: spin 0.9s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading p { color: var(--cream-70); font-size: 0.95rem; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.82); opacity: 0.35; }
+      50%      { transform: scale(1.18); opacity: 0.85; }
+    }
+    .loading p {
+      color: var(--cream-70);
+      font-size: 0.95rem;
+      animation: breathe 2.4s var(--ease) infinite;
+    }
+    @keyframes breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 
     /* ─── Analiza card ─── */
     .analiza-card {
+      position: relative;
+      overflow: hidden;
       background: var(--cream-04);
       border: 1px solid var(--cream-08);
       border-radius: 20px;
       padding: 36px 32px;
+      --mx: 50%;
+      --my: 0%;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.7s var(--ease), transform 0.7s var(--ease), border-color 0.4s var(--ease);
     }
+    .analiza-card.show { opacity: 1; transform: translateY(0); }
+    .analiza-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(480px circle at var(--mx) var(--my), rgba(212,175,55,0.07), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.5s var(--ease);
+      pointer-events: none;
+    }
+    .analiza-card:hover::before { opacity: 1; }
+    .analiza-card:hover { border-color: var(--cream-15); }
     .analiza-card h1, .analiza-card h2, .analiza-card h3 {
       color: var(--cream);
       margin: 26px 0 12px;
@@ -129,13 +191,45 @@
 
     /* ─── Greška ─── */
     .error-box {
-      background: rgba(220, 80, 60, 0.08);
-      border: 1px solid rgba(220, 80, 60, 0.3);
-      border-radius: 16px;
-      padding: 28px;
+      background: rgba(220, 80, 60, 0.06);
+      border: 1px solid rgba(220, 80, 60, 0.28);
+      border-radius: 20px;
+      padding: 40px 32px;
       text-align: center;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.7s var(--ease), transform 0.7s var(--ease), border-color 0.4s var(--ease), background 0.4s var(--ease);
     }
-    .error-box p { color: var(--cream); margin-bottom: 18px; }
+    .error-box.show { opacity: 1; transform: translateY(0); }
+    .error-box.upgrade {
+      background: rgba(212, 175, 55, 0.05);
+      border-color: rgba(212, 175, 55, 0.28);
+    }
+    .error-icon {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      color: #e0705a;
+      background: rgba(220, 80, 60, 0.12);
+      box-shadow: 0 0 26px rgba(220, 80, 60, 0.16);
+      transition: color 0.4s var(--ease), background 0.4s var(--ease), box-shadow 0.4s var(--ease);
+    }
+    .error-box.upgrade .error-icon {
+      color: var(--gold);
+      background: rgba(212, 175, 55, 0.12);
+      box-shadow: 0 0 26px rgba(212, 175, 55, 0.2);
+    }
+    .error-box p { color: var(--cream); margin-bottom: 26px; font-size: 0.98rem; }
+    .error-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
     .btn-primary {
       background: var(--cream);
       color: var(--bg);
@@ -148,9 +242,33 @@
       font-family: inherit;
       text-decoration: none;
       display: inline-block;
-      transition: opacity 0.2s, transform 0.2s;
+      transition: opacity 0.35s var(--ease), transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
     }
-    .btn-primary:hover { opacity: 0.88; transform: translateY(-2px); }
+    .btn-primary:hover {
+      opacity: 0.92;
+      transform: translateY(-3px);
+      box-shadow: 0 14px 32px rgba(212,175,55,0.16);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--cream-70);
+      border: 1px solid var(--cream-15);
+      padding: 14px 28px;
+      border-radius: 100px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: none;
+      display: inline-block;
+      transition: border-color 0.35s var(--ease), color 0.35s var(--ease), transform 0.35s var(--ease);
+    }
+    .btn-ghost:hover {
+      border-color: var(--cream-40);
+      color: var(--cream);
+      transform: translateY(-3px);
+    }
 
     /* ═══════════════════════════════════════════════════════════
        UPSELL PLACEHOLDER — prostor za budući Pro plan CTA.
@@ -161,10 +279,19 @@
       /* namjerno prazno — popuniti kasnije */
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
     @media (max-width: 600px) {
       .wrap { padding: 32px 18px 60px; }
       h1 { font-size: 1.6rem; }
       .analiza-card { padding: 26px 20px; }
+      .error-box { padding: 32px 22px; }
     }
   </style>
 </head>
@@ -181,7 +308,10 @@
 
     <!-- Loading -->
     <div class="loading" id="loading">
-      <div class="spinner"></div>
+      <div class="spinner-wrap">
+        <div class="spinner-pulse"></div>
+        <div class="spinner"></div>
+      </div>
       <p>Analiziramo nekretninu… ovo traje nekoliko sekundi.</p>
     </div>
 
@@ -190,8 +320,18 @@
 
     <!-- Greška -->
     <div class="error-box" id="error" style="display:none;">
+      <div class="error-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
       <p id="error-msg">Došlo je do greške pri dohvaćanju analize.</p>
-      <button class="btn-primary" onclick="location.reload()">Pokušaj ponovo</button>
+      <div class="error-actions">
+        <a href="index.html#cijene" class="btn-primary" id="error-upgrade-btn" style="display:none;">Pogledaj planove</a>
+        <button class="btn-ghost" id="error-retry-btn" onclick="location.reload()">Pokušaj ponovo</button>
+      </div>
     </div>
 
     <!-- UPSELL PLACEHOLDER (Pro plan) — za sad prazno, popuniti kasnije -->
@@ -206,13 +346,37 @@
     const analizaEl = document.getElementById('analiza');
     const errorEl = document.getElementById('error');
     const errorMsgEl = document.getElementById('error-msg');
+    const errorUpgradeBtn = document.getElementById('error-upgrade-btn');
 
-    function showError(msg) {
-      loadingEl.style.display = 'none';
-      analizaEl.style.display = 'none';
-      if (msg) errorMsgEl.textContent = msg;
-      errorEl.style.display = 'block';
+    // Glatko prikazivanje elementa: postavi display, pa na sljedećem
+    // frameu dodaj klasu koja pokreće CSS tranziciju (fade + slide up).
+    function reveal(el) {
+      el.style.display = 'block';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => el.classList.add('show'));
+      });
     }
+    function hide(el) {
+      el.classList.remove('show');
+      el.style.display = 'none';
+    }
+
+    function showError(msg, isQuota) {
+      hide(loadingEl);
+      hide(analizaEl);
+      if (msg) errorMsgEl.textContent = msg;
+      errorEl.classList.toggle('upgrade', !!isQuota);
+      errorUpgradeBtn.style.display = isQuota ? 'inline-block' : 'none';
+      reveal(errorEl);
+    }
+
+    // Suptilan "spotlight" koji prati miša preko kartice s analizom —
+    // ista ideja kao na glavnoj stranici, samo suzdržanije.
+    analizaEl.addEventListener('mousemove', (e) => {
+      const rect = analizaEl.getBoundingClientRect();
+      analizaEl.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+      analizaEl.style.setProperty('--my', `${e.clientY - rect.top}px`);
+    });
 
     async function loadAnaliza() {
       let raw;
@@ -251,7 +415,7 @@
         const payload = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-          showError(payload.error || 'Analiza trenutno nije dostupna. Pokušajte ponovo.');
+          showError(payload.error || 'Analiza trenutno nije dostupna. Pokušajte ponovo.', res.status === 403);
           return;
         }
 
@@ -261,9 +425,9 @@
         }
 
         analizaEl.innerHTML = marked.parse(payload.analiza);
-        loadingEl.style.display = 'none';
-        errorEl.style.display = 'none';
-        analizaEl.style.display = 'block';
+        hide(loadingEl);
+        hide(errorEl);
+        reveal(analizaEl);
 
         // Podaci više nisu potrebni — očisti da se ista analiza ne ponavlja na refresh.
         try { sessionStorage.removeItem('propiq_analiza_data'); } catch {}
