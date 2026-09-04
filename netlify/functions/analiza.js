@@ -16,6 +16,11 @@ const json = (statusCode, body) => ({
   body: JSON.stringify(body),
 });
 
+// Price ID-jevi iz Stripe dashboarda — koriste se da autoritativno utvrdimo
+// koji je plan STVARNO plaćen, umjesto da vjerujemo ?plan= parametru iz URL-a.
+const PRICE_STANDARD = 'price_1UBFCYLx6rQfmJyZJR0AiqCR';
+const PRICE_PRO = 'price_1UBFDaLx6rQfmJyZEJFQLicR';
+
 const SYSTEM_PROMPT = `Ti si PropIQ — AI investicijski savjetnik za hrvatsko tržište nekretnina.
 Na temelju teksta oglasa izradi KONCIZNU analizu na hrvatskom: maksimalno 400–500 riječi, strukturirano ali sažeto.
 
@@ -45,6 +50,8 @@ exports.handler = async (event) => {
     return json(500, { error: 'Konfiguracija poslužitelja nije potpuna (nedostaje API ključ).' });
   }
 
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
   let data;
   try {
     data = JSON.parse(event.body || '{}');
@@ -56,7 +63,8 @@ exports.handler = async (event) => {
   const agencija = (data.agencija || '').toString().trim();
   const oglasTekst = (data.oglas_tekst || '').toString().trim();
   const email = (data.email || '').toString().trim().toLowerCase();
-  const plan = (data.plan || '').toString().trim().toLowerCase();
+  const trazeniPlan = (data.plan || '').toString().trim().toLowerCase();
+  const sessionId = (data.session_id || '').toString().trim();
 
   if (!oglasTekst) {
     return json(400, { error: 'Nedostaje tekst oglasa za analizu.' });
@@ -66,10 +74,59 @@ exports.handler = async (event) => {
     return json(400, { error: 'Nedostaje email adresa.' });
   }
 
+  // Ne vjerujemo ?plan= parametru iz URL-a — to bilo tko može ručno promijeniti.
+  // Ako je zatražen plaćeni plan, provjeravamo kod Stripea je li session_id
+  // stvarno plaćen, i koji je Price ID stvarno kupljen.
+  let verificiraniPlan = null;
+
+  if ((trazeniPlan === 'standard' || trazeniPlan === 'pro') && sessionId) {
+    if (!stripeSecretKey) {
+      return json(500, { error: 'Konfiguracija poslužitelja nije potpuna (nedostaje Stripe ključ).' });
+    }
+    try {
+      const stripeRes = await fetch(
+        `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=line_items`,
+        { headers: { Authorization: 'Basic ' + Buffer.from(`${stripeSecretKey}:`).toString('base64') } }
+      );
+
+      if (!stripeRes.ok) {
+        console.error('Stripe API greška pri provjeri sesije:', stripeRes.status);
+        return json(402, {
+          error: 'Nismo uspjeli potvrditi vašu uplatu. Osvježite stranicu ili nas kontaktirajte na info@propiq.ai.',
+        });
+      }
+
+      const session = await stripeRes.json();
+
+      if (session.payment_status !== 'paid') {
+        return json(402, { error: 'Vaša uplata još nije potvrđena. Pričekajte trenutak i pokušajte ponovo.' });
+      }
+
+      const kupljeniPriceId =
+        session.line_items && session.line_items.data && session.line_items.data[0]
+          ? session.line_items.data[0].price.id
+          : null;
+
+      if (kupljeniPriceId === PRICE_STANDARD) verificiraniPlan = 'standard';
+      else if (kupljeniPriceId === PRICE_PRO) verificiraniPlan = 'pro';
+      else {
+        return json(402, { error: 'Nismo prepoznali plaćeni plan za ovu uplatu. Kontaktirajte nas na info@propiq.ai.' });
+      }
+    } catch (err) {
+      console.error('Greška pri provjeri Stripe uplate:', err);
+      return json(500, {
+        error: 'Nismo uspjeli potvrditi vašu uplatu. Osvježite stranicu ili nas kontaktirajte na info@propiq.ai.',
+      });
+    }
+  }
+  // Ako je trazeniPlan standard/pro ali nema session_id, tretiramo kao besplatni
+  // plan (verificiraniPlan ostaje null) — netko tko samo doda ?plan=pro u URL
+  // bez stvarne uplate ne dobiva ništa više od besplatnog korisnika.
+
   // Free: max 3 analize ukupno po emailu. Standard: max 10 mjesečno (reset svaki mjesec).
   // Pro: neograničeno, bez brojača.
-  const jePro = plan === 'pro';
-  const jeStandard = plan === 'standard';
+  const jePro = verificiraniPlan === 'pro';
+  const jeStandard = verificiraniPlan === 'standard';
   let store;
   let trenutnoIskoristeno = 0;
   let quotaKey = '';
