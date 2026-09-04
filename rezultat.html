@@ -418,7 +418,7 @@
       if (msg) errorMsgEl.textContent = msg;
       errorEl.classList.toggle('upgrade', !!isQuota);
       errorEyebrowEl.textContent = isQuota ? 'Nadogradnja' : 'Greška';
-      errorTitleEl.textContent = isQuota ? 'Iskoristili ste besplatan plan' : 'Nešto nije u redu';
+      errorTitleEl.textContent = isQuota ? 'Iskoristili ste dostupne analize' : 'Nešto nije u redu';
       errorUpgradeBtn.style.display = isQuota ? 'inline-block' : 'none';
       reveal(errorEl);
     }

@@ -66,14 +66,30 @@ exports.handler = async (event) => {
     return json(400, { error: 'Nedostaje email adresa.' });
   }
 
-  // Besplatni plan: max 3 analize po emailu. Standard i Pro (plaćeni) nemaju ovo ograničenje.
-  const jePlacenPlan = plan === 'standard' || plan === 'pro';
+  // Free: max 3 analize ukupno po emailu. Standard: max 10 mjesečno (reset svaki mjesec).
+  // Pro: neograničeno, bez brojača.
+  const jePro = plan === 'pro';
+  const jeStandard = plan === 'standard';
   let store;
   let trenutnoIskoristeno = 0;
-  if (!jePlacenPlan) {
+  let quotaKey = '';
+
+  if (jeStandard) {
+    connectLambda(event);
+    store = getStore('propiq-standard-quota');
+    const mjesec = new Date().toISOString().slice(0, 7); // npr. "2026-09"
+    quotaKey = `${email}:${mjesec}`;
+    trenutnoIskoristeno = parseInt((await store.get(quotaKey)) || '0', 10);
+    if (trenutnoIskoristeno >= 10) {
+      return json(403, {
+        error: 'Iskoristili ste svih 10 analiza za ovaj mjesec u Standard planu. Nadogradite na Pro za neograničene analize, ili pričekajte sljedeći obračunski ciklus.',
+      });
+    }
+  } else if (!jePro) {
     connectLambda(event);
     store = getStore('propiq-free-quota');
-    trenutnoIskoristeno = parseInt((await store.get(email)) || '0', 10);
+    quotaKey = email;
+    trenutnoIskoristeno = parseInt((await store.get(quotaKey)) || '0', 10);
     if (trenutnoIskoristeno >= 3) {
       return json(403, {
         error: 'Iskoristili ste sve 3 besplatne analize. Nadogradite na Standard ili Pro plan za daljnje analize.',
@@ -125,8 +141,8 @@ exports.handler = async (event) => {
       return json(502, { error: 'Analiza je vraćena prazna. Pokušajte ponovo.' });
     }
 
-    if (!jePlacenPlan && store) {
-      await store.set(email, String(trenutnoIskoristeno + 1));
+    if (!jePro && store) {
+      await store.set(quotaKey, String(trenutnoIskoristeno + 1));
     }
 
     return json(200, { analiza });
