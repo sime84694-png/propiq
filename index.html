@@ -30,7 +30,8 @@
   <meta name="twitter:image" content="https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&q=80">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,300;1,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,800;1,300&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,800;1,300&display=swap" rel="stylesheet"></noscript>
   <style>
     :root {
       --bg: #0a0806;
@@ -2343,7 +2344,6 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
     // ── Smooth scroll ──
     document.querySelectorAll('a[href^="#"]').forEach(link => {
@@ -2522,8 +2522,6 @@
         return { cls: 'skip', label: '✕ Preporuka: Preskoči' };
       return null;
     }
-
-    marked.use({ breaks: true, gfm: true });
 
     // ── FAQ accordion ──
     document.querySelectorAll('.faq-question').forEach(btn => {
