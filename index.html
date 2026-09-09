@@ -86,8 +86,7 @@
       border: 1px solid rgba(240,236,228,0.15);
       font-size: 0.72rem;
       font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      letter-spacing: 0.04em;
       color: var(--cream-70);
       margin-bottom: 20px;
       backdrop-filter: blur(10px);
@@ -274,6 +273,15 @@
       line-height: 1.6;
     }
 
+    .hero-note {
+      font-size: 0.8rem;
+      color: var(--cream-40);
+      text-align: right;
+      max-width: 220px;
+      margin-top: 16px;
+      line-height: 1.5;
+    }
+
     .btn-primary {
       background: var(--cream);
       color: var(--bg);
@@ -367,6 +375,7 @@
       .hero-content { flex-direction: column; align-items: flex-start; gap: 24px; }
       .hero-right { align-items: flex-start; }
       .hero-sub { text-align: left; max-width: 100%; }
+      .hero-note { text-align: left; max-width: 100%; }
       .btn-primary, .btn-outline { padding: 16px 36px; font-size: 0.9rem; }
     }
 
@@ -1723,17 +1732,18 @@
     <div class="hero-content">
       <div>
         <div class="hero-eyebrow-badge fade-in">
-          <span class="hero-badge-glow"></span> AI PREDIKTIVNA ANALIZA NEKRETNINA
+          <span class="hero-badge-glow"></span> Prve tri analize besplatno
         </div>
         <h1 class="hero-title">
-          AI NEKRETNINE
-          <span class="line2">Redefined.</span>
+          Cijena piše.
+          <span class="line2">Vrijednost ne.</span>
         </h1>
       </div>
 
       <div class="hero-right">
-        <p class="hero-sub">AI analiza svakog oglasa u manje od 10 sekundi. Za investitore koji donose odluke brže.</p>
+        <p class="hero-sub">Oglas ti kaže koliko košta. PropIQ ti kaže koliko vrijedi — i što oglas prešućuje.</p>
         <button class="btn-primary" onclick="openModal()">Pokreni analizu</button>
+        <p class="hero-note">Zalijepi tekst oglasa. Bez kartice.</p>
       </div>
     </div>
   </section>
