@@ -92,7 +92,7 @@ exports.handler = async (event) => {
       if (!stripeRes.ok) {
         console.error('Stripe API greška pri provjeri sesije:', stripeRes.status);
         return json(402, {
-          error: 'Nismo uspjeli potvrditi vašu uplatu. Osvježite stranicu ili nas kontaktirajte na info@propiq.ai.',
+          error: 'Nismo uspjeli potvrditi vašu uplatu. Osvježite stranicu ili nas kontaktirajte na sime.zubcic23@gmail.com.',
         });
       }
 
@@ -110,12 +110,12 @@ exports.handler = async (event) => {
       if (kupljeniPriceId === PRICE_STANDARD) verificiraniPlan = 'standard';
       else if (kupljeniPriceId === PRICE_PRO) verificiraniPlan = 'pro';
       else {
-        return json(402, { error: 'Nismo prepoznali plaćeni plan za ovu uplatu. Kontaktirajte nas na info@propiq.ai.' });
+        return json(402, { error: 'Nismo prepoznali plaćeni plan za ovu uplatu. Kontaktirajte nas na sime.zubcic23@gmail.com.' });
       }
     } catch (err) {
       console.error('Greška pri provjeri Stripe uplate:', err);
       return json(500, {
-        error: 'Nismo uspjeli potvrditi vašu uplatu. Osvježite stranicu ili nas kontaktirajte na info@propiq.ai.',
+        error: 'Nismo uspjeli potvrditi vašu uplatu. Osvježite stranicu ili nas kontaktirajte na sime.zubcic23@gmail.com.',
       });
     }
   }
