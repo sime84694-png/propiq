@@ -30,33 +30,77 @@
       min-height: 100vh;
       line-height: 1.7;
     }
-    .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 100px; }
-    .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; }
+
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 40px 24px 0; }
+    .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 44px; }
     .logo { font-weight: 700; font-size: 1.15rem; letter-spacing: -0.02em; }
     .logo span { color: var(--gold); }
     .back-link { color: var(--cream-70); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: color 0.35s var(--ease); }
     .back-link:hover { color: var(--cream); }
-    h1 { font-family: var(--font-serif); font-size: 2.2rem; margin-bottom: 8px; letter-spacing: -0.01em; }
-    .updated { color: var(--cream-40); font-size: 0.85rem; margin-bottom: 40px; }
-    .placeholder-box {
+
+    .page-head { margin-bottom: 26px; }
+    h1 { font-family: var(--font-serif); font-size: 2.4rem; letter-spacing: -0.01em; line-height: 1.1; }
+    .updated { color: var(--cream-40); font-size: 0.85rem; margin-top: 8px; }
+
+    /* Istaknuti blok: napomena o neregistriranom pravnom nositelju */
+    .callout {
       background: rgba(212, 175, 55, 0.07);
-      border: 1px dashed rgba(212, 175, 55, 0.4);
+      border: 1px solid rgba(212, 175, 55, 0.28);
+      border-left: 3px solid var(--gold);
       border-radius: 12px;
-      padding: 18px 20px;
-      margin-bottom: 40px;
-      font-size: 0.9rem;
+      padding: 18px 22px;
+      margin-bottom: 48px;
+      font-size: 0.92rem;
       color: var(--cream-70);
+      max-width: 68ch;
     }
-    .placeholder-box strong { color: var(--gold); }
-    article h2 { font-family: var(--font-serif); font-size: 1.35rem; margin: 40px 0 14px; color: var(--cream); }
-    article h2:first-of-type { margin-top: 0; }
-    article p { color: var(--cream-70); margin-bottom: 14px; }
-    article ul { margin: 0 0 14px 22px; color: var(--cream-70); }
-    article li { margin-bottom: 8px; }
-    article strong { color: var(--cream); }
-    footer.legal-footer { margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--cream-08); color: var(--cream-40); font-size: 0.82rem; }
-    footer.legal-footer a { color: var(--cream-70); }
-    @media (max-width: 600px) { .wrap { padding: 32px 18px 80px; } h1 { font-size: 1.7rem; } }
+    .callout strong { color: var(--gold); }
+
+    /* Layout: sticky sadržaj + tekst */
+    .layout { display: grid; grid-template-columns: 210px minmax(0, 68ch); gap: 52px; align-items: start; }
+
+    .toc { position: sticky; top: 32px; }
+    .toc-title { text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.66rem; color: var(--cream-40); margin-bottom: 14px; font-weight: 700; }
+    .toc ol { list-style: none; display: flex; flex-direction: column; gap: 1px; }
+    .toc a { display: flex; gap: 9px; padding: 7px 12px; border-radius: 8px; color: var(--cream-70); text-decoration: none; font-size: 0.85rem; border-left: 2px solid transparent; transition: color 0.2s, background 0.2s, border-color 0.2s; }
+    .toc a .n { color: var(--gold); opacity: 0.65; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+    .toc a:hover { color: var(--cream); background: var(--cream-04); }
+    .toc a.active { color: var(--cream); background: var(--cream-04); border-left-color: var(--gold); }
+    .toc a.active .n { opacity: 1; }
+
+    /* Sadržaj: broj i naslov vizualno odvojeni */
+    .content { max-width: 68ch; }
+    section[id] { margin-bottom: 44px; scroll-margin-top: 28px; }
+    .sec-head { margin-bottom: 14px; }
+    .sec-num { display: block; font-family: var(--font-serif); font-size: 0.95rem; color: var(--gold); letter-spacing: 0.08em; margin-bottom: 2px; }
+    .sec-title { font-family: var(--font-serif); font-size: 1.45rem; color: var(--cream); line-height: 1.25; font-weight: 700; }
+    .content p { color: var(--cream-70); margin-bottom: 14px; }
+    .content ul { margin: 0 0 14px 22px; color: var(--cream-70); }
+    .content li { margin-bottom: 8px; }
+    .content strong { color: var(--cream); }
+    .content a { color: var(--gold); }
+
+    /* Footer (kao na index.html) */
+    footer { border-top: 1px solid var(--cream-08); padding: 48px; display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 40px; }
+    .footer-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--cream); }
+    .footer-logo-text { font-size: 1rem; font-weight: 700; }
+    .footer-logo-text span { opacity: 0.45; }
+    .footer-links { display: flex; gap: 32px; list-style: none; }
+    .footer-links a { font-size: 0.82rem; color: var(--cream-40); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--cream); }
+    .footer-copy { font-size: 0.78rem; color: var(--cream-40); }
+
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; gap: 0; }
+      .toc { position: static; margin-bottom: 36px; border: 1px solid var(--cream-08); border-radius: 12px; padding: 16px 14px; background: var(--cream-04); }
+      .content { max-width: 100%; }
+      footer { flex-direction: column; align-items: center; text-align: center; padding: 40px 24px; gap: 20px; }
+      .footer-links { gap: 20px; flex-wrap: wrap; justify-content: center; }
+    }
+    @media (max-width: 600px) {
+      .wrap { padding: 28px 18px 0; }
+      h1 { font-size: 1.8rem; }
+    }
   </style>
 </head>
 <body>
@@ -66,51 +110,123 @@
       <a href="index.html" class="back-link">← Natrag na početnu</a>
     </div>
 
-    <h1>Uvjeti korištenja</h1>
-    <p class="updated">Zadnja izmjena: rujan 2026.</p>
+    <div class="page-head">
+      <h1>Uvjeti korištenja</h1>
+      <p class="updated">Zadnja izmjena: rujan 2026.</p>
+    </div>
 
-    <div class="placeholder-box">
+    <div class="callout">
       <strong>Napomena:</strong> podaci o pravnom nositelju usluge (naziv obrta/tvrtke, OIB, sjedište) bit će upisani ovdje čim registracija bude dovršena. Do tada ovi Uvjeti vrijede kao okvir usluge, ali službeni pravni identitet pružatelja usluge još nije formalno registriran.
     </div>
 
-    <article>
-      <h2>1. Opće odredbe</h2>
-      <p>Ovi Uvjeti korištenja uređuju odnos između korisnika i usluge <strong>PropIQ</strong> (dalje: "PropIQ", "mi", "usluga"), dostupne putem web stranice propiq-hr.netlify.app. Korištenjem usluge korisnik potvrđuje da je pročitao, razumio i prihvatio ove Uvjete.</p>
-      <p>Pružatelj usluge: <strong>[NAZIV OBRTA/TVRTKE]</strong>, OIB: <strong>[OIB]</strong>, sa sjedištem na adresi <strong>[ADRESA]</strong>, e-mail: <strong>[EMAIL]</strong>.</p>
+    <div class="layout">
+      <aside class="toc" aria-label="Sadržaj">
+        <div class="toc-title">Sadržaj</div>
+        <ol>
+          <li><a href="#s1"><span class="n">1.</span> Opće odredbe</a></li>
+          <li><a href="#s2"><span class="n">2.</span> Opis usluge</a></li>
+          <li><a href="#s3"><span class="n">3.</span> Planovi, cijene i naplata</a></li>
+          <li><a href="#s4"><span class="n">4.</span> Pravo na odustanak</a></li>
+          <li><a href="#s5"><span class="n">5.</span> Ograničenje odgovornosti</a></li>
+          <li><a href="#s6"><span class="n">6.</span> Intelektualno vlasništvo</a></li>
+          <li><a href="#s7"><span class="n">7.</span> Izmjene uvjeta</a></li>
+          <li><a href="#s8"><span class="n">8.</span> Mjerodavno pravo</a></li>
+          <li><a href="#s9"><span class="n">9.</span> Kontakt</a></li>
+        </ol>
+      </aside>
 
-      <h2>2. Opis usluge</h2>
-      <p>PropIQ je alat koji na temelju teksta oglasa nekretnine koji korisnik ručno unese generira automatiziranu analizu putem umjetne inteligencije (AI). Analiza uključuje procjenu tržišne vrijednosti, tržišni kontekst i investicijske preporuke.</p>
-      <p><strong>Analiza je informativnog karaktera i ne predstavlja stručnu procjenu nekretnine, investicijski savjet, financijski savjet ni pravni savjet.</strong> Analizu generira AI model na temelju dostupnog teksta i općih tržišnih pretpostavki, bez fizičkog uvida u nekretninu. Za konačne odluke o kupnji, prodaji ili ulaganju preporučujemo konzultaciju s licenciranim procjeniteljem, agentom za nekretnine ili financijskim savjetnikom.</p>
+      <main class="content">
+        <section id="s1">
+          <div class="sec-head"><span class="sec-num">1.</span><h2 class="sec-title">Opće odredbe</h2></div>
+          <p>Ovi Uvjeti korištenja uređuju odnos između korisnika i usluge <strong>PropIQ</strong> (dalje: "PropIQ", "mi", "usluga"), dostupne putem web stranice propiq-hr.netlify.app. Korištenjem usluge korisnik potvrđuje da je pročitao, razumio i prihvatio ove Uvjete.</p>
+          <p>Pružatelj usluge: <strong>[NAZIV OBRTA/TVRTKE]</strong>, OIB: <strong>[OIB]</strong>, sa sjedištem na adresi <strong>[ADRESA]</strong>, e-mail: <strong>[EMAIL]</strong>.</p>
+        </section>
 
-      <h2>3. Planovi, cijene i naplata</h2>
-      <p>PropIQ nudi besplatan plan s ograničenim brojem analiza te plaćene pretplatničke planove (Standard i Pro) s mjesečnom naplatom. Aktualne cijene i uključene pogodnosti vidljive su na stranici <a href="index.html#cijene" style="color:var(--gold);">Cijene</a> u trenutku kupnje.</p>
-      <p>Plaćanja obrađuje treća strana, Stripe Inc., putem sigurnog platnog sustava. PropIQ ne prikuplja niti pohranjuje podatke o platnim karticama korisnika.</p>
-      <p>Pretplate se automatski obnavljaju svaki obračunski ciklus (mjesečno) dok ih korisnik ne otkaže. Otkazivanje je moguće u bilo kojem trenutku putem korisničkog portala ili slanjem zahtjeva na kontakt e-mail; otkazivanjem se ukida obnova za sljedeći ciklus, a pristup ostaje aktivan do kraja već plaćenog razdoblja.</p>
+        <section id="s2">
+          <div class="sec-head"><span class="sec-num">2.</span><h2 class="sec-title">Opis usluge</h2></div>
+          <p>PropIQ je alat koji na temelju teksta oglasa nekretnine koji korisnik ručno unese generira automatiziranu analizu putem umjetne inteligencije (AI). Analiza uključuje procjenu tržišne vrijednosti, tržišni kontekst i investicijske preporuke.</p>
+          <p><strong>Analiza je informativnog karaktera i ne predstavlja stručnu procjenu nekretnine, investicijski savjet, financijski savjet ni pravni savjet.</strong> Analizu generira AI model na temelju dostupnog teksta i općih tržišnih pretpostavki, bez fizičkog uvida u nekretninu. Za konačne odluke o kupnji, prodaji ili ulaganju preporučujemo konzultaciju s licenciranim procjeniteljem, agentom za nekretnine ili financijskim savjetnikom.</p>
+        </section>
 
-      <h2>4. Pravo na odustanak</h2>
-      <p>Sukladno propisima o zaštiti potrošača, korisnik koji je potrošač ima pravo odustati od ugovora sklopljenog na daljinu u roku od 14 dana bez navođenja razloga.</p>
-      <p>Budući da PropIQ isporučuje digitalni sadržaj (AI analizu) odmah nakon plaćanja, korištenjem usluge i pokretanjem prve analize nakon plaćanja korisnik izričito pristaje na trenutačnu isporuku digitalnog sadržaja i potvrđuje da time gubi pravo na odustanak za tu konkretnu isporučenu analizu, sukladno primjenjivim propisima o digitalnom sadržaju. Za neiskorišteni dio pretplate prije prve upotrebe, korisnik može zatražiti odustanak unutar roka od 14 dana kontaktiranjem na e-mail iz točke 1.</p>
+        <section id="s3">
+          <div class="sec-head"><span class="sec-num">3.</span><h2 class="sec-title">Planovi, cijene i naplata</h2></div>
+          <p>PropIQ nudi besplatan plan s ograničenim brojem analiza te plaćene pretplatničke planove (Standard i Pro) s mjesečnom naplatom. Aktualne cijene i uključene pogodnosti vidljive su na stranici <a href="index.html#cijene" style="color:var(--gold);">Cijene</a> u trenutku kupnje.</p>
+          <p>Plaćanja obrađuje treća strana, Stripe Inc., putem sigurnog platnog sustava. PropIQ ne prikuplja niti pohranjuje podatke o platnim karticama korisnika.</p>
+          <p>Pretplate se automatski obnavljaju svaki obračunski ciklus (mjesečno) dok ih korisnik ne otkaže. Otkazivanje je moguće u bilo kojem trenutku putem korisničkog portala ili slanjem zahtjeva na kontakt e-mail; otkazivanjem se ukida obnova za sljedeći ciklus, a pristup ostaje aktivan do kraja već plaćenog razdoblja.</p>
+        </section>
 
-      <h2>5. Ograničenje odgovornosti</h2>
-      <p>PropIQ ulaže razuman napor da AI analize budu korisne i točne u mjeri u kojoj to dopušta dostupni tekst oglasa, no ne jamči točnost, potpunost ni ažurnost generiranih procjena. Korisnik samostalno snosi odgovornost za odluke donesene na temelju analize.</p>
-      <p>PropIQ ne odgovara za neizravnu ili posljedičnu štetu nastalu korištenjem usluge, u mjeri dopuštenoj važećim propisima.</p>
+        <section id="s4">
+          <div class="sec-head"><span class="sec-num">4.</span><h2 class="sec-title">Pravo na odustanak</h2></div>
+          <p>Sukladno propisima o zaštiti potrošača, korisnik koji je potrošač ima pravo odustati od ugovora sklopljenog na daljinu u roku od 14 dana bez navođenja razloga.</p>
+          <p>Budući da PropIQ isporučuje digitalni sadržaj (AI analizu) odmah nakon plaćanja, korištenjem usluge i pokretanjem prve analize nakon plaćanja korisnik izričito pristaje na trenutačnu isporuku digitalnog sadržaja i potvrđuje da time gubi pravo na odustanak za tu konkretnu isporučenu analizu, sukladno primjenjivim propisima o digitalnom sadržaju. Za neiskorišteni dio pretplate prije prve upotrebe, korisnik može zatražiti odustanak unutar roka od 14 dana kontaktiranjem na e-mail iz točke 1.</p>
+        </section>
 
-      <h2>6. Intelektualno vlasništvo</h2>
-      <p>Sadržaj web stranice, dizajn, logotip i tehnologija PropIQ-a vlasništvo su pružatelja usluge. Generirana analiza za konkretnu nekretninu ustupa se korisniku koji ju je naručio, za njegovu osobnu ili poslovnu upotrebu.</p>
+        <section id="s5">
+          <div class="sec-head"><span class="sec-num">5.</span><h2 class="sec-title">Ograničenje odgovornosti</h2></div>
+          <p>PropIQ ulaže razuman napor da AI analize budu korisne i točne u mjeri u kojoj to dopušta dostupni tekst oglasa, no ne jamči točnost, potpunost ni ažurnost generiranih procjena. Korisnik samostalno snosi odgovornost za odluke donesene na temelju analize.</p>
+          <p>PropIQ ne odgovara za neizravnu ili posljedičnu štetu nastalu korištenjem usluge, u mjeri dopuštenoj važećim propisima.</p>
+        </section>
 
-      <h2>7. Izmjene uvjeta</h2>
-      <p>Zadržavamo pravo izmjene ovih Uvjeta. O bitnim izmjenama korisnici će biti obaviješteni putem web stranice ili e-maila. Nastavak korištenja usluge nakon izmjene smatra se prihvaćanjem novih Uvjeta.</p>
+        <section id="s6">
+          <div class="sec-head"><span class="sec-num">6.</span><h2 class="sec-title">Intelektualno vlasništvo</h2></div>
+          <p>Sadržaj web stranice, dizajn, logotip i tehnologija PropIQ-a vlasništvo su pružatelja usluge. Generirana analiza za konkretnu nekretninu ustupa se korisniku koji ju je naručio, za njegovu osobnu ili poslovnu upotrebu.</p>
+        </section>
 
-      <h2>8. Mjerodavno pravo</h2>
-      <p>Na ove Uvjete primjenjuje se hrvatsko pravo. Eventualni sporovi rješavat će se sporazumno, a u suprotnom pred nadležnim sudom u Republici Hrvatskoj.</p>
+        <section id="s7">
+          <div class="sec-head"><span class="sec-num">7.</span><h2 class="sec-title">Izmjene uvjeta</h2></div>
+          <p>Zadržavamo pravo izmjene ovih Uvjeta. O bitnim izmjenama korisnici će biti obaviješteni putem web stranice ili e-maila. Nastavak korištenja usluge nakon izmjene smatra se prihvaćanjem novih Uvjeta.</p>
+        </section>
 
-      <h2>9. Kontakt</h2>
-      <p>Za sva pitanja vezana uz ove Uvjete, kontaktirajte nas na: <strong>[EMAIL]</strong>.</p>
-    </article>
+        <section id="s8">
+          <div class="sec-head"><span class="sec-num">8.</span><h2 class="sec-title">Mjerodavno pravo</h2></div>
+          <p>Na ove Uvjete primjenjuje se hrvatsko pravo. Eventualni sporovi rješavat će se sporazumno, a u suprotnom pred nadležnim sudom u Republici Hrvatskoj.</p>
+        </section>
 
-    <footer class="legal-footer">
-      <p>PropIQ · <a href="index.html">Početna</a> · <a href="politika-privatnosti.html">Politika privatnosti</a></p>
-    </footer>
+        <section id="s9">
+          <div class="sec-head"><span class="sec-num">9.</span><h2 class="sec-title">Kontakt</h2></div>
+          <p>Za sva pitanja vezana uz ove Uvjete, kontaktirajte nas na: <strong>[EMAIL]</strong>.</p>
+        </section>
+      </main>
+    </div>
   </div>
+
+  <footer>
+    <a href="index.html" class="footer-logo">
+      <svg width="22" height="22" viewBox="0 0 26 26" fill="none">
+        <rect x="0.75" y="0.75" width="24.5" height="24.5" rx="4.25" stroke="#f0ece4" stroke-width="1.5"/>
+        <rect x="4" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="14" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="4" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
+        <rect x="14" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
+      </svg>
+      <span class="footer-logo-text">Prop<span>IQ</span></span>
+    </a>
+    <ul class="footer-links">
+      <li><a href="index.html#analiza">Analiza</a></li>
+      <li><a href="index.html#cijene">Cijene</a></li>
+      <li><a href="uvjeti-koristenja.html">Uvjeti korištenja</a></li>
+      <li><a href="politika-privatnosti.html">Politika privatnosti</a></li>
+      <li><a href="mailto:info@propiq.ai">info@propiq.ai</a></li>
+    </ul>
+    <span class="footer-copy">&copy; 2026 PropIQ</span>
+  </footer>
+
+  <script>
+    (function () {
+      var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+      var map = {};
+      links.forEach(function (a) { map[a.getAttribute('href').slice(1)] = a; });
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            links.forEach(function (l) { l.classList.remove('active'); });
+            var a = map[e.target.id];
+            if (a) a.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
+      document.querySelectorAll('section[id]').forEach(function (s) { io.observe(s); });
+    })();
+  </script>
 </body>
 </html>
