@@ -352,30 +352,30 @@
 
     /* ─── Ispis / Spremi kao PDF ─── */
     @media print {
-      @page { margin: 18mm; }
+      @page { margin: 15mm; }
       html, body {
         background: #fff !important;
         color: #000 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
-      body { line-height: 1.5; }
+      body { line-height: 1.42; }
       .wrap { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
 
       /* navigacija, gumbi, dekoracija, greška, loading — sve van */
       .top, .eyebrow, #greeting, .subtitle, #loading, #error,
       #upsell-pro, .analiza-actions { display: none !important; }
 
-      /* zaglavlje prve stranice */
+      /* zaglavlje prve stranice (stisnuto da analiza do 500 riječi stane na 1 stranicu) */
       .print-header {
         display: block !important;
-        margin: 0 0 22px;
-        padding-bottom: 14px;
-        border-bottom: 2px solid #000;
+        margin: 0 0 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #000;
       }
-      .print-logo { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; color: #000 !important; }
-      .print-title { font-family: var(--font-serif); font-size: 1.55rem; color: #000 !important; margin: 8px 0 4px; }
-      .print-date { font-size: 0.85rem; color: #444 !important; }
+      .print-logo { font-weight: 700; font-size: 0.95rem; letter-spacing: -0.02em; color: #000 !important; }
+      .print-title { font-family: var(--font-serif); font-size: 1.3rem; color: #000 !important; margin: 4px 0 2px; }
+      .print-date { font-size: 0.78rem; color: #444 !important; }
 
       /* analiza -> čist dokument na bijelom */
       .analiza-card {
@@ -389,14 +389,23 @@
         padding: 0 !important;
         overflow: visible !important;
         color: #000 !important;
+        font-size: 0.9rem;
       }
       .analiza-card::before { display: none !important; }
       .analiza-card h1, .analiza-card h2, .analiza-card h3 {
         font-family: var(--font-serif);
         color: #000 !important;
+        margin: 13px 0 6px;
         page-break-after: avoid;
       }
+      .analiza-card h1 { font-size: 1.3rem; }
+      .analiza-card h2 { font-size: 1.12rem; }
+      .analiza-card h3 { font-size: 1rem; }
+      .analiza-card > :first-child { margin-top: 0 !important; }
       .analiza-card p, .analiza-card li, .analiza-card strong { color: #000 !important; }
+      .analiza-card p { margin: 6px 0; }
+      .analiza-card ul, .analiza-card ol { margin: 6px 0 6px 20px; }
+      .analiza-card li { margin: 2px 0; }
       .analiza-card a { color: #000 !important; text-decoration: underline; }
       .analiza-card hr { border-top: 1px solid #bbb !important; }
       .analiza-card table { border-collapse: collapse; }
