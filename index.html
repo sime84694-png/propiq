@@ -543,38 +543,75 @@
 
     .trusted-names li:hover { color: var(--cream-40); }
 
-    /* ─── GALLERY ─── */
-    .gallery {
-      display: grid;
-      grid-template-columns: 1.3fr 0.7fr;
-      grid-template-rows: 300px 300px;
-      gap: 3px;
-      background: var(--bg);
-      margin: 3px 0;
-    }
+    /* ─── PRIMJER ANALIZE ─── */
+    .example { padding: 120px 48px; }
+    .example-head { max-width: 640px; margin: 0 auto 44px; text-align: center; }
+    .example-head .section-label { margin-bottom: 14px; }
+    .example-lead { color: var(--cream-40); font-size: 0.92rem; margin-top: 14px; line-height: 1.7; }
 
-    .gallery-img {
+    .report {
+      position: relative;
+      max-width: 640px;
+      margin: 0 auto;
+      background: #120f0b;
+      border: 1px solid var(--cream-15);
+      border-radius: 18px;
       overflow: hidden;
-      grid-row: span 2;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+    }
+    .report-glow {
+      position: absolute; top: -45%; left: 50%; transform: translateX(-50%);
+      width: 120%; height: 300px;
+      background: radial-gradient(circle, var(--gold-glow), transparent 60%);
+      pointer-events: none;
+    }
+    .report-inner { position: relative; padding: 30px 32px 30px; }
+
+    .report-topline {
+      display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+      padding-bottom: 20px; margin-bottom: 24px; border-bottom: 1px solid var(--cream-08);
+    }
+    .report-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.64rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-40);
+    }
+    .report-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+    .report-address { font-weight: 700; color: var(--cream); font-size: 0.95rem; }
+
+    .report-block { margin-bottom: 22px; }
+    .report-h { font-family: var(--font-serif); font-size: 1.15rem; color: var(--gold); margin-bottom: 14px; }
+    .report-list { list-style: none; display: flex; flex-direction: column; gap: 11px; }
+    .report-list li {
+      position: relative; padding-left: 18px;
+      font-size: 0.9rem; color: var(--cream-70); line-height: 1.55;
+    }
+    .report-list li::before {
+      content: ''; position: absolute; left: 2px; top: 0.6em;
+      width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: 0.65;
+    }
+    .report-list li.verdict { color: var(--cream); font-weight: 600; }
+    .mono {
+      font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+      color: var(--cream);
     }
 
-    .gallery-img:nth-child(2),
-    .gallery-img:nth-child(3) {
-      grid-row: span 1;
+    .report-cta {
+      position: relative; z-index: 2;
+      text-align: center; padding: 6px 32px 34px; background: #120f0b;
     }
-
-    .gallery-img img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    .report-cta::before {
+      content: ''; position: absolute; left: 0; right: 0; bottom: 100%;
+      height: 130px; background: linear-gradient(to bottom, rgba(18,15,11,0), #120f0b); pointer-events: none;
     }
-
-    .gallery-img:hover img { transform: scale(1.04); }
+    .report-note { color: var(--cream-40); font-size: 0.85rem; line-height: 1.6; max-width: 380px; margin: 0 auto 20px; }
+    .report-cta .btn-primary { padding: 15px 40px; font-size: 0.9rem; }
 
     @media (max-width: 768px) {
-      .gallery { grid-template-columns: 1fr; grid-template-rows: auto; }
-      .gallery-img { grid-row: span 1 !important; height: 260px; }
+      .example { padding: 64px 24px; }
+      .report-inner { padding: 24px 20px 20px; }
+      .report-cta { padding: 6px 20px 30px; }
+      .report-address { font-size: 0.88rem; }
     }
 
     /* ─── MARQUEE ─── */
@@ -1792,18 +1829,49 @@
     </div>
   </div>
 
-  <!-- GALLERY -->
-  <div class="gallery">
-    <div class="gallery-img">
-      <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=900&q=85" alt="Luksuzna nekretnina" width="900" height="597" loading="lazy" decoding="async">
+  <!-- PRIMJER ANALIZE -->
+  <section class="example" id="primjer">
+    <div class="example-head fade-in">
+      <div class="section-label">Primjer</div>
+      <h2 class="section-title">Kako izgleda analiza</h2>
+      <p class="example-lead">Ovo je isječak stvarne PropIQ analize, skraćen.</p>
     </div>
-    <div class="gallery-img">
-      <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=700&q=85" alt="Moderni interijer" width="700" height="467" loading="lazy" decoding="async">
+
+    <div class="report fade-in">
+      <div class="report-glow"></div>
+      <div class="report-inner">
+        <div class="report-topline">
+          <span class="report-eyebrow"><span class="report-dot"></span>AI analiza nekretnine</span>
+          <span class="report-address">Zadar, novogradnja, 63 m², prizemlje</span>
+        </div>
+
+        <div class="report-block">
+          <h3 class="report-h">Procjena vrijednosti</h3>
+          <ul class="report-list">
+            <li>Tražena cijena: <span class="mono">5.100 EUR/m²</span>, ukupno oko <span class="mono">322.000 EUR</span></li>
+            <li>Tržišni raspon za lokaciju: <span class="mono">4.200 do 5.500 EUR/m²</span></li>
+            <li>Prizemlje nosi diskont od <span class="mono">5 do 10 posto</span> u odnosu na više katove</li>
+            <li class="verdict">Ocjena: cijena je na gornjoj granici tržišnog raspona</li>
+          </ul>
+        </div>
+
+        <div class="report-block">
+          <h3 class="report-h">Ključni rizici</h3>
+          <ul class="report-list">
+            <li>Obračunska površina <span class="mono">63 m²</span> znatno je manja od stvarne <span class="mono">100 m²</span></li>
+            <li>Obvezna kupnja garažnog mjesta povećava ukupni trošak za <span class="mono">15.000 do 25.000 EUR</span></li>
+            <li>Prizemlje ograničava potencijal turističkog najma</li>
+            <li>Energetski certifikat nije dostupan</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="report-cta">
+        <p class="report-note">Puna analiza sadrži tržišni kontekst, procjenu prinosa i konkretne iduće korake.</p>
+        <button class="btn-primary" onclick="openModal()">Pokreni analizu</button>
+      </div>
     </div>
-    <div class="gallery-img">
-      <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=700&q=85" alt="Moderna villa" width="700" height="467" loading="lazy" decoding="async">
-    </div>
-  </div>
+  </section>
 
   <!-- MARQUEE -->
   <div class="marquee-wrap">
