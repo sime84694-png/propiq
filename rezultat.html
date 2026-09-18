@@ -337,10 +337,92 @@
       .analiza-card { padding: 26px 20px; }
       .error-box { padding: 32px 22px; }
     }
+
+    /* ─── Akcije ispod analize (samo kad je analiza učitana) ─── */
+    .analiza-actions {
+      display: none;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 32px;
+    }
+
+    /* Print zaglavlje — skriveno na ekranu, vidljivo samo pri ispisu */
+    .print-header { display: none; }
+
+    /* ─── Ispis / Spremi kao PDF ─── */
+    @media print {
+      @page { margin: 18mm; }
+      html, body {
+        background: #fff !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      body { line-height: 1.5; }
+      .wrap { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+
+      /* navigacija, gumbi, dekoracija, greška, loading — sve van */
+      .top, .eyebrow, #greeting, .subtitle, #loading, #error,
+      #upsell-pro, .analiza-actions { display: none !important; }
+
+      /* zaglavlje prve stranice */
+      .print-header {
+        display: block !important;
+        margin: 0 0 22px;
+        padding-bottom: 14px;
+        border-bottom: 2px solid #000;
+      }
+      .print-logo { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; color: #000 !important; }
+      .print-title { font-family: var(--font-serif); font-size: 1.55rem; color: #000 !important; margin: 8px 0 4px; }
+      .print-date { font-size: 0.85rem; color: #444 !important; }
+
+      /* analiza -> čist dokument na bijelom */
+      .analiza-card {
+        display: block !important;
+        opacity: 1 !important;
+        transform: none !important;
+        background: #fff !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        color: #000 !important;
+      }
+      .analiza-card::before { display: none !important; }
+      .analiza-card h1, .analiza-card h2, .analiza-card h3 {
+        font-family: var(--font-serif);
+        color: #000 !important;
+        page-break-after: avoid;
+      }
+      .analiza-card p, .analiza-card li, .analiza-card strong { color: #000 !important; }
+      .analiza-card a { color: #000 !important; text-decoration: underline; }
+      .analiza-card hr { border-top: 1px solid #bbb !important; }
+      .analiza-card table { border-collapse: collapse; }
+      .analiza-card th, .analiza-card td { border: 1px solid #999 !important; color: #000 !important; }
+      .analiza-card th { background: #eee !important; }
+
+      /* ne lomiti blokove i liste nasred stranice */
+      .analiza-card p, .analiza-card ul, .analiza-card ol, .analiza-card li,
+      .analiza-card table, .analiza-card tr, .print-header {
+        page-break-inside: avoid;
+      }
+
+      /* ne ispisivati URL iza linkova */
+      .analiza-card a[href]::after { content: ""; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
+    <!-- Zaglavlje samo za ispis (PDF) -->
+    <div class="print-header" id="print-header">
+      <div class="print-logo">Prop<span>IQ</span></div>
+      <h2 class="print-title" id="print-title">Vaša analiza</h2>
+      <div class="print-date" id="print-date"></div>
+    </div>
+
     <div class="top">
       <div class="logo">Prop<span>IQ</span></div>
       <a href="index.html" class="back-link">← Natrag na početnu</a>
@@ -361,6 +443,12 @@
 
     <!-- Rezultat -->
     <div class="analiza-card" id="analiza" style="display:none;"></div>
+
+    <!-- Akcije (prikazuju se samo kad je analiza uspješno učitana) -->
+    <div class="analiza-actions" id="analiza-actions">
+      <button class="btn-primary" onclick="window.print()">Spremi kao PDF</button>
+      <a href="index.html" class="btn-ghost">Nova analiza</a>
+    </div>
 
     <!-- Greška -->
     <div class="error-box" id="error" style="display:none;">
@@ -415,6 +503,7 @@
     function showError(msg, isQuota) {
       hide(loadingEl);
       hide(analizaEl);
+      document.getElementById('analiza-actions').style.display = 'none';
       if (msg) errorMsgEl.textContent = msg;
       errorEl.classList.toggle('upgrade', !!isQuota);
       errorEyebrowEl.textContent = isQuota ? 'Nadogradnja' : 'Greška';
@@ -481,6 +570,13 @@
         hide(loadingEl);
         hide(errorEl);
         reveal(analizaEl);
+
+        // Prikaži akcije (Spremi kao PDF / Nova analiza) tek kad analiza postoji
+        document.getElementById('analiza-actions').style.display = 'flex';
+        // Pripremi print zaglavlje: naslov analize + trenutni datum (hrvatski format)
+        document.getElementById('print-title').textContent = document.getElementById('greeting').textContent;
+        document.getElementById('print-date').textContent =
+          new Date().toLocaleDateString('hr-HR', { day: 'numeric', month: 'long', year: 'numeric' });
 
         // Podaci više nisu potrebni — očisti da se ista analiza ne ponavlja na refresh.
         try { sessionStorage.removeItem('propiq_analiza_data'); } catch {}
