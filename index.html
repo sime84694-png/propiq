@@ -2390,11 +2390,11 @@
         body: JSON.stringify({
           email:   data.email,
           name:    data.ime,
-          message: `Poštovani ${data.ime}${agencija},\n\nVaša AI analiza je gotova, prijavite se na PropIQ za detalje.\n\nHvala na korištenju PropIQ-a.`,
-          _subject: 'Vaša PropIQ analiza je gotova',
+          message: `Poštovani ${data.ime}${agencija},\n\nZaprimili smo vaš zahtjev za AI analizu nekretnine. Analiza se otvara izravno u vašem pregledniku.\n\nNapomena: analiza ostaje dostupna samo dok je kartica preglednika otvorena. Ako će vam trebati kasnije, obavezno je spremite.\n\nHvala na korištenju PropIQ-a.`,
+          _subject: 'Potvrda zahtjeva za PropIQ analizu',
           _replyto: data.email,
         }),
-      }).catch(() => {});
+      }).catch((err) => { console.error('Formspree slanje nije uspjelo:', err); });
 
       window.location.href = 'rezultat.html';
     });
