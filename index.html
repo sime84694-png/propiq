@@ -382,46 +382,6 @@
       .btn-primary, .btn-outline { padding: 16px 36px; font-size: 0.9rem; }
     }
 
-    /* ─── STATS ─── */
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      border-top: 1px solid var(--cream-08);
-      border-bottom: 1px solid var(--cream-08);
-    }
-
-    @media (max-width: 768px) {
-      .stats { grid-template-columns: repeat(2, 1fr); }
-      .stat { padding: 32px 24px; }
-      .stat:nth-child(2n) { border-right: none; }
-      .stat:nth-child(1),
-      .stat:nth-child(2) { border-bottom: 1px solid var(--cream-08); }
-      .stat-value { font-size: 2.2rem; }
-    }
-
-    .stat {
-      padding: 48px 40px;
-      border-right: 1px solid var(--cream-08);
-    }
-
-    .stat:last-child { border-right: none; }
-
-    .stat-value {
-      font-size: 2.8rem;
-      font-weight: 800;
-      letter-spacing: -2px;
-      line-height: 1;
-      margin-bottom: 8px;
-    }
-
-    .stat-label {
-      font-size: 0.8rem;
-      color: var(--cream-40);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      font-weight: 600;
-    }
-
     /* ─── HOW IT WORKS ─── */
     .how-it-works {
       display: grid;
@@ -615,48 +575,6 @@
       .report-inner { padding: 24px 20px 4px; }
       .report-cta { padding: 18px 20px 30px; }
       .report-address { font-size: 0.88rem; }
-    }
-
-    /* ─── MARQUEE ─── */
-    .marquee-wrap {
-      overflow: hidden;
-      border-top: 1px solid var(--cream-08);
-      border-bottom: 1px solid var(--cream-08);
-      padding: 22px 0;
-      background: var(--bg);
-    }
-
-    .marquee-track {
-      display: flex;
-      width: max-content;
-      animation: marquee 28s linear infinite;
-    }
-
-    .marquee-track:hover { animation-play-state: paused; }
-
-    .marquee-item {
-      display: flex;
-      align-items: center;
-      gap: 28px;
-      padding: 0 28px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--cream-40);
-      white-space: nowrap;
-    }
-
-    .marquee-dot {
-      width: 4px; height: 4px;
-      border-radius: 50%;
-      background: var(--cream-40);
-      flex-shrink: 0;
-    }
-
-    @keyframes marquee {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
     }
 
     /* ─── TESTIMONIALS ─── */
@@ -1791,26 +1709,6 @@
     </div>
   </section>
 
-  <!-- STATS -->
-  <div class="stats">
-    <div class="stat fade-in">
-      <div class="stat-value">&lt;10s</div>
-      <div class="stat-label">Analiza oglasa</div>
-    </div>
-    <div class="stat fade-in" style="transition-delay:0.1s">
-      <div class="stat-value">AI</div>
-      <div class="stat-label">Powered analiza</div>
-    </div>
-    <div class="stat fade-in" style="transition-delay:0.2s">
-      <div class="stat-value">HR</div>
-      <div class="stat-label">Tržišni fokus</div>
-    </div>
-    <div class="stat fade-in" style="transition-delay:0.3s">
-      <div class="stat-value">B2B</div>
-      <div class="stat-label">Za agencije</div>
-    </div>
-  </div>
-
   <!-- HOW IT WORKS -->
   <div class="how-it-works">
     <div class="how-step fade-in">
@@ -1822,7 +1720,7 @@
     <div class="how-step fade-in" style="transition-delay:0.12s">
       <div class="how-num">02</div>
       <div class="how-title">AI analizira</div>
-      <p class="how-desc">PropIQ za manje od 10 sekundi obrađuje lokaciju, cijenu, kvadraturu i tržišne trendove te uspoređuje s tisućama sličnih transakcija.</p>
+      <p class="how-desc">PropIQ za manje od 10 sekundi iz teksta oglasa iščita lokaciju, cijenu, kvadraturu i stanje, a AI model koji poznaje hrvatsko tržište procjenjuje raspon vrijednosti i ključne rizike.</p>
     </div>
     <div class="how-divider"></div>
     <div class="how-step fade-in" style="transition-delay:0.24s">
@@ -1875,33 +1773,6 @@
       </div>
     </div>
   </section>
-
-  <!-- MARQUEE -->
-  <div class="marquee-wrap">
-    <div class="marquee-track">
-      <!-- Duplicated for seamless loop -->
-      <div class="marquee-item">PropIQ<div class="marquee-dot"></div></div>
-      <div class="marquee-item">AI Analiza<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Nekretnine<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Zagreb<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Split<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Rijeka<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Investicije<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Prinos najma<div class="marquee-dot"></div></div>
-      <div class="marquee-item">ROI<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Tržišni trendovi<div class="marquee-dot"></div></div>
-      <div class="marquee-item">PropIQ<div class="marquee-dot"></div></div>
-      <div class="marquee-item">AI Analiza<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Nekretnine<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Zagreb<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Split<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Rijeka<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Investicije<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Prinos najma<div class="marquee-dot"></div></div>
-      <div class="marquee-item">ROI<div class="marquee-dot"></div></div>
-      <div class="marquee-item">Tržišni trendovi<div class="marquee-dot"></div></div>
-    </div>
-  </div>
 
   <!-- FEATURES -->
   <section class="features" id="analiza">
@@ -1966,7 +1837,7 @@
         </div>
         <div class="feature-num">05</div>
         <div class="feature-title">Tržišni trendovi</div>
-        <p class="feature-desc">Kretanje cijena po mikrolokaciji, potražnja i predviđanja temeljena na stvarnim transakcijama.</p>
+        <p class="feature-desc">Procjena kretanja cijena i potražnje po lokaciji, na temelju znanja AI modela o hrvatskom tržištu.</p>
       </div>
       <div class="feature-card fade-in" style="transition-delay:0.4s">
         <div class="feature-icon">
@@ -2068,7 +1939,7 @@
           </span>
         </button>
         <div class="faq-answer">
-          <p>PropIQ kombinira veliki jezični model (LLM) s bazom hrvatskih tržišnih podataka. Iz teksta oglasa automatski prepoznaje ključne parametre — kvadraturu, lokaciju, stanje, cijenu — te ih uspoređuje s tisućama sličnih transakcija i trendovima mikrolokacije. Rezultat je strukturirana procjena investicijske isplativosti s jasnom preporukom.</p>
+          <p>PropIQ koristi veliki jezični model (LLM) koji poznaje hrvatsko tržište nekretnina. Iz teksta oglasa automatski prepoznaje ključne parametre — kvadraturu, lokaciju, stanje i cijenu — te na temelju tog znanja procjenjuje raspon vrijednosti, tržišni kontekst i ključne rizike. Rezultat je strukturirana procjena investicijske isplativosti s jasnom preporukom.</p>
         </div>
       </div>
 
@@ -2096,7 +1967,7 @@
           </span>
         </button>
         <div class="faq-answer">
-          <p>Prosječna analiza završava za manje od 10 sekundi. U tom vremenu AI prolazi kroz lokaciju, usporedne prodaje, procijenjeni prinos najma i tržišne trendove te generira kompletan izvještaj spreman za preuzimanje ili slanje klijentu.</p>
+          <p>Prosječna analiza završava za manje od 10 sekundi. U tom vremenu AI prolazi kroz lokaciju, usporedne prodaje, procijenjeni prinos najma i tržišne trendove te generira kompletan izvještaj spreman za preuzimanje.</p>
         </div>
       </div>
 
