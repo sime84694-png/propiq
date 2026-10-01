@@ -36,6 +36,21 @@ Pravila:
 - Ako nedostaju ključni podaci (cijena, kvadratura), kratko naznači pretpostavku.
 - Ne izmišljaj precizne brojke kao činjenice — koristi raspone i naznači da je procjena.`;
 
+// Brojač uspješnih analiza po mjesecu/izvoru/planu: stats/YYYY-MM/{source}/{plan}.
+// Ne smije nikad srušiti analizu — greške se samo logiraju.
+// (Read-modify-write nije atomičan; kod istovremenih zahtjeva može izgubiti pokoji +1.)
+async function incrementStats(event, source, plan) {
+  try {
+    connectLambda(event);
+    const stats = getStore('propiq-stats');
+    const key = `stats/${new Date().toISOString().slice(0, 7)}/${source}/${plan}`;
+    const n = parseInt((await stats.get(key)) || '0', 10) || 0;
+    await stats.set(key, String(n + 1));
+  } catch (err) {
+    console.error('Statistika nije zapisana:', err);
+  }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: CORS, body: '' };
@@ -65,6 +80,10 @@ exports.handler = async (event) => {
   const email = (data.email || '').toString().trim().toLowerCase();
   const trazeniPlan = (data.plan || '').toString().trim().toLowerCase();
   const sessionId = (data.session_id || '').toString().trim();
+  // Izvor posjeta (?src= / referrer) — samo za statistiku, nikad ne utječe na analizu.
+  const source =
+    (data.source || '').toString().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) ||
+    'unknown';
 
   if (!oglasTekst) {
     return json(400, { error: 'Nedostaje tekst oglasa za analizu.' });
@@ -201,6 +220,8 @@ exports.handler = async (event) => {
     if (!jePro && store) {
       await store.set(quotaKey, String(trenutnoIskoristeno + 1));
     }
+
+    await incrementStats(event, source, verificiraniPlan || 'free');
 
     return json(200, { analiza });
   } catch (err) {

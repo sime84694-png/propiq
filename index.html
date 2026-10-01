@@ -2121,6 +2121,35 @@
   </div>
 
   <script>
+    // ── Izvor posjeta (?src=ig-hook → "ig-hook") ──
+    // Prioritet: ?src= iz URL-a > već spremljen izvor u ovoj sesiji > domena referrera > "direct".
+    // Normalizira se na [a-z0-9_-] jer ide u Blobs ključ i u Stripe client_reference_id.
+    const SOURCE = (function() {
+      const clean = (v) => String(v || '').toLowerCase().replace(/^www\./, '')
+        .replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64);
+      const KEY = 'propiq_src';
+      const fromUrl = clean(new URLSearchParams(window.location.search).get('src'));
+      let stored = null;
+      try { stored = sessionStorage.getItem(KEY); } catch {}
+      let src = fromUrl || stored;
+      if (!src) {
+        let host = '';
+        try { host = new URL(document.referrer).hostname; } catch {}
+        // Vlastita domena i Stripe checkout nisu pravi izvor (povratak s plaćanja, interna navigacija).
+        const ignore = !host || host === location.hostname || /(^|\.)stripe\.com$/.test(host);
+        src = (!ignore && clean(host)) || 'direct';
+      }
+      try { sessionStorage.setItem(KEY, src); } catch {}
+      return src;
+    })();
+
+    // Stripe Payment Links: client_reference_id = izvor, da se vidi u Stripeu
+    document.querySelectorAll('a[href^="https://buy.stripe.com/"]').forEach(a => {
+      const url = new URL(a.href);
+      url.searchParams.set('client_reference_id', SOURCE);
+      a.href = url.toString();
+    });
+
     // ── Smooth scroll ──
     document.querySelectorAll('a[href^="#"]').forEach(link => {
       link.addEventListener('click', e => {
@@ -2316,6 +2345,7 @@
         oglas_tekst: document.getElementById('oglas_tekst').value,
         plan:        new URLSearchParams(window.location.search).get('plan') || '',
         session_id:  new URLSearchParams(window.location.search).get('session_id') || '',
+        source:      SOURCE,
       };
 
       // Podaci forme se spremaju za rezultat.html, koja poziva Netlify Function
@@ -2341,5 +2371,6 @@
       window.location.href = 'rezultat.html';
     });
   </script>
+  <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "CF_TOKEN_OVDJE"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>

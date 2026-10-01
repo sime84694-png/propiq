@@ -212,7 +212,7 @@
 
         <section id="s7">
           <div class="sec-head"><span class="sec-num">7.</span><h2 class="sec-title">Kolačići</h2></div>
-          <p>Stranica koristi tehnički nužne kolačiće potrebne za osnovni rad (npr. pamćenje vašeg izbora na cookie banneru). Trenutno ne koristimo kolačiće za analitiku ili oglašavanje treće strane.</p>
+          <p>Stranica koristi tehnički nužne kolačiće potrebne za osnovni rad (npr. pamćenje vašeg izbora na cookie banneru). Trenutno ne koristimo kolačiće za analitiku ili oglašavanje treće strane. Za osnovnu statistiku posjeta koristimo Cloudflare Web Analytics, koji ne postavlja kolačiće i ne prati vas između različitih web stranica.</p>
         </section>
 
         <section id="s8">
@@ -271,5 +271,6 @@
       document.querySelectorAll('section[id]').forEach(function (s) { io.observe(s); });
     })();
   </script>
+  <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "CF_TOKEN_OVDJE"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
