@@ -11,3 +11,7 @@ index.html.bak
 .DS_Store
 node_modules/
 .env
+
+# Local Netlify folder
+.netlify
+.gstack/
