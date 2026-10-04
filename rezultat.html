@@ -465,7 +465,7 @@
     <!-- Akcije (prikazuju se samo kad je analiza uspješno učitana) -->
     <div class="analiza-actions" id="analiza-actions">
       <button class="btn-primary" onclick="window.print()">Spremi kao PDF</button>
-      <a href="index.html" class="btn-ghost">Nova analiza</a>
+      <a href="index.html" class="btn-ghost" id="nova-analiza-btn">Nova analiza</a>
     </div>
 
     <!-- Greška -->
@@ -538,6 +538,39 @@
       analizaEl.style.setProperty('--my', `${e.clientY - rect.top}px`);
     });
 
+    // Podaci i gotova analiza ostaju u sessionStorageu (F5 prikazuje isti rezultat)
+    // i brišu se tek kad korisnik krene u novu analizu.
+    document.getElementById('nova-analiza-btn').addEventListener('click', () => {
+      try {
+        sessionStorage.removeItem('propiq_analiza_data');
+        sessionStorage.removeItem('propiq_analiza_rezultat');
+      } catch {}
+    });
+
+    function prikaziAnalizu(markdown) {
+      analizaEl.innerHTML = marked.parse(markdown);
+      hide(loadingEl);
+      hide(errorEl);
+      reveal(analizaEl);
+
+      // Prikaži akcije (Spremi kao PDF / Nova analiza) tek kad analiza postoji
+      document.getElementById('analiza-actions').style.display = 'flex';
+      // Pripremi print zaglavlje: naslov analize + trenutni datum (hrvatski format)
+      document.getElementById('print-title').textContent = document.getElementById('greeting').textContent;
+      document.getElementById('print-date').textContent =
+        new Date().toLocaleDateString('hr-HR', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function procitajSpremljeniRezultat(requestId) {
+      if (!requestId) return null;
+      try {
+        const spremljeno = JSON.parse(sessionStorage.getItem('propiq_analiza_rezultat') || 'null');
+        return spremljeno && spremljeno.request_id === requestId && spremljeno.analiza ? spremljeno.analiza : null;
+      } catch {
+        return null;
+      }
+    }
+
     async function loadAnaliza() {
       let raw;
       try {
@@ -565,6 +598,14 @@
         if (first) document.getElementById('greeting').textContent = `Analiza za ${first}`;
       }
 
+      // F5 nakon gotove analize: prikaži spremljeni rezultat bez novog poziva funkcije
+      // (i bez ponovnog mjerenja konverzije).
+      const spremljenaAnaliza = procitajSpremljeniRezultat(data.request_id);
+      if (spremljenaAnaliza) {
+        prikaziAnalizu(spremljenaAnaliza);
+        return;
+      }
+
       try {
         const res = await fetch('/.netlify/functions/analiza', {
           method: 'POST',
@@ -584,23 +625,18 @@
           return;
         }
 
-        analizaEl.innerHTML = marked.parse(payload.analiza);
-        hide(loadingEl);
-        hide(errorEl);
-        reveal(analizaEl);
+        prikaziAnalizu(payload.analiza);
 
-        // Prikaži akcije (Spremi kao PDF / Nova analiza) tek kad analiza postoji
-        document.getElementById('analiza-actions').style.display = 'flex';
-        // Pripremi print zaglavlje: naslov analize + trenutni datum (hrvatski format)
-        document.getElementById('print-title').textContent = document.getElementById('greeting').textContent;
-        document.getElementById('print-date').textContent =
-          new Date().toLocaleDateString('hr-HR', { day: 'numeric', month: 'long', year: 'numeric' });
+        // Spremi gotov rezultat da F5 prikaže istu analizu bez novog poziva.
+        if (data.request_id) {
+          try {
+            sessionStorage.setItem('propiq_analiza_rezultat',
+              JSON.stringify({ request_id: data.request_id, analiza: payload.analiza }));
+          } catch {}
+        }
 
-        // Podaci više nisu potrebni — očisti da se ista analiza ne ponavlja na refresh.
-        try { sessionStorage.removeItem('propiq_analiza_data'); } catch {}
-
-        // Glavna konverzija. Broji se jednom: podaci za analizu su upravo obrisani,
-        // pa refresh ne može ponovo prikazati (ni izmjeriti) istu analizu.
+        // Glavna konverzija. Broji se jednom: refresh prikazuje spremljeni rezultat
+        // i ovdje ne dolazi.
         try {
           window.propiqTrack && window.propiqTrack('analysis_success', {
             plan: data.plan || 'free',

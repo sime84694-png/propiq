@@ -2,6 +2,7 @@
 // Poziva se s POST-om iz rezultat.html; vraća { analiza: "...markdown..." }.
 // API ključ NIKAD nije u kodu — čita se iz Netlify env varijable ANTHROPIC_API_KEY.
 
+const crypto = require('node:crypto');
 const { connectLambda, getStore } = require('@netlify/blobs');
 
 const CORS = {
@@ -47,6 +48,26 @@ async function incrementStats(event, source, plan) {
   } catch (err) {
     console.error('Statistika nije zapisana:', err);
   }
+}
+
+// Isti zahtjev (request_id iz index.html) ponovljen zbog F5 dok analiza traje broji se u limitu
+// samo jednom. Zapis po emailu + request_id čuva samo hash teksta oglasa, vrijeme i broj ponavljanja
+// (bez same analize). Ponavljanje vrijedi samo za isti tekst, unutar 10 min i najviše 2 puta,
+// da se isti request_id ne može koristiti za besplatne analize.
+const PONAVLJANJE_PROZOR_MS = 10 * 60 * 1000;
+const PONAVLJANJE_MAX = 2;
+
+async function procitajZahtjev(store, key) {
+  try {
+    return JSON.parse((await store.get(key)) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function jePonavljanje(zapis, tekstHash) {
+  return !!zapis && zapis.h === tekstHash &&
+    Date.now() - zapis.t < PONAVLJANJE_PROZOR_MS && (zapis.d || 0) < PONAVLJANJE_MAX;
 }
 
 exports.handler = async (event) => {
@@ -108,13 +129,29 @@ exports.handler = async (event) => {
   let trenutnoIskoristeno = 0;
   let quotaKey = '';
 
+  const requestId = String(data.request_id || '');
+  const tekstHash = crypto.createHash('sha256').update(oglasTekst).digest('hex');
+  let zahtjevi = null;
+  let zahtjevKey = '';
+  let ponovljeno = false;
+  if (/^[A-Za-z0-9-]{8,64}$/.test(requestId)) {
+    connectLambda(event);
+    zahtjevi = getStore('propiq-zahtjevi');
+    zahtjevKey = `${email}:${requestId}`;
+    const zapis = await procitajZahtjev(zahtjevi, zahtjevKey);
+    if (jePonavljanje(zapis, tekstHash)) {
+      ponovljeno = true;
+      await zahtjevi.set(zahtjevKey, JSON.stringify({ ...zapis, d: (zapis.d || 0) + 1 }));
+    }
+  }
+
   if (jeStandard) {
     connectLambda(event);
     store = getStore('propiq-standard-quota');
     const mjesec = new Date().toISOString().slice(0, 7); // npr. "2026-09"
     quotaKey = `${email}:${mjesec}`;
     trenutnoIskoristeno = parseInt((await store.get(quotaKey)) || '0', 10);
-    if (trenutnoIskoristeno >= 10) {
+    if (!ponovljeno && trenutnoIskoristeno >= 10) {
       return json(403, {
         error: 'Iskoristili ste svih 10 analiza za ovaj mjesec u Standard planu. Nadogradite na Pro za neograničene analize, ili pričekajte sljedeći obračunski ciklus.',
       });
@@ -124,7 +161,7 @@ exports.handler = async (event) => {
     store = getStore('propiq-free-quota');
     quotaKey = email;
     trenutnoIskoristeno = parseInt((await store.get(quotaKey)) || '0', 10);
-    if (trenutnoIskoristeno >= 3) {
+    if (!ponovljeno && trenutnoIskoristeno >= 3) {
       if (stripeNedostupan) {
         return json(503, {
           error: 'Trenutno ne možemo provjeriti vašu pretplatu. Pokušajte ponovo za minutu ili nas kontaktirajte na sime.zubcic23@gmail.com.',
@@ -180,11 +217,25 @@ exports.handler = async (event) => {
       return json(502, { error: 'Analiza je vraćena prazna. Pokušajte ponovo.' });
     }
 
-    if (!jePro && store) {
-      await store.set(quotaKey, String(trenutnoIskoristeno + 1));
+    // Paralelni poziv istog zahtjeva (F5 dok je prvi još trajao) koji je već izbrojan
+    // također se ne broji ponovo.
+    let izbrojati = !ponovljeno;
+    if (izbrojati && zahtjevi) {
+      const zapis = await procitajZahtjev(zahtjevi, zahtjevKey);
+      if (jePonavljanje(zapis, tekstHash)) {
+        izbrojati = false;
+        await zahtjevi.set(zahtjevKey, JSON.stringify({ ...zapis, d: (zapis.d || 0) + 1 }));
+      } else {
+        await zahtjevi.set(zahtjevKey, JSON.stringify({ h: tekstHash, t: Date.now(), d: 0 }));
+      }
     }
 
-    await incrementStats(event, source, verificiraniPlan || 'free');
+    if (izbrojati) {
+      if (!jePro && store) {
+        await store.set(quotaKey, String(trenutnoIskoristeno + 1));
+      }
+      await incrementStats(event, source, verificiraniPlan || 'free');
+    }
 
     return json(200, { analiza });
   } catch (err) {

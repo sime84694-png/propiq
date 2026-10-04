@@ -144,3 +144,61 @@ test('Stripe nedostupan: besplatne analize rade, nakon njih jasna poruka (503)',
   assert.equal(r.ok, 3);
   assert.equal(r.zadnji.status, 503);
 });
+
+// ── F5 na rezultat.html: isti request_id ne smije trošiti limit dvaput ──
+async function zahtjev(email, requestId, tekst = 'Stan Trešnjevka 58 m2') {
+  const res = await handler({
+    httpMethod: 'POST',
+    body: JSON.stringify({ email, oglas_tekst: tekst, ime: 'Test', request_id: requestId }),
+  });
+  return res.statusCode;
+}
+const iskoristeno = (email) => parseInt(blobs.get(`propiq-free-quota/${email}`) || '0', 10);
+
+test('F5 nakon gotove analize (isti request_id) ne troši limit', async () => {
+  mockFetch({});
+  assert.equal(await zahtjev('f5@primjer.hr', 'req-aaaa-1111'), 200);
+  assert.equal(await zahtjev('f5@primjer.hr', 'req-aaaa-1111'), 200);
+  assert.equal(iskoristeno('f5@primjer.hr'), 1);
+  assert.equal((await koliko('f5@primjer.hr')).ok, 2);
+});
+
+test('F5 dok analiza traje (dva paralelna poziva) broji se jednom', async () => {
+  mockFetch({});
+  // drugi poziv (nakon F5) završava kasnije od prvoga
+  const brziFetch = global.fetch;
+  let anthropicPoziva = 0;
+  global.fetch = async (url, opts) => {
+    if (new URL(url).hostname === 'api.anthropic.com' && ++anthropicPoziva === 2) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    return brziFetch(url, opts);
+  };
+  const s = await Promise.all([zahtjev('par@primjer.hr', 'req-bbbb-2222'), zahtjev('par@primjer.hr', 'req-bbbb-2222')]);
+  assert.deepEqual(s, [200, 200]);
+  assert.equal(iskoristeno('par@primjer.hr'), 1);
+  const stats = [...blobs.entries()].filter(([k]) => k.startsWith('propiq-stats/'));
+  assert.equal(stats.length, 1);
+  assert.equal(stats[0][1], '1');
+});
+
+test('ponavljanje zadnje (3.) analize radi i kad je limit iskorišten', async () => {
+  mockFetch({});
+  await koliko('treca@primjer.hr', 2);
+  assert.equal(await zahtjev('treca@primjer.hr', 'req-cccc-3333'), 200);
+  assert.equal(iskoristeno('treca@primjer.hr'), 3);
+  assert.equal(await zahtjev('treca@primjer.hr', 'req-cccc-3333'), 200);
+  assert.equal(await zahtjev('treca@primjer.hr', 'req-novi-4444'), 403);
+});
+
+test('isti request_id nije besplatna analiza: drugi tekst ili više od 2 ponavljanja se broje', async () => {
+  mockFetch({});
+  await zahtjev('lukav2@primjer.hr', 'req-dddd-5555');
+  assert.equal(await zahtjev('lukav2@primjer.hr', 'req-dddd-5555', 'Sasvim drugi oglas'), 200);
+  assert.equal(iskoristeno('lukav2@primjer.hr'), 2);
+  await zahtjev('lukav2@primjer.hr', 'req-eeee-6666');
+  await zahtjev('lukav2@primjer.hr', 'req-eeee-6666');
+  await zahtjev('lukav2@primjer.hr', 'req-eeee-6666');
+  assert.equal(iskoristeno('lukav2@primjer.hr'), 3);
+  assert.equal(await zahtjev('lukav2@primjer.hr', 'req-eeee-6666'), 403);
+});
