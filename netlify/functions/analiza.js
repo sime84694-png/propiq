@@ -51,17 +51,41 @@ async function incrementStats(event, source, plan) {
 }
 
 // Isti zahtjev (request_id iz index.html) ponovljen zbog F5 dok analiza traje broji se u limitu
-// samo jednom. Zapis po emailu + request_id čuva samo hash teksta oglasa, vrijeme i broj ponavljanja
-// (bez same analize). Ponavljanje vrijedi samo za isti tekst, unutar 10 min i najviše 2 puta,
-// da se isti request_id ne može koristiti za besplatne analize.
+// samo jednom. Zapis čuva samo hash emaila, hash teksta oglasa, vrijeme i broj ponavljanja
+// (bez emaila i bez same analize). Ponavljanje vrijedi samo za isti tekst, unutar 10 min i
+// najviše 2 puta, da se isti request_id ne može koristiti za besplatne analize.
+// Ključ: {hashEmaila}:{request_id}:{vrijeme nastanka}; zapisi stariji od 24 h brišu se pri svakom upisu.
 const PONAVLJANJE_PROZOR_MS = 10 * 60 * 1000;
 const PONAVLJANJE_MAX = 2;
+const ZAHTJEVI_CUVANJE_MS = 24 * 60 * 60 * 1000;
 
-async function procitajZahtjev(store, key) {
+// Sol: ZAHTJEVI_SALT, a bez nje ANTHROPIC_API_KEY (funkcija bez njega ionako ne radi).
+function hashEmaila(email) {
+  const sol = process.env.ZAHTJEVI_SALT || process.env.ANTHROPIC_API_KEY || '';
+  return crypto.createHmac('sha256', sol).update(email).digest('hex');
+}
+
+const vrijemeKljuca = (key) => parseInt(key.slice(key.lastIndexOf(':') + 1), 10) || 0;
+
+async function procitajZahtjev(store, prefix) {
   try {
-    return JSON.parse((await store.get(key)) || 'null');
+    const { blobs } = await store.list({ prefix });
+    const key = blobs.map((b) => b.key).sort((a, b) => vrijemeKljuca(b) - vrijemeKljuca(a))[0];
+    if (!key) return null;
+    return { ...JSON.parse((await store.get(key)) || '{}'), key, t: vrijemeKljuca(key) };
   } catch {
     return null;
+  }
+}
+
+async function zapisiZahtjev(store, key, zapis) {
+  await store.set(key, JSON.stringify({ h: zapis.h, d: zapis.d }));
+  try {
+    const granica = Date.now() - ZAHTJEVI_CUVANJE_MS;
+    const { blobs } = await store.list();
+    await Promise.all(blobs.filter((b) => vrijemeKljuca(b.key) < granica).map((b) => store.delete(b.key)));
+  } catch (err) {
+    console.error('Brisanje starih zapisa zahtjeva nije uspjelo:', err);
   }
 }
 
@@ -132,16 +156,16 @@ exports.handler = async (event) => {
   const requestId = String(data.request_id || '');
   const tekstHash = crypto.createHash('sha256').update(oglasTekst).digest('hex');
   let zahtjevi = null;
-  let zahtjevKey = '';
+  let zahtjevPrefix = '';
   let ponovljeno = false;
   if (/^[A-Za-z0-9-]{8,64}$/.test(requestId)) {
     connectLambda(event);
     zahtjevi = getStore('propiq-zahtjevi');
-    zahtjevKey = `${email}:${requestId}`;
-    const zapis = await procitajZahtjev(zahtjevi, zahtjevKey);
+    zahtjevPrefix = `${hashEmaila(email)}:${requestId}:`;
+    const zapis = await procitajZahtjev(zahtjevi, zahtjevPrefix);
     if (jePonavljanje(zapis, tekstHash)) {
       ponovljeno = true;
-      await zahtjevi.set(zahtjevKey, JSON.stringify({ ...zapis, d: (zapis.d || 0) + 1 }));
+      await zapisiZahtjev(zahtjevi, zapis.key, { h: zapis.h, d: (zapis.d || 0) + 1 });
     }
   }
 
@@ -221,12 +245,12 @@ exports.handler = async (event) => {
     // također se ne broji ponovo.
     let izbrojati = !ponovljeno;
     if (izbrojati && zahtjevi) {
-      const zapis = await procitajZahtjev(zahtjevi, zahtjevKey);
+      const zapis = await procitajZahtjev(zahtjevi, zahtjevPrefix);
       if (jePonavljanje(zapis, tekstHash)) {
         izbrojati = false;
-        await zahtjevi.set(zahtjevKey, JSON.stringify({ ...zapis, d: (zapis.d || 0) + 1 }));
+        await zapisiZahtjev(zahtjevi, zapis.key, { h: zapis.h, d: (zapis.d || 0) + 1 });
       } else {
-        await zahtjevi.set(zahtjevKey, JSON.stringify({ h: tekstHash, t: Date.now(), d: 0 }));
+        await zapisiZahtjev(zahtjevi, zahtjevPrefix + Date.now(), { h: tekstHash, d: 0 });
       }
     }
 

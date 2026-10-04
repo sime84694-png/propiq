@@ -18,7 +18,11 @@ require.cache[blobsPath] = {
       return {
         async get(k) { return blobs.get(`${name}/${k}`) ?? null; },
         async set(k, v) { blobs.set(`${name}/${k}`, v); },
-        async list() { return { blobs: [] }; },
+        async list({ prefix = '' } = {}) {
+          const p = `${name}/${prefix}`;
+          return { blobs: [...blobs.keys()].filter((k) => k.startsWith(p)).map((k) => ({ key: k.slice(name.length + 1) })) };
+        },
+        async delete(k) { blobs.delete(`${name}/${k}`); },
       };
     },
   },
@@ -201,4 +205,40 @@ test('isti request_id nije besplatna analiza: drugi tekst ili više od 2 ponavlj
   await zahtjev('lukav2@primjer.hr', 'req-eeee-6666');
   assert.equal(iskoristeno('lukav2@primjer.hr'), 3);
   assert.equal(await zahtjev('lukav2@primjer.hr', 'req-eeee-6666'), 403);
+});
+
+const zapisiZahtjeva = () => [...blobs.entries()].filter(([k]) => k.startsWith('propiq-zahtjevi/'));
+
+test('propiq-zahtjevi ne sprema email, nego njegov hash', async () => {
+  mockFetch({});
+  await zahtjev('Tajni.Email@primjer.hr', 'req-ffff-7777');
+  const z = zapisiZahtjeva();
+  assert.equal(z.length, 1);
+  assert.doesNotMatch(JSON.stringify(z), /tajni\.email|primjer\.hr/i);
+  assert.match(z[0][0], /^propiq-zahtjevi\/[0-9a-f]{64}:req-ffff-7777:\d+$/);
+});
+
+test('upis u propiq-zahtjevi briše zapise starije od 24 h', async () => {
+  mockFetch({});
+  const sad = Date.now();
+  blobs.set(`propiq-zahtjevi/${'a'.repeat(64)}:req-star-0001:${sad - 25 * 3600 * 1000}`, '{"h":"x","d":0}');
+  blobs.set(`propiq-zahtjevi/${'b'.repeat(64)}:req-svjez-0002:${sad - 23 * 3600 * 1000}`, '{"h":"x","d":0}');
+  await zahtjev('cisti@primjer.hr', 'req-gggg-8888');
+  const kljucevi = zapisiZahtjeva().map(([k]) => k);
+  assert.ok(!kljucevi.some((k) => k.includes('req-star-0001')));
+  assert.ok(kljucevi.some((k) => k.includes('req-svjez-0002')));
+  assert.equal(kljucevi.length, 2);
+});
+
+test('sol iz ZAHTJEVI_SALT mijenja hash emaila', async () => {
+  mockFetch({});
+  await zahtjev('sol@primjer.hr', 'req-hhhh-9999');
+  process.env.ZAHTJEVI_SALT = 'posebna-sol';
+  try {
+    await zahtjev('sol@primjer.hr', 'req-iiii-0000');
+  } finally {
+    delete process.env.ZAHTJEVI_SALT;
+  }
+  const hashevi = new Set(zapisiZahtjeva().map(([k]) => k.split('/')[1].split(':')[0]));
+  assert.equal(hashevi.size, 2);
 });
