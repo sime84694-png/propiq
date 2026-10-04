@@ -1,5 +1,5 @@
 // Testovi pristupa plaćenom planu (opcija A: aktivna Stripe pretplata po emailu).
-// Pokretanje: node --test tests/
+// Pokretanje: node --test 'tests/**/*.test.js'
 // Stripe, Anthropic i Netlify Blobs su lažirani — test ne troši ništa i ne treba ključeve.
 // Za provjeru na pravom Stripe test modu vidi tests/stripe-testmod.mjs.
 
