@@ -1,7 +1,7 @@
 // PropIQ — samo za mjerenje: je li Stripe Checkout sesija plaćena i koliko.
 // GET /.netlify/functions/purchase-status?session_id=cs_...
 // Vraća { paid: true, value, currency, plan } ili { paid: false }.
-// Samo ČITA sesiju sa Stripea (isti poziv kao u analiza.js); ne mijenja ništa u plaćanju ni pristupu.
+// Samo ČITA sesiju sa Stripea; ne mijenja ništa u plaćanju ni pristupu (pristup daje aktivna pretplata, vidi netlify/lib/stripe-plan.js).
 
 const json = (statusCode, body) => ({
   statusCode,
@@ -9,11 +9,7 @@ const json = (statusCode, body) => ({
   body: JSON.stringify(body),
 });
 
-// Isti Price ID-jevi kao u analiza.js.
-const PLANS = {
-  price_1UBFCYLx6rQfmJyZJR0AiqCR: 'standard',
-  price_1UBFDaLx6rQfmJyZEJFQLicR: 'pro',
-};
+const { stripeGet, PLAN_BY_PRICE } = require('../lib/stripe-plan');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'GET') {
@@ -31,14 +27,12 @@ exports.handler = async (event) => {
   }
 
   try {
-    const res = await fetch(
-      `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=line_items`,
-      { headers: { Authorization: 'Basic ' + Buffer.from(`${stripeSecretKey}:`).toString('base64') } }
-    );
-    if (!res.ok) {
+    let s;
+    try {
+      s = await stripeGet(`checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=line_items`, stripeSecretKey);
+    } catch (err) {
       return json(404, { paid: false });
     }
-    const s = await res.json();
     if (s.payment_status !== 'paid') {
       return json(200, { paid: false });
     }
@@ -47,7 +41,7 @@ exports.handler = async (event) => {
       paid: true,
       value: (s.amount_total || 0) / 100,
       currency: (s.currency || 'eur').toUpperCase(),
-      plan: PLANS[priceId] || 'unknown',
+      plan: PLAN_BY_PRICE[priceId] || 'unknown',
     });
   } catch (err) {
     console.error('purchase-status: greška pri čitanju Stripe sesije:', err);
