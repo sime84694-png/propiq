@@ -1,13 +1,14 @@
-// PropIQ — pristanak na kolačiće (Google Consent Mode v2) i slanje događaja.
+// PropIQ — pristanak na kolačiće (Google Consent Mode v2, BASIC način) i slanje događaja.
 //
-// Učitava se SINKRONO u <head>, odmah iza tracking-config.js, prije bilo kojeg taga:
-//   1. postavlja Consent Mode v2 default "denied" za sve oglasne i analitičke signale,
-//   2. vraća spremljeni izbor (ako postoji) i radi update,
-//   3. učitava gtag.js (GA4 + Google Ads) — bez pristanka ne postavlja kolačiće,
-//   4. Meta Pixel učitava TEK nakon pristanka na marketing,
-//   5. prikazuje banner (Prihvati sve / Odbij sve / Postavke) dok izbor ne postoji.
+// Učitava se SINKRONO u <head>, odmah iza tracking-config.js, prije bilo kojeg taga.
+// BASIC: dok korisnik ne pristane, NE učitava se nijedan Google ni Meta tag i nema nikakvih
+// zahtjeva prema Googleu ni Meti (Consent Mode default "denied" postoji samo u dataLayeru).
+//   - analitika  → učitava gtag.js i konfigurira GA4,
+//   - marketing  → učitava gtag.js i konfigurira Google Ads, te učitava Meta Pixel,
+//   - banner (Prihvati sve / Odbij sve / Postavke) se prikazuje dok izbor ne postoji.
 //
 // Događaji: window.propiqTrack('analysis_success' | 'form_submit' | 'purchase', params)
+// Šalju se samo alatima za koje postoji pristanak; dok korisnik ne odluči, čekaju na stranici.
 // Postavke se ponovo otvaraju bilo kojim elementom s atributom data-cookie-settings.
 // Debug: ?pq_debug=1 uključuje GA4 debug_mode za ovu sesiju (vidljivo u DebugView).
 (function () {
@@ -23,7 +24,7 @@
   var HAS_ADS = isSet(CFG.ADS_ID);
   var HAS_META = isSet(CFG.META_PIXEL_ID);
 
-  // ── 1. Consent Mode v2: default denied, PRIJE gtag.js ──
+  // ── 1. Consent Mode v2: default denied (samo dataLayer, bez mrežnih zahtjeva) ──
   window.dataLayer = window.dataLayer || [];
   function gtag() { window.dataLayer.push(arguments); }
   window.gtag = window.gtag || gtag;
@@ -33,9 +34,6 @@
     ad_user_data: 'denied',
     ad_personalization: 'denied',
     analytics_storage: 'denied',
-    functionality_storage: 'granted', // nužni (pamćenje izbora); ne postavlja Googleove kolačiće
-    security_storage: 'granted',
-    wait_for_update: 500,
   });
   gtag('set', 'ads_data_redaction', true);
 
@@ -70,33 +68,40 @@
     gtag('set', 'ads_data_redaction', !c.marketing);
   }
 
-  var consent = readConsent();
-  if (consent) consentUpdate(consent);
-
-  // ── 2. gtag.js (GA4 + Google Ads) ──
   var debug = false;
   try {
     if (new URLSearchParams(location.search).get('pq_debug') === '1') sessionStorage.setItem('pq_debug', '1');
     debug = sessionStorage.getItem('pq_debug') === '1';
   } catch (e) {}
 
-  if (HAS_GA4 || HAS_ADS) {
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(HAS_GA4 ? CFG.GA4_ID : CFG.ADS_ID);
-    document.head.appendChild(s);
-    gtag('js', new Date());
-    if (HAS_GA4) gtag('config', CFG.GA4_ID, debug ? { debug_mode: true } : {});
-    if (HAS_ADS) gtag('config', CFG.ADS_ID);
+  // ── 2. gtag.js — tek uz pristanak (GA4 uz analitiku, Google Ads uz marketing) ──
+  var gaOn = false;   // GA4 konfiguriran na ovoj stranici
+  var adsOn = false;  // Google Ads konfiguriran na ovoj stranici
+  var gtagScript = false;
+
+  function loadGoogle(c) {
+    var wantGa = c.analytics && HAS_GA4 && !gaOn;
+    var wantAds = c.marketing && HAS_ADS && !adsOn;
+    if (!wantGa && !wantAds) return;
+    consentUpdate(c); // update ide u dataLayer PRIJE config naredbi
+    if (!gtagScript) {
+      gtagScript = true;
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(wantGa ? CFG.GA4_ID : CFG.ADS_ID);
+      document.head.appendChild(s);
+      gtag('js', new Date());
+    }
+    if (wantGa) { gaOn = true; gtag('config', CFG.GA4_ID, debug ? { debug_mode: true } : {}); }
+    if (wantAds) { adsOn = true; gtag('config', CFG.ADS_ID); }
   }
 
-  // ── 3. Meta Pixel — samo uz pristanak na marketing ──
-  var metaLoaded = false;
-  var metaQueue = []; // događaji nastali prije nego je korisnik odlučio (npr. povratak sa Stripea)
+  // ── 3. Meta Pixel — tek uz pristanak na marketing ──
+  var metaOn = false;
 
   function loadMeta() {
-    if (metaLoaded || !HAS_META) return;
-    metaLoaded = true;
+    if (metaOn || !HAS_META) return;
+    metaOn = true;
     /* eslint-disable */
     !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
     n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
@@ -106,20 +111,13 @@
     /* eslint-enable */
     window.fbq('init', CFG.META_PIXEL_ID);
     window.fbq('track', 'PageView');
-    metaQueue.splice(0).forEach(function (args) { window.fbq.apply(null, args); });
   }
 
-  function metaSend(args) {
-    if (!HAS_META) return;
-    if (consent && consent.marketing) {
-      if (!metaLoaded) loadMeta();
-      window.fbq.apply(null, args);
-    } else if (!consent) {
-      metaQueue.push(args); // čeka odluku na ovoj stranici; odbijanje ga briše
-    }
+  var consent = readConsent();
+  if (consent) {
+    loadGoogle(consent);
+    if (consent.marketing) loadMeta();
   }
-
-  if (consent && consent.marketing) loadMeta();
 
   // Brisanje Googleovih i Metinih kolačića kad se pristanak povuče.
   function clearTrackingCookies() {
@@ -137,35 +135,20 @@
     });
   }
 
-  function applyChoice(c) {
-    var hadMarketing = !!(consent && consent.marketing);
-    var hadAnalytics = !!(consent && consent.analytics);
-    consent = { analytics: !!c.analytics, marketing: !!c.marketing, ts: Date.now() };
-    writeConsent(consent);
-    consentUpdate(consent);
-    if (consent.marketing) {
-      loadMeta();
-    } else {
-      metaQueue.length = 0;
-    }
-    if ((hadMarketing && !consent.marketing) || (hadAnalytics && !consent.analytics)) {
-      clearTrackingCookies();
-      // Učitani Pixel se ne može "ugasiti" — svjež učitaj stranice bez njega.
-      if (hadMarketing && !consent.marketing && metaLoaded) location.reload();
-    }
-  }
-
   // ── 4. Događaji ──
-  // analysis_success → GA4 + Google Ads konverzija + Meta Lead
-  // form_submit      → GA4 + Google Ads konverzija + Meta FormSubmit (custom)
-  // purchase         → GA4 purchase + Google Ads konverzija + Meta Purchase
+  // analysis_success → GA4 (analitika) + Google Ads konverzija i Meta Lead (marketing)
+  // form_submit      → GA4 (analitika) + Google Ads konverzija i Meta FormSubmit (marketing)
+  // purchase         → GA4 purchase (analitika) + Google Ads konverzija i Meta Purchase (marketing)
   //                    (params: transaction_id = Stripe session_id, value, currency, plan)
-  window.propiqTrack = function (name, params) {
-    params = params || {};
-    var ga = {};
-    Object.keys(params).forEach(function (k) { ga[k] = params[k]; });
+  var pendingEvents = []; // nastali prije odluke na ovoj stranici (npr. povratak sa Stripea)
 
-    if (HAS_GA4) { ga.send_to = CFG.GA4_ID; gtag('event', name, ga); }
+  function send(name, params) {
+    if (consent.analytics && HAS_GA4) {
+      var ga = { send_to: CFG.GA4_ID };
+      Object.keys(params).forEach(function (k) { ga[k] = params[k]; });
+      gtag('event', name, ga);
+    }
+    if (!consent.marketing) return;
 
     var label = CFG.ADS_LABELS && CFG.ADS_LABELS[name];
     if (HAS_ADS && isSet(label)) {
@@ -174,17 +157,45 @@
       if (params.transaction_id) conv.transaction_id = params.transaction_id;
       gtag('event', 'conversion', conv);
     }
-
-    if (name === 'analysis_success') {
-      metaSend(['track', 'Lead', {}, params.event_id ? { eventID: params.event_id } : {}]);
-    } else if (name === 'form_submit') {
-      metaSend(['trackCustom', 'FormSubmit', {}]);
-    } else if (name === 'purchase') {
-      metaSend(['track', 'Purchase',
-        { value: params.value, currency: params.currency || 'EUR', content_name: params.plan || '' },
-        params.transaction_id ? { eventID: params.transaction_id } : {}]);
+    if (HAS_META && metaOn) {
+      if (name === 'analysis_success') {
+        window.fbq('track', 'Lead', {}, params.event_id ? { eventID: params.event_id } : {});
+      } else if (name === 'form_submit') {
+        window.fbq('trackCustom', 'FormSubmit', {});
+      } else if (name === 'purchase') {
+        window.fbq('track', 'Purchase',
+          { value: params.value, currency: params.currency || 'EUR', content_name: params.plan || '' },
+          params.transaction_id ? { eventID: params.transaction_id } : {});
+      }
     }
+  }
+
+  window.propiqTrack = function (name, params) {
+    params = params || {};
+    if (!consent) { pendingEvents.push([name, params]); return; }
+    send(name, params);
   };
+
+  function applyChoice(c) {
+    var before = consent;
+    consent = { analytics: !!c.analytics, marketing: !!c.marketing, ts: Date.now() };
+    writeConsent(consent);
+    consentUpdate(consent);
+    loadGoogle(consent);
+    if (consent.marketing) loadMeta();
+
+    var revoked = (gaOn && !consent.analytics) || ((adsOn || metaOn) && !consent.marketing) ||
+      (before && ((before.analytics && !consent.analytics) || (before.marketing && !consent.marketing)));
+    if (revoked) {
+      clearTrackingCookies();
+      // Učitani gtag.js / Pixel se ne mogu "ugasiti" — svježe učitavanje stranice bez njih.
+      if ((gaOn && !consent.analytics) || ((adsOn || metaOn) && !consent.marketing)) {
+        location.reload();
+        return;
+      }
+    }
+    pendingEvents.splice(0).forEach(function (e) { send(e[0], e[1]); });
+  }
 
   // Događaj tik prije napuštanja stranice (npr. slanje forme → rezultat.html) gubi se jer
   // GA4 šalje u paketima. defer() ga sprema u sessionStorage, a šalje ga sljedeća stranica.
