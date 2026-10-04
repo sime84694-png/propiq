@@ -3,11 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Pristanak + mjerenje: MORA biti prije svih tagova (Consent Mode v2 default "denied") -->
+  <script src="assets/js/tracking-config.js"></script>
+  <script src="assets/js/consent.js"></script>
   <title>Uvjeti korištenja — PropIQ</title>
   <meta name="robots" content="noindex, follow">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+  <!-- Playfair Display s vlastitog hostinga (bez zahtjeva prema Googleu prije pristanka; licenca SIL OFL) -->
+  <link rel="preload" href="assets/fonts/playfair-display-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <style>
+    @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 600 800; font-display: swap;
+      src: url(assets/fonts/playfair-display-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+    @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 600 800; font-display: swap;
+      src: url(assets/fonts/playfair-display-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  </style>
   <style>
     :root {
       --bg: #0a0806;
@@ -42,19 +51,6 @@
     h1 { font-family: var(--font-serif); font-size: 2.4rem; letter-spacing: -0.01em; line-height: 1.1; }
     .updated { color: var(--cream-40); font-size: 0.85rem; margin-top: 8px; }
 
-    /* Istaknuti blok: napomena o neregistriranom pravnom nositelju */
-    .callout {
-      background: rgba(212, 175, 55, 0.07);
-      border: 1px solid rgba(212, 175, 55, 0.28);
-      border-left: 3px solid var(--gold);
-      border-radius: 12px;
-      padding: 18px 22px;
-      margin-bottom: 48px;
-      font-size: 0.92rem;
-      color: var(--cream-70);
-      max-width: 68ch;
-    }
-    .callout strong { color: var(--gold); }
 
     /* Layout: sticky sadržaj + tekst */
     .layout { display: grid; grid-template-columns: 210px minmax(0, 68ch); gap: 52px; align-items: start; }
@@ -112,12 +108,9 @@
 
     <div class="page-head">
       <h1>Uvjeti korištenja</h1>
-      <p class="updated">Zadnja izmjena: rujan 2026.</p>
+      <p class="updated">Zadnja izmjena: listopad 2026.</p>
     </div>
 
-    <div class="callout">
-      <strong>Napomena:</strong> podaci o pravnom nositelju usluge (naziv obrta/tvrtke, OIB, sjedište) bit će upisani ovdje čim registracija bude dovršena. Do tada ovi Uvjeti vrijede kao okvir usluge, ali službeni pravni identitet pružatelja usluge još nije formalno registriran.
-    </div>
 
     <div class="layout">
       <aside class="toc" aria-label="Sadržaj">
@@ -139,7 +132,7 @@
         <section id="s1">
           <div class="sec-head"><span class="sec-num">1.</span><h2 class="sec-title">Opće odredbe</h2></div>
           <p>Ovi Uvjeti korištenja uređuju odnos između korisnika i usluge <strong>PropIQ</strong> (dalje: "PropIQ", "mi", "usluga"), dostupne putem web stranice propiq-hr.netlify.app. Korištenjem usluge korisnik potvrđuje da je pročitao, razumio i prihvatio ove Uvjete.</p>
-          <p>Pružatelj usluge: <strong>[NAZIV OBRTA/TVRTKE]</strong>, OIB: <strong>[OIB]</strong>, sa sjedištem na adresi <strong>[ADRESA]</strong>, e-mail: <strong>sime.zubcic23@gmail.com</strong>.</p>
+          <p>Pružatelj usluge je Šime Zubčić, Karla Metikoša 9, [npr. 23000 Zadar], kontakt: sime.zubcic23@gmail.com.</p>
         </section>
 
         <section id="s2">
@@ -206,6 +199,7 @@
       <li><a href="index.html#cijene">Cijene</a></li>
       <li><a href="uvjeti-koristenja.html">Uvjeti korištenja</a></li>
       <li><a href="politika-privatnosti.html">Politika privatnosti</a></li>
+      <li><a href="#" data-cookie-settings>Postavke kolačića</a></li>
       <li><a href="mailto:sime.zubcic23@gmail.com">sime.zubcic23@gmail.com</a></li>
     </ul>
     <span class="footer-copy">&copy; 2026 PropIQ</span>
@@ -228,5 +222,6 @@
       document.querySelectorAll('section[id]').forEach(function (s) { io.observe(s); });
     })();
   </script>
+  <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6f9726deb409463aaaf9982095282ff5"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>

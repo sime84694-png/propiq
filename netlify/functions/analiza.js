@@ -16,10 +16,8 @@ const json = (statusCode, body) => ({
   body: JSON.stringify(body),
 });
 
-// Price ID-jevi iz Stripe dashboarda — koriste se da autoritativno utvrdimo
-// koji je plan STVARNO plaćen, umjesto da vjerujemo ?plan= parametru iz URL-a.
-const PRICE_STANDARD = 'price_1UBFCYLx6rQfmJyZJR0AiqCR';
-const PRICE_PRO = 'price_1UBFDaLx6rQfmJyZEJFQLicR';
+// Plan (Standard/Pro) se određuje isključivo prema aktivnoj Stripe pretplati za upisani email.
+const { activePlanForEmail } = require('../lib/stripe-plan');
 
 const SYSTEM_PROMPT = `Ti si PropIQ — AI investicijski savjetnik za hrvatsko tržište nekretnina.
 Na temelju teksta oglasa izradi KONCIZNU analizu na hrvatskom: maksimalno 400–500 riječi, strukturirano ali sažeto.
@@ -35,6 +33,21 @@ Pravila:
 - Kratke rečenice, natuknice gdje god ide. Cilj je brz, čitljiv sažetak, ne esej.
 - Ako nedostaju ključni podaci (cijena, kvadratura), kratko naznači pretpostavku.
 - Ne izmišljaj precizne brojke kao činjenice — koristi raspone i naznači da je procjena.`;
+
+// Brojač uspješnih analiza po mjesecu/izvoru/planu: stats/YYYY-MM/{source}/{plan}.
+// Ne smije nikad srušiti analizu — greške se samo logiraju.
+// (Read-modify-write nije atomičan; kod istovremenih zahtjeva može izgubiti pokoji +1.)
+async function incrementStats(event, source, plan) {
+  try {
+    connectLambda(event);
+    const stats = getStore('propiq-stats');
+    const key = `stats/${new Date().toISOString().slice(0, 7)}/${source}/${plan}`;
+    const n = parseInt((await stats.get(key)) || '0', 10) || 0;
+    await stats.set(key, String(n + 1));
+  } catch (err) {
+    console.error('Statistika nije zapisana:', err);
+  }
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -63,8 +76,10 @@ exports.handler = async (event) => {
   const agencija = (data.agencija || '').toString().trim();
   const oglasTekst = (data.oglas_tekst || '').toString().trim();
   const email = (data.email || '').toString().trim().toLowerCase();
-  const trazeniPlan = (data.plan || '').toString().trim().toLowerCase();
-  const sessionId = (data.session_id || '').toString().trim();
+  // Izvor posjeta (?src= / referrer) — samo za statistiku, nikad ne utječe na analizu.
+  const source =
+    (data.source || '').toString().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) ||
+    'unknown';
 
   if (!oglasTekst) {
     return json(400, { error: 'Nedostaje tekst oglasa za analizu.' });
@@ -74,54 +89,16 @@ exports.handler = async (event) => {
     return json(400, { error: 'Nedostaje email adresa.' });
   }
 
-  // Ne vjerujemo ?plan= parametru iz URL-a — to bilo tko može ručno promijeniti.
-  // Ako je zatražen plaćeni plan, provjeravamo kod Stripea je li session_id
-  // stvarno plaćen, i koji je Price ID stvarno kupljen.
+  // Plan se NE čita iz URL-a (?plan=, session_id) — samo iz aktivne pretplate na Stripeu
+  // za upisani email. Ako Stripe nije dostupan, korisnik se privremeno tretira kao besplatni.
   let verificiraniPlan = null;
-
-  if ((trazeniPlan === 'standard' || trazeniPlan === 'pro') && sessionId) {
-    if (!stripeSecretKey) {
-      return json(500, { error: 'Konfiguracija poslužitelja nije potpuna (nedostaje Stripe ključ).' });
-    }
-    try {
-      const stripeRes = await fetch(
-        `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=line_items`,
-        { headers: { Authorization: 'Basic ' + Buffer.from(`${stripeSecretKey}:`).toString('base64') } }
-      );
-
-      if (!stripeRes.ok) {
-        console.error('Stripe API greška pri provjeri sesije:', stripeRes.status);
-        return json(402, {
-          error: 'Nismo uspjeli potvrditi vašu uplatu. Osvježite stranicu ili nas kontaktirajte na sime.zubcic23@gmail.com.',
-        });
-      }
-
-      const session = await stripeRes.json();
-
-      if (session.payment_status !== 'paid') {
-        return json(402, { error: 'Vaša uplata još nije potvrđena. Pričekajte trenutak i pokušajte ponovo.' });
-      }
-
-      const kupljeniPriceId =
-        session.line_items && session.line_items.data && session.line_items.data[0]
-          ? session.line_items.data[0].price.id
-          : null;
-
-      if (kupljeniPriceId === PRICE_STANDARD) verificiraniPlan = 'standard';
-      else if (kupljeniPriceId === PRICE_PRO) verificiraniPlan = 'pro';
-      else {
-        return json(402, { error: 'Nismo prepoznali plaćeni plan za ovu uplatu. Kontaktirajte nas na sime.zubcic23@gmail.com.' });
-      }
-    } catch (err) {
-      console.error('Greška pri provjeri Stripe uplate:', err);
-      return json(500, {
-        error: 'Nismo uspjeli potvrditi vašu uplatu. Osvježite stranicu ili nas kontaktirajte na sime.zubcic23@gmail.com.',
-      });
-    }
+  let stripeNedostupan = false;
+  try {
+    verificiraniPlan = await activePlanForEmail(email, stripeSecretKey);
+  } catch (err) {
+    stripeNedostupan = true;
+    console.error('Provjera pretplate na Stripeu nije uspjela:', err.message);
   }
-  // Ako je trazeniPlan standard/pro ali nema session_id, tretiramo kao besplatni
-  // plan (verificiraniPlan ostaje null) — netko tko samo doda ?plan=pro u URL
-  // bez stvarne uplate ne dobiva ništa više od besplatnog korisnika.
 
   // Free: max 3 analize ukupno po emailu. Standard: max 10 mjesečno (reset svaki mjesec).
   // Pro: neograničeno, bez brojača.
@@ -148,8 +125,13 @@ exports.handler = async (event) => {
     quotaKey = email;
     trenutnoIskoristeno = parseInt((await store.get(quotaKey)) || '0', 10);
     if (trenutnoIskoristeno >= 3) {
+      if (stripeNedostupan) {
+        return json(503, {
+          error: 'Trenutno ne možemo provjeriti vašu pretplatu. Pokušajte ponovo za minutu ili nas kontaktirajte na sime.zubcic23@gmail.com.',
+        });
+      }
       return json(403, {
-        error: 'Iskoristili ste sve 3 besplatne analize. Nadogradite na Standard ili Pro plan za daljnje analize.',
+        error: 'Iskoristili ste sve 3 besplatne analize. Ako ste platili Standard ili Pro, upišite email s kojim ste platili. Inače nadogradite plan za daljnje analize.',
       });
     }
   }
@@ -201,6 +183,8 @@ exports.handler = async (event) => {
     if (!jePro && store) {
       await store.set(quotaKey, String(trenutnoIskoristeno + 1));
     }
+
+    await incrementStats(event, source, verificiraniPlan || 'free');
 
     return json(200, { analiza });
   } catch (err) {

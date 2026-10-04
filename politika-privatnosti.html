@@ -3,11 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Pristanak + mjerenje: MORA biti prije svih tagova (Consent Mode v2 default "denied") -->
+  <script src="assets/js/tracking-config.js"></script>
+  <script src="assets/js/consent.js"></script>
   <title>Politika privatnosti — PropIQ</title>
   <meta name="robots" content="noindex, follow">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+  <!-- Playfair Display s vlastitog hostinga (bez zahtjeva prema Googleu prije pristanka; licenca SIL OFL) -->
+  <link rel="preload" href="assets/fonts/playfair-display-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <style>
+    @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 600 800; font-display: swap;
+      src: url(assets/fonts/playfair-display-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+    @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 600 800; font-display: swap;
+      src: url(assets/fonts/playfair-display-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  </style>
   <style>
     :root {
       --bg: #0a0806;
@@ -42,19 +51,6 @@
     h1 { font-family: var(--font-serif); font-size: 2.4rem; letter-spacing: -0.01em; line-height: 1.1; }
     .updated { color: var(--cream-40); font-size: 0.85rem; margin-top: 8px; }
 
-    /* Istaknuti blok: napomena o neregistriranom voditelju obrade */
-    .callout {
-      background: rgba(212, 175, 55, 0.07);
-      border: 1px solid rgba(212, 175, 55, 0.28);
-      border-left: 3px solid var(--gold);
-      border-radius: 12px;
-      padding: 18px 22px;
-      margin-bottom: 48px;
-      font-size: 0.92rem;
-      color: var(--cream-70);
-      max-width: 68ch;
-    }
-    .callout strong { color: var(--gold); }
 
     /* Layout: sticky sadržaj + tekst */
     .layout { display: grid; grid-template-columns: 210px minmax(0, 68ch); gap: 52px; align-items: start; }
@@ -127,12 +123,9 @@
 
     <div class="page-head">
       <h1>Politika privatnosti</h1>
-      <p class="updated">Zadnja izmjena: rujan 2026.</p>
+      <p class="updated">Zadnja izmjena: listopad 2026.</p>
     </div>
 
-    <div class="callout">
-      <strong>Napomena:</strong> podaci o voditelju obrade (naziv obrta/tvrtke, OIB, sjedište) bit će upisani ovdje čim registracija bude dovršena.
-    </div>
 
     <div class="layout">
       <aside class="toc" aria-label="Sadržaj">
@@ -154,7 +147,7 @@
       <main class="content">
         <section id="s1">
           <div class="sec-head"><span class="sec-num">1.</span><h2 class="sec-title">Voditelj obrade podataka</h2></div>
-          <p>Voditelj obrade osobnih podataka prikupljenih putem usluge PropIQ je: <strong>[NAZIV OBRTA/TVRTKE]</strong>, OIB: <strong>[OIB]</strong>, sa sjedištem na adresi <strong>[ADRESA]</strong>, e-mail za pitanja o privatnosti: <strong>sime.zubcic23@gmail.com</strong>.</p>
+          <p>Voditelj obrade je Šime Zubčić, Karla Metikoša 9, [npr. 23000 Zadar], kontakt: sime.zubcic23@gmail.com.</p>
         </section>
 
         <section id="s2">
@@ -169,9 +162,9 @@
         <section id="s3">
           <div class="sec-head"><span class="sec-num">3.</span><h2 class="sec-title">Svrha i pravna osnova obrade</h2></div>
           <ul>
-            <li><strong>Izvršenje ugovora</strong> — obrada teksta oglasa radi generiranja AI analize koju ste naručili; upravljanje pretplatom i naplatom.</li>
+            <li><strong>Izvršenje ugovora</strong> — obrada teksta oglasa radi generiranja AI analize koju ste naručili; upravljanje pretplatom i naplatom, uključujući provjeru aktivne pretplate kod Stripea prema e-mail adresi koju upišete.</li>
             <li><strong>Legitimni interes</strong> — sprječavanje zlouporabe besplatnog plana (brojanje broja iskorištenih besplatnih analiza po e-mail adresi), sigurnost i stabilnost usluge.</li>
-            <li><strong>Privola</strong> — neobavezni kolačići za analitiku, ako ih u budućnosti uvedemo (trenutno koristimo samo tehnički nužne kolačiće).</li>
+            <li><strong>Privola</strong> — kolačići i slične tehnologije za analitiku (Google Analytics) i marketing (Google Ads, Meta), samo ako ih prihvatite u postavkama kolačića. Privolu možete u svakom trenutku povući putem poveznice „Postavke kolačića” u podnožju stranice, bez utjecaja na zakonitost obrade prije povlačenja.</li>
           </ul>
         </section>
 
@@ -187,13 +180,17 @@
               <tr><td data-label="Pružatelj">Stripe</td><td data-label="Svrha">Obrada plaćanja i pretplata</td><td data-label="Koji podaci">E-mail, podaci o transakciji, podaci kartice (mi ih ne vidimo)</td></tr>
               <tr><td data-label="Pružatelj">Netlify</td><td data-label="Svrha">Hosting stranice, pohrana brojača korištenja</td><td data-label="Koji podaci">E-mail (za brojač), tehnički podaci poslužitelja</td></tr>
               <tr><td data-label="Pružatelj">Formspree</td><td data-label="Svrha">Potvrda o zaprimljenom zahtjevu za analizu</td><td data-label="Koji podaci">Ime, e-mail adresa</td></tr>
+              <tr><td data-label="Pružatelj">Cloudflare, Inc.</td><td data-label="Svrha">Anonimna statistika posjeta (Web Analytics)</td><td data-label="Koji podaci">Tehnički podaci o posjetu (posjećena stranica, preglednik, država), bez kolačića</td></tr>
+              <tr><td data-label="Pružatelj">Google Ireland Limited (Google Analytics, Google Ads)</td><td data-label="Svrha">Statistika posjeta i mjerenje uspješnosti oglasa — samo uz vašu privolu</td><td data-label="Koji podaci">Identifikatori kolačića, podaci o posjetu i uređaju, događaji na stranici (npr. pokrenuta analiza, kupnja pretplate i njezin iznos)</td></tr>
+              <tr><td data-label="Pružatelj">Meta Platforms Ireland Limited (Meta Pixel)</td><td data-label="Svrha">Mjerenje uspješnosti oglasa na Facebooku i Instagramu i prikaz oglasa posjetiteljima — samo uz vašu privolu</td><td data-label="Koji podaci">Identifikatori kolačića, podaci o posjetu i uređaju, događaji na stranici (npr. pokrenuta analiza, kupnja pretplate i njezin iznos)</td></tr>
             </tbody>
           </table>
+          <p>Google i Meta mogu podatke prenositi u SAD. Prijenos se temelji na Okviru EU-SAD za privatnost podataka (EU-U.S. Data Privacy Framework) i standardnim ugovornim klauzulama.</p>
         </section>
 
         <section id="s5">
           <div class="sec-head"><span class="sec-num">5.</span><h2 class="sec-title">Razdoblje čuvanja podataka</h2></div>
-          <p>Podatke čuvamo onoliko dugo koliko je potrebno za pružanje usluge i ispunjenje zakonskih obveza (npr. računovodstvenih). Brojač besplatnih/mjesečnih analiza vezan uz vašu e-mail adresu čuva se dok koristite uslugu; na zahtjev ga možemo obrisati.</p>
+          <p>Podatke čuvamo onoliko dugo koliko je potrebno za pružanje usluge i ispunjenje zakonskih obveza (npr. računovodstvenih). Brojač besplatnih/mjesečnih analiza vezan uz vašu e-mail adresu čuva se dok koristite uslugu; na zahtjev ga možemo obrisati. Podatke prikupljene putem Google Analyticsa čuvamo do 14 mjeseci. Rok čuvanja podataka kod Mete određen je Metinim pravilima.</p>
         </section>
 
         <section id="s6">
@@ -212,7 +209,18 @@
 
         <section id="s7">
           <div class="sec-head"><span class="sec-num">7.</span><h2 class="sec-title">Kolačići</h2></div>
-          <p>Stranica koristi tehnički nužne kolačiće potrebne za osnovni rad (npr. pamćenje vašeg izbora na cookie banneru). Trenutno ne koristimo kolačiće za analitiku ili oglašavanje treće strane.</p>
+          <p>Koristimo tri kategorije kolačića. Pri prvom posjetu sami birate koje dopuštate; izbor pamtimo 12 mjeseci i možete ga promijeniti ili povući u bilo kojem trenutku putem poveznice „<a href="#" data-cookie-settings>Postavke kolačića</a>” u podnožju svake stranice. Povlačenjem privole brišemo kolačiće iz kategorija analitike i marketinga koje smo postavili.</p>
+          <table class="subproc">
+            <thead>
+              <tr><th scope="col">Kategorija</th><th scope="col">Svrha</th><th scope="col">Kolačići / pohrana</th><th scope="col">Trajanje</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Kategorija">Nužni (uvijek uključeni)</td><td data-label="Svrha">Rad stranice i pamćenje vašeg izbora kolačića</td><td data-label="Kolačići / pohrana"><span><code>propiq_consent</code> (lokalna pohrana preglednika), privremeni podaci sesije za prikaz analize</span></td><td data-label="Trajanje">12 mjeseci / do zatvaranja kartice</td></tr>
+              <tr><td data-label="Kategorija">Analitika (uz privolu)</td><td data-label="Svrha">Google Analytics — broj posjeta i korištenje stranice</td><td data-label="Kolačići / pohrana"><span><code>_ga</code>, <code>_ga_&lt;ID&gt;</code></span></td><td data-label="Trajanje">do 2 godine</td></tr>
+              <tr><td data-label="Kategorija">Marketing (uz privolu)</td><td data-label="Svrha">Google Ads i Meta — mjerenje oglasa i prikaz oglasa posjetiteljima</td><td data-label="Kolačići / pohrana"><span><code>_gcl_au</code>, <code>_fbp</code>, <code>_fbc</code></span></td><td data-label="Trajanje">do 90 dana</td></tr>
+            </tbody>
+          </table>
+          <p>Alati za analitiku i marketing (Google, Meta) ne učitavaju se uopće dok ne date privolu za odgovarajuću kategoriju. Za osnovnu statistiku posjeta koristimo i Cloudflare Web Analytics, koji ne postavlja kolačiće.</p>
         </section>
 
         <section id="s8">
@@ -249,6 +257,7 @@
       <li><a href="index.html#cijene">Cijene</a></li>
       <li><a href="uvjeti-koristenja.html">Uvjeti korištenja</a></li>
       <li><a href="politika-privatnosti.html">Politika privatnosti</a></li>
+      <li><a href="#" data-cookie-settings>Postavke kolačića</a></li>
       <li><a href="mailto:sime.zubcic23@gmail.com">sime.zubcic23@gmail.com</a></li>
     </ul>
     <span class="footer-copy">&copy; 2026 PropIQ</span>
@@ -271,5 +280,6 @@
       document.querySelectorAll('section[id]').forEach(function (s) { io.observe(s); });
     })();
   </script>
+  <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6f9726deb409463aaaf9982095282ff5"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
