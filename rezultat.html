@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Pristanak + mjerenje: MORA biti prije svih tagova (Consent Mode v2 default "denied") -->
+  <script src="assets/js/tracking-config.js"></script>
+  <script src="assets/js/consent.js"></script>
   <title>Vaša analiza — PropIQ</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -589,6 +593,15 @@
 
         // Podaci više nisu potrebni — očisti da se ista analiza ne ponavlja na refresh.
         try { sessionStorage.removeItem('propiq_analiza_data'); } catch {}
+
+        // Glavna konverzija. Broji se jednom: podaci za analizu su upravo obrisani,
+        // pa refresh ne može ponovo prikazati (ni izmjeriti) istu analizu.
+        try {
+          window.propiqTrack && window.propiqTrack('analysis_success', {
+            plan: data.plan || 'free',
+            event_id: 'an_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+          });
+        } catch {}
       } catch {
         showError('Došlo je do greške pri dohvaćanju analize. Provjerite vezu i pokušajte ponovo.');
       }

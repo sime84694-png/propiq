@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Pristanak + mjerenje: MORA biti prije svih tagova (Consent Mode v2 default "denied") -->
+  <script src="assets/js/tracking-config.js"></script>
+  <script src="assets/js/consent.js"></script>
   <title>PropIQ — AI Investicijski Savjetnik za Nekretnine</title>
 
   <!-- SEO -->
@@ -1288,99 +1292,6 @@
     /* ─── SCROLL OFFSET ─── */
     [id] { scroll-margin-top: 80px; }
 
-    /* ─── COOKIE BANNER ─── */
-    .cookie-banner {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(0);
-      z-index: 300;
-      background: #111;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px;
-      padding: 18px 24px;
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      width: calc(100% - 48px);
-      max-width: 780px;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
-      transition: opacity 0.35s ease, transform 0.35s ease;
-    }
-
-    .cookie-banner.hidden {
-      opacity: 0;
-      transform: translateX(-50%) translateY(16px);
-      pointer-events: none;
-    }
-
-    .cookie-text {
-      font-size: 0.85rem;
-      color: rgba(255,255,255,0.6);
-      line-height: 1.6;
-      flex: 1;
-    }
-
-    .cookie-text a {
-      color: rgba(255,255,255,0.85);
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-
-    .cookie-text a:hover { color: #fff; }
-
-    .cookie-btns {
-      display: flex;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-
-    .cookie-accept {
-      background: var(--cream);
-      color: var(--bg);
-      border: none;
-      padding: 10px 22px;
-      border-radius: 100px;
-      font-size: 0.83rem;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
-      transition: opacity 0.2s;
-      white-space: nowrap;
-    }
-
-    .cookie-accept:hover { opacity: 0.85; }
-
-    .cookie-decline {
-      background: transparent;
-      color: rgba(255,255,255,0.55);
-      border: 1.5px solid rgba(255,255,255,0.15);
-      padding: 10px 22px;
-      border-radius: 100px;
-      font-size: 0.83rem;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
-      transition: border-color 0.2s, color 0.2s;
-      white-space: nowrap;
-    }
-
-    .cookie-decline:hover {
-      border-color: rgba(255,255,255,0.35);
-      color: #fff;
-    }
-
-    @media (max-width: 600px) {
-      .cookie-banner {
-        flex-direction: column;
-        align-items: flex-start;
-        bottom: 16px;
-        width: calc(100% - 32px);
-      }
-      .cookie-btns { width: 100%; }
-      .cookie-accept, .cookie-decline { flex: 1; text-align: center; }
-    }
-
     /* ─── MODAL ─── */
     .modal-overlay {
       display: none;
@@ -2028,6 +1939,7 @@
       <li><a href="#cijene">Cijene</a></li>
       <li><a href="uvjeti-koristenja.html">Uvjeti korištenja</a></li>
       <li><a href="politika-privatnosti.html">Politika privatnosti</a></li>
+      <li><a href="#" data-cookie-settings>Postavke kolačića</a></li>
       <li><a href="mailto:sime.zubcic23@gmail.com">sime.zubcic23@gmail.com</a></li>
     </ul>
     <span class="footer-copy">&copy; 2026 PropIQ</span>
@@ -2108,15 +2020,6 @@
       <p class="exit-sub">Prve 3 analize potpuno besplatno —<br>bez kreditne kartice.</p>
       <button class="exit-cta" onclick="dismissExit(); openModal();">Počni besplatno</button>
       <p class="exit-note">Bez obaveza. Otkaži kad god želiš.</p>
-    </div>
-  </div>
-
-  <!-- COOKIE BANNER -->
-  <div class="cookie-banner" id="cookieBanner">
-    <p class="cookie-text">Koristimo kolačiće za poboljšanje iskustva. Nastavkom korištenja pristajete na našu <a href="politika-privatnosti.html">politiku privatnosti</a>.</p>
-    <div class="cookie-btns">
-      <button class="cookie-accept" onclick="cookieConsent('accept')">Prihvati sve</button>
-      <button class="cookie-decline" onclick="cookieConsent('decline')">Odbij</button>
     </div>
   </div>
 
@@ -2201,20 +2104,6 @@
     function closeExit(e) {
       if (e.target === document.getElementById('exitPopup')) dismissExit();
     }
-
-    // ── Cookie banner ──
-    (function() {
-      if (localStorage.getItem('propiq_cookie')) {
-        document.getElementById('cookieBanner').classList.add('hidden');
-      }
-    })();
-
-    function cookieConsent(choice) {
-      localStorage.setItem('propiq_cookie', choice);
-      const banner = document.getElementById('cookieBanner');
-      banner.classList.add('hidden');
-    }
-
 
     // ── NAV scroll ──
     const navbar = document.getElementById('navbar');
@@ -2368,8 +2257,41 @@
         }),
       }).catch((err) => { console.error('Formspree slanje nije uspjelo:', err); });
 
+      // Mjerenje (poštuje pristanak — vidi assets/js/consent.js). GA4 šalje događaje u paketima pa bi se
+      // izgubio pri prelasku na rezultat.html; defer() ga sprema i šalje ga rezultat.html pri učitavanju.
+      try { window.propiqTrack && window.propiqTrack.defer('form_submit', { form_id: 'zahtjev-form', plan: data.plan || 'free' }); } catch {}
+
       window.location.href = 'rezultat.html';
     });
+
+    // ── Kupnja: povratak sa Stripea (?plan=…&session_id=cs_…) ──
+    // Broji se samo jednom po plaćanju: session_id se pamti u localStorageu (refresh ne broji ponovo),
+    // a isti session_id ide kao transaction_id (GA4, Google Ads) i eventID (Meta), pa i platforme
+    // odbacuju duplikate (npr. isti link otvoren u drugom pregledniku).
+    (async function trackPurchase() {
+      const sessionId = new URLSearchParams(window.location.search).get('session_id') || '';
+      if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) return;
+      const KEY = 'propiq_purchases';
+      let done = [];
+      try { done = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
+      if (done.includes(sessionId)) return;
+      try {
+        const res = await fetch('/.netlify/functions/purchase-status?session_id=' + encodeURIComponent(sessionId));
+        const p = await res.json();
+        if (!res.ok || !p.paid) return;
+        window.propiqTrack && window.propiqTrack('purchase', {
+          transaction_id: sessionId,
+          value: p.value,
+          currency: p.currency || 'EUR',
+          plan: p.plan,
+          items: [{ item_id: p.plan, item_name: 'PropIQ ' + p.plan, price: p.value, quantity: 1 }],
+        });
+        done.push(sessionId);
+        try { localStorage.setItem(KEY, JSON.stringify(done.slice(-20))); } catch {}
+      } catch (err) {
+        console.error('Mjerenje kupnje nije uspjelo:', err);
+      }
+    })();
   </script>
   <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6f9726deb409463aaaf9982095282ff5"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
