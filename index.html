@@ -2031,6 +2031,8 @@
     // ── Izvor posjeta (?src=ig-hook → "ig-hook") ──
     // Prioritet: ?src= iz URL-a > ?utm_source= > već spremljen izvor u ovoj sesiji > domena referrera > "direct".
     // Normalizira se na [a-z0-9_-] jer ide u Blobs ključ i u Stripe client_reference_id.
+    // U sessionStorage (propiq_src) se sprema SAMO uz pristanak na analitiku; ako pristanak
+    // dođe kasnije na istoj stranici, sprema se tada (događaj 'propiq:consent' iz consent.js).
     const SOURCE = (function() {
       const clean = (v) => String(v || '').toLowerCase().replace(/^www\./, '')
         .replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64);
@@ -2047,7 +2049,13 @@
         const ignore = !host || host === location.hostname || /(^|\.)stripe\.com$/.test(host);
         src = (!ignore && clean(host)) || 'direct';
       }
-      try { sessionStorage.setItem(KEY, src); } catch {}
+      const spremi = () => { try { sessionStorage.setItem(KEY, src); } catch {} };
+      const c = window.propiqConsent && window.propiqConsent.get();
+      if (c && c.analytics) spremi();
+      window.addEventListener('propiq:consent', (e) => {
+        if (e.detail && e.detail.analytics) spremi();
+        else { try { sessionStorage.removeItem(KEY); } catch {} }
+      });
       return src;
     })();
 

@@ -181,6 +181,12 @@
     consent = { analytics: !!c.analytics, marketing: !!c.marketing, ts: Date.now() };
     writeConsent(consent);
     consentUpdate(consent);
+    // Za ostatak stranice (npr. izvor posjeta u index.html sprema se tek uz analitiku).
+    try {
+      window.dispatchEvent(new CustomEvent('propiq:consent', {
+        detail: { analytics: consent.analytics, marketing: consent.marketing },
+      }));
+    } catch (e) {}
     loadGoogle(consent);
     if (consent.marketing) loadMeta();
 
