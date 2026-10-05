@@ -1,9 +1,16 @@
-// PropIQ — proxy prema Claude API za analizu nekretnina.
-// Poziva se s POST-om iz rezultat.html; vraća { analiza: "...markdown..." }.
+// PropIQ — proxy prema Claude API za analizu nekretnina (Netlify Functions API v2).
+// Poziva se s POST-om iz rezultat.html. Greške prije početka analize (podaci, limit, Anthropic
+// nedostupan) vraća kao JSON { error } s HTTP statusom. Samu analizu streama kao SSE
+// (text/event-stream), jedan JSON po događaju:
+//   data: {"tekst":"..."}                 — dio Markdowna, čim stigne od Claudea
+//   data: {"kraj":true,"skraceno":false}  — uspješan kraj; limit i statistika su tada zapisani
+//   data: {"greska":"..."}                — prekid usred analize; limit se ne troši
 // API ključ NIKAD nije u kodu — čita se iz Netlify env varijable ANTHROPIC_API_KEY.
 
-const crypto = require('node:crypto');
-const { connectLambda, getStore } = require('@netlify/blobs');
+import crypto from 'node:crypto';
+import { getStore } from '@netlify/blobs';
+// Plan (Standard/Pro) se određuje isključivo prema aktivnoj Stripe pretplati za upisani email.
+import stripePlan from '../lib/stripe-plan.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -11,14 +18,8 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-const json = (statusCode, body) => ({
-  statusCode,
-  headers: { ...CORS, 'Content-Type': 'application/json' },
-  body: JSON.stringify(body),
-});
-
-// Plan (Standard/Pro) se određuje isključivo prema aktivnoj Stripe pretplati za upisani email.
-const { activePlanForEmail } = require('../lib/stripe-plan');
+const json = (status, body) =>
+  new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 const SYSTEM_PROMPT = `Ti si PropIQ — AI investicijski savjetnik za hrvatsko tržište nekretnina.
 Na temelju teksta oglasa izradi KONCIZNU analizu na hrvatskom: maksimalno 400–500 riječi, strukturirano ali sažeto.
@@ -38,9 +39,8 @@ Pravila:
 // Brojač uspješnih analiza po mjesecu/izvoru/planu: stats/YYYY-MM/{source}/{plan}.
 // Ne smije nikad srušiti analizu — greške se samo logiraju.
 // (Read-modify-write nije atomičan; kod istovremenih zahtjeva može izgubiti pokoji +1.)
-async function incrementStats(event, source, plan) {
+async function incrementStats(source, plan) {
   try {
-    connectLambda(event);
     const stats = getStore('propiq-stats');
     const key = `stats/${new Date().toISOString().slice(0, 7)}/${source}/${plan}`;
     const n = parseInt((await stats.get(key)) || '0', 10) || 0;
@@ -94,12 +94,49 @@ function jePonavljanje(zapis, tekstHash) {
     Date.now() - zapis.t < PONAVLJANJE_PROZOR_MS && (zapis.d || 0) < PONAVLJANJE_MAX;
 }
 
-exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: CORS, body: '' };
+// Čita Anthropicov SSE stream; svaki komad teksta odmah predaje naTekst.
+// Vraća cijeli tekst i stop_reason. Baca grešku ako stream pukne ili stigne bez message_stop.
+async function procitajClaudeStream(body, naTekst) {
+  const reader = body.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = '';
+  let tekst = '';
+  let stopReason = null;
+  let zavrseno = false;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += value.replace(/\r\n/g, '\n');
+    let i;
+    while ((i = buf.indexOf('\n\n')) !== -1) {
+      const podaci = buf.slice(0, i).split('\n')
+        .filter((l) => l.startsWith('data:'))
+        .map((l) => l.slice(5).trimStart())
+        .join('\n');
+      buf = buf.slice(i + 2);
+      if (!podaci) continue;
+      const ev = JSON.parse(podaci);
+      if (ev.type === 'content_block_delta' && ev.delta && ev.delta.type === 'text_delta') {
+        tekst += ev.delta.text;
+        naTekst(ev.delta.text);
+      } else if (ev.type === 'message_delta') {
+        stopReason = (ev.delta && ev.delta.stop_reason) || stopReason;
+      } else if (ev.type === 'message_stop') {
+        zavrseno = true;
+      } else if (ev.type === 'error') {
+        throw new Error(`Anthropic stream greška: ${JSON.stringify(ev.error)}`);
+      }
+    }
+  }
+  if (!zavrseno) throw new Error('Anthropic stream je prekinut prije message_stop.');
+  return { tekst, stopReason };
+}
+
+export default async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS });
   }
 
-  if (event.httpMethod !== 'POST') {
+  if (req.method !== 'POST') {
     return json(405, { error: 'Dozvoljen je samo POST.' });
   }
 
@@ -112,7 +149,7 @@ exports.handler = async (event) => {
 
   let data;
   try {
-    data = JSON.parse(event.body || '{}');
+    data = JSON.parse((await req.text()) || '{}');
   } catch {
     return json(400, { error: 'Neispravan JSON u zahtjevu.' });
   }
@@ -139,7 +176,7 @@ exports.handler = async (event) => {
   let verificiraniPlan = null;
   let stripeNedostupan = false;
   try {
-    verificiraniPlan = await activePlanForEmail(email, stripeSecretKey);
+    verificiraniPlan = await stripePlan.activePlanForEmail(email, stripeSecretKey);
   } catch (err) {
     stripeNedostupan = true;
     console.error('Provjera pretplate na Stripeu nije uspjela:', err.message);
@@ -159,7 +196,6 @@ exports.handler = async (event) => {
   let zahtjevPrefix = '';
   let ponovljeno = false;
   if (/^[A-Za-z0-9-]{8,64}$/.test(requestId)) {
-    connectLambda(event);
     zahtjevi = getStore('propiq-zahtjevi');
     zahtjevPrefix = `${hashEmaila(email)}:${requestId}:`;
     const zapis = await procitajZahtjev(zahtjevi, zahtjevPrefix);
@@ -170,7 +206,6 @@ exports.handler = async (event) => {
   }
 
   if (jeStandard) {
-    connectLambda(event);
     store = getStore('propiq-standard-quota');
     const mjesec = new Date().toISOString().slice(0, 7); // npr. "2026-09"
     quotaKey = `${email}:${mjesec}`;
@@ -181,7 +216,6 @@ exports.handler = async (event) => {
       });
     }
   } else if (!jePro) {
-    connectLambda(event);
     store = getStore('propiq-free-quota');
     quotaKey = email;
     trenutnoIskoristeno = parseInt((await store.get(quotaKey)) || '0', 10);
@@ -197,50 +231,8 @@ exports.handler = async (event) => {
     }
   }
 
-  const userMessage =
-    `Podnositelj: ${ime || 'nepoznato'}` +
-    (agencija ? ` (agencija: ${agencija})` : '') +
-    `\n\nTekst oglasa nekretnine:\n"""\n${oglasTekst}\n"""`;
-
-  // Prekini poziv prema Anthropicu na 55 s da funkcija stigne vratiti
-  // jasnu poruku unutar Netlify 60 s limita, umjesto da bude "ubijena".
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55000);
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1600,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
-      }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      const detail = await res.text();
-      console.error('Anthropic API greška:', res.status, detail);
-      return json(502, { error: 'Analiza trenutno nije dostupna. Pokušajte ponovo za koji trenutak.' });
-    }
-
-    const payload = await res.json();
-    const analiza = (payload.content || [])
-      .filter((block) => block.type === 'text')
-      .map((block) => block.text)
-      .join('\n')
-      .trim();
-
-    if (!analiza) {
-      return json(502, { error: 'Analiza je vraćena prazna. Pokušajte ponovo.' });
-    }
-
+  // Broji analizu u limit i statistiku — poziva se tek kad je stream uspješno završio.
+  async function zabiljeziUspjeh() {
     // Paralelni poziv istog zahtjeva (F5 dok je prvi još trajao) koji je već izbrojan
     // također se ne broji ponovo.
     let izbrojati = !ponovljeno;
@@ -258,18 +250,97 @@ exports.handler = async (event) => {
       if (!jePro && store) {
         await store.set(quotaKey, String(trenutnoIskoristeno + 1));
       }
-      await incrementStats(event, source, verificiraniPlan || 'free');
+      await incrementStats(source, verificiraniPlan || 'free');
     }
+  }
 
-    return json(200, { analiza });
+  const userMessage =
+    `Podnositelj: ${ime || 'nepoznato'}` +
+    (agencija ? ` (agencija: ${agencija})` : '') +
+    `\n\nTekst oglasa nekretnine:\n"""\n${oglasTekst}\n"""`;
+
+  // Prekini poziv prema Anthropicu (zajedno sa streamom) na 55 s da funkcija stigne
+  // javiti jasnu poruku unutar Netlify 60 s limita, umjesto da bude "ubijena".
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 55000);
+
+  let res;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1600,
+        stream: true,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userMessage }],
+      }),
+      signal: controller.signal,
+    });
   } catch (err) {
+    clearTimeout(timeout);
     if (err && err.name === 'AbortError') {
       console.error('Anthropic API timeout (55 s).');
       return json(504, { error: 'Analiza traje predugo. Pokušajte ponovo s kraćim tekstom oglasa.' });
     }
     console.error('Neočekivana greška pri pozivu Anthropic API-ja:', err);
     return json(500, { error: 'Došlo je do greške pri dohvaćanju analize. Pokušajte ponovo.' });
-  } finally {
-    clearTimeout(timeout);
   }
+
+  if (!res.ok) {
+    clearTimeout(timeout);
+    const detail = await res.text().catch(() => '');
+    console.error('Anthropic API greška:', res.status, detail);
+    return json(502, { error: 'Analiza trenutno nije dostupna. Pokušajte ponovo za koji trenutak.' });
+  }
+
+  const encoder = new TextEncoder();
+  let preglednikOtisao = false;
+
+  async function prenesi(ctrl) {
+    const posalji = (dogadjaj) => {
+      if (!preglednikOtisao) ctrl.enqueue(encoder.encode(`data: ${JSON.stringify(dogadjaj)}\n\n`));
+    };
+    try {
+      const { tekst, stopReason } = await procitajClaudeStream(res.body, (dio) => posalji({ tekst: dio }));
+      if (!tekst.trim()) {
+        posalji({ greska: 'Analiza je vraćena prazna. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
+        return;
+      }
+      await zabiljeziUspjeh();
+      posalji({ kraj: true, skraceno: stopReason === 'max_tokens' });
+    } catch (err) {
+      if (preglednikOtisao) return; // preglednik je zatvorio vezu (npr. F5) — ništa se ne broji
+      const isteklo = err && err.name === 'AbortError';
+      console.error(isteklo ? 'Anthropic API timeout (55 s).' : 'Stream analize je prekinut:', isteklo ? '' : err);
+      posalji({
+        greska: isteklo
+          ? 'Analiza traje predugo. Pokušajte ponovo s kraćim tekstom oglasa — ova analiza vam se ne broji u limit.'
+          : 'Veza je prekinuta prije kraja analize. Pokušajte ponovo — ova analiza vam se ne broji u limit.',
+      });
+    } finally {
+      clearTimeout(timeout);
+      try { ctrl.close(); } catch {}
+    }
+  }
+
+  const body = new ReadableStream({
+    start(ctrl) {
+      prenesi(ctrl); // ne čeka se: Response se vraća odmah, a događaji teku kako stižu
+    },
+    cancel() {
+      preglednikOtisao = true;
+      controller.abort();
+    },
+  });
+
+  return new Response(body, {
+    status: 200,
+    headers: { ...CORS, 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache' },
+  });
 };

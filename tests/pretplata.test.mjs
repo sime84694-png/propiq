@@ -1,19 +1,15 @@
-// Testovi pristupa plaćenom planu (opcija A: aktivna Stripe pretplata po emailu).
-// Pokretanje: node --test 'tests/**/*.test.js'
+// Testovi pristupa plaćenom planu (opcija A: aktivna Stripe pretplata po emailu) i streama analize.
+// Pokretanje: node --test --experimental-test-module-mocks 'tests/**/*.test.mjs'
 // Stripe, Anthropic i Netlify Blobs su lažirani — test ne troši ništa i ne treba ključeve.
 // Za provjeru na pravom Stripe test modu vidi tests/stripe-testmod.mjs.
 
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
+import test, { mock } from 'node:test';
+import assert from 'node:assert/strict';
 
 // ── lažni Netlify Blobs (u memoriji) ──
 const blobs = new Map();
-const blobsPath = require.resolve('@netlify/blobs', { paths: [path.join(__dirname, '..')] });
-require.cache[blobsPath] = {
-  id: blobsPath, filename: blobsPath, loaded: true,
-  exports: {
-    connectLambda() {},
+mock.module('@netlify/blobs', {
+  namedExports: {
     getStore(name) {
       return {
         async get(k) { return blobs.get(`${name}/${k}`) ?? null; },
@@ -26,14 +22,43 @@ require.cache[blobsPath] = {
       };
     },
   },
-};
+});
 
 process.env.ANTHROPIC_API_KEY = 'test-anthropic';
 process.env.STRIPE_SECRET_KEY = 'sk_test_lazni';
 const PRICE_STANDARD = 'price_1UBFCYLx6rQfmJyZJR0AiqCR';
 const PRICE_PRO = 'price_1UBFDaLx6rQfmJyZEJFQLicR';
 
-const { handler } = require('../netlify/functions/analiza.js');
+const { default: handler } = await import('../netlify/functions/analiza.mjs');
+
+// Lažni Anthropic SSE stream: tekst u komadima, pa message_delta (stop_reason) i message_stop.
+// prekini: stream pukne nakon prvog komada (bez message_stop).
+function claudeStream(tekst, { stopReason = 'end_turn', prekini = false } = {}) {
+  const ev = (o) => `event: ${o.type}\ndata: ${JSON.stringify(o)}\n\n`;
+  const komadi = tekst.match(/[\s\S]{1,8}/g) || [];
+  const dijelovi = [
+    ev({ type: 'message_start', message: { id: 'msg_test', content: [] } }),
+    ev({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } }),
+    ...komadi.map((t) => ev({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: t } })),
+  ];
+  if (prekini) {
+    const enc = new TextEncoder();
+    return new Response(new ReadableStream({
+      async start(c) {
+        c.enqueue(enc.encode(dijelovi.slice(0, 3).join('')));
+        await new Promise((r) => setTimeout(r, 5));
+        c.error(new TypeError('terminated'));
+      },
+    }), { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+  }
+  dijelovi.push(
+    ev({ type: 'content_block_stop', index: 0 }),
+    ev({ type: 'message_delta', delta: { stop_reason: stopReason }, usage: { output_tokens: 10 } }),
+    ev({ type: 'message_stop' }),
+  );
+  return new Response(dijelovi.join(''), { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+}
+let claudeOdgovor = () => claudeStream('## Procjena vrijednosti\nTest.');
 
 // ── lažni Stripe + Anthropic ──
 // kupci: { 'email': [{ id, subs: [{ status, price }] }] }
@@ -42,9 +67,7 @@ function mockFetch(kupci, { stripeDown = false } = {}) {
   global.fetch = async (url) => {
     const u = new URL(url);
     pozivi.push(u.pathname + u.search);
-    if (u.hostname === 'api.anthropic.com') {
-      return { ok: true, json: async () => ({ content: [{ type: 'text', text: '## Procjena vrijednosti\nTest.' }] }) };
-    }
+    if (u.hostname === 'api.anthropic.com') return claudeOdgovor();
     if (stripeDown) return { ok: false, status: 500, json: async () => ({}) };
     const svi = Object.entries(kupci).flatMap(([email, list]) => list.map((c) => ({ ...c, email })));
     let data = [];
@@ -62,14 +85,25 @@ function mockFetch(kupci, { stripeDown = false } = {}) {
   return pozivi;
 }
 
+// Poziva funkciju kao preglednik. Stream se računa kao uspjeh (200) tek kad stigne "kraj".
+async function pozovi(body) {
+  const res = await handler(new Request('http://localhost/.netlify/functions/analiza', {
+    method: 'POST', body: JSON.stringify(body),
+  }));
+  if (!(res.headers.get('Content-Type') || '').startsWith('text/event-stream')) {
+    return { status: res.status, body: await res.json() };
+  }
+  const dogadjaji = (await res.text()).split('\n\n').filter(Boolean).map((d) => JSON.parse(d.replace(/^data: /, '')));
+  const tekst = dogadjaji.filter((d) => d.tekst).map((d) => d.tekst).join('');
+  const kraj = dogadjaji.find((d) => d.kraj);
+  const greska = dogadjaji.find((d) => d.greska);
+  return { status: kraj ? 200 : 500, body: { tekst, kraj, greska: greska && greska.greska }, dogadjaji };
+}
+
 let n = 0;
 async function analiza(email, extra = {}) {
   n += 1;
-  const res = await handler({
-    httpMethod: 'POST',
-    body: JSON.stringify({ email, oglas_tekst: `Stan ${n}`, ime: 'Test', ...extra }),
-  });
-  return { status: res.statusCode, body: JSON.parse(res.body) };
+  return pozovi({ email, oglas_tekst: `Stan ${n}`, ime: 'Test', ...extra });
 }
 
 // Standard ima 10 analiza/mj — 11. odbijena; free ima 3 — 4. odbijena.
@@ -83,7 +117,10 @@ async function koliko(email, max = 12, extra) {
   return { ok, zadnji: null };
 }
 
-test.beforeEach(() => blobs.clear());
+test.beforeEach(() => {
+  blobs.clear();
+  claudeOdgovor = () => claudeStream('## Procjena vrijednosti\nTest.');
+});
 
 test('bez pretplate: besplatni plan, 3 analize', async () => {
   mockFetch({});
@@ -151,11 +188,7 @@ test('Stripe nedostupan: besplatne analize rade, nakon njih jasna poruka (503)',
 
 // ── F5 na rezultat.html: isti request_id ne smije trošiti limit dvaput ──
 async function zahtjev(email, requestId, tekst = 'Stan Trešnjevka 58 m2') {
-  const res = await handler({
-    httpMethod: 'POST',
-    body: JSON.stringify({ email, oglas_tekst: tekst, ime: 'Test', request_id: requestId }),
-  });
-  return res.statusCode;
+  return (await pozovi({ email, oglas_tekst: tekst, ime: 'Test', request_id: requestId })).status;
 }
 const iskoristeno = (email) => parseInt(blobs.get(`propiq-free-quota/${email}`) || '0', 10);
 
@@ -241,4 +274,117 @@ test('sol iz ZAHTJEVI_SALT mijenja hash emaila', async () => {
   }
   const hashevi = new Set(zapisiZahtjeva().map(([k]) => k.split('/')[1].split(':')[0]));
   assert.equal(hashevi.size, 2);
+});
+
+// ── stream analize ──
+const statistika = () => [...blobs.entries()].filter(([k]) => k.startsWith('propiq-stats/'));
+
+test('stream: tekst stiže u dijelovima, limit i statistika tek nakon kraja', async () => {
+  mockFetch({});
+  const tekst = '## Procjena vrijednosti\nRaspon 180.000–200.000 €.\n\n## Preporuke\n- Provjeriti vlasnički list.';
+  claudeOdgovor = () => claudeStream(tekst);
+  const r = await pozovi({ email: 'stream@primjer.hr', oglas_tekst: 'X', request_id: 'req-strm-0001' });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.tekst, tekst);
+  assert.ok(r.dogadjaji.filter((d) => d.tekst).length > 1);
+  assert.deepEqual(r.dogadjaji.at(-1), { kraj: true, skraceno: false });
+  assert.equal(iskoristeno('stream@primjer.hr'), 1);
+  assert.equal(statistika().length, 1);
+});
+
+test('stream: prvi tekst stiže prije kraja, a limit se ne broji dok stream traje', async () => {
+  mockFetch({});
+  let pusti;
+  const cekaj = new Promise((r) => { pusti = r; });
+  const enc = new TextEncoder();
+  claudeOdgovor = () => new Response(new ReadableStream({
+    async start(c) {
+      const ev = (o) => enc.encode(`data: ${JSON.stringify(o)}\n\n`);
+      c.enqueue(ev({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: '## Prvi dio' } }));
+      await cekaj;
+      c.enqueue(ev({ type: 'message_delta', delta: { stop_reason: 'end_turn' } }));
+      c.enqueue(ev({ type: 'message_stop' }));
+      c.close();
+    },
+  }), { status: 200 });
+  const res = await handler(new Request('http://localhost/x', {
+    method: 'POST', body: JSON.stringify({ email: 'spor@primjer.hr', oglas_tekst: 'Y' }),
+  }));
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  const prvi = await reader.read();
+  assert.match(prvi.value, /"tekst":"## Prvi dio"/);
+  assert.equal(iskoristeno('spor@primjer.hr'), 0);
+  pusti();
+  let ostatak = '';
+  for (let d = await reader.read(); !d.done; d = await reader.read()) ostatak += d.value;
+  assert.match(ostatak, /"kraj":true/);
+  assert.equal(iskoristeno('spor@primjer.hr'), 1);
+});
+
+test('stream: stop_reason max_tokens javlja da je izvještaj skraćen (i broji se)', async () => {
+  mockFetch({});
+  claudeOdgovor = () => claudeStream('## Procjena vrijednosti\nDugačko…', { stopReason: 'max_tokens' });
+  const r = await pozovi({ email: 'dugo@primjer.hr', oglas_tekst: 'Z' });
+  assert.deepEqual(r.dogadjaji.at(-1), { kraj: true, skraceno: true });
+  assert.equal(iskoristeno('dugo@primjer.hr'), 1);
+});
+
+test('stream pukne usred: poruka o grešci, limit, statistika i zapis zahtjeva se ne troše', async () => {
+  mockFetch({});
+  claudeOdgovor = () => claudeStream('## Procjena vrijednosti\nOvo će puknuti negdje usred.', { prekini: true });
+  const r = await pozovi({ email: 'puklo@primjer.hr', oglas_tekst: 'W', request_id: 'req-pukl-0001' });
+  assert.equal(r.status, 500);
+  assert.ok(r.body.tekst.length > 0);
+  assert.match(r.body.greska, /ne broji u limit/);
+  assert.equal(iskoristeno('puklo@primjer.hr'), 0);
+  assert.equal(statistika().length, 0);
+  assert.equal(zapisiZahtjeva().length, 0);
+  // ponovni pokušaj s istim request_id se broji normalno, jednom
+  claudeOdgovor = () => claudeStream('## Procjena vrijednosti\nSad radi.');
+  assert.equal(await zahtjev('puklo@primjer.hr', 'req-pukl-0001', 'W'), 200);
+  assert.equal(iskoristeno('puklo@primjer.hr'), 1);
+});
+
+test('Anthropic error događaj usred streama: greška, limit se ne troši', async () => {
+  mockFetch({});
+  claudeOdgovor = () => new Response(
+    `data: ${JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Poč' } })}\n\n` +
+    `event: error\ndata: ${JSON.stringify({ type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } })}\n\n`,
+    { status: 200 });
+  const r = await pozovi({ email: 'preopterecen@primjer.hr', oglas_tekst: 'V' });
+  assert.match(r.body.greska, /prekinuta/);
+  assert.equal(iskoristeno('preopterecen@primjer.hr'), 0);
+});
+
+test('preglednik prekine vezu usred streama: limit se ne troši', async () => {
+  mockFetch({});
+  const lazniFetch = global.fetch;
+  let signal;
+  global.fetch = async (url, opts) => {
+    if (new URL(url).hostname === 'api.anthropic.com') signal = opts.signal;
+    return lazniFetch(url, opts);
+  };
+  claudeOdgovor = () => new Response(new ReadableStream({
+    start(c) {
+      c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'A' } })}\n\n`));
+    },
+  }), { status: 200 });
+  const res = await handler(new Request('http://localhost/x', {
+    method: 'POST', body: JSON.stringify({ email: 'otisao@primjer.hr', oglas_tekst: 'U' }),
+  }));
+  const reader = res.body.getReader();
+  await reader.read();
+  await reader.cancel();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.ok(signal.aborted, 'poziv prema Anthropicu je prekinut');
+  assert.equal(iskoristeno('otisao@primjer.hr'), 0);
+});
+
+test('Anthropic odbije zahtjev prije streama: JSON 502, limit se ne troši', async () => {
+  mockFetch({});
+  claudeOdgovor = () => new Response('{"type":"error"}', { status: 529 });
+  const r = await pozovi({ email: 'odbijen@primjer.hr', oglas_tekst: 'T' });
+  assert.equal(r.status, 502);
+  assert.match(r.body.error, /nije dostupna/);
+  assert.equal(iskoristeno('odbijen@primjer.hr'), 0);
 });

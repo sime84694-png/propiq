@@ -519,6 +519,7 @@
     }
 
     function showError(msg, isQuota) {
+      otkaziDio();
       hide(loadingEl);
       hide(analizaEl);
       document.getElementById('analiza-actions').style.display = 'none';
@@ -547,7 +548,49 @@
       } catch {}
     });
 
+    // Tekst koji stiže streamom iscrtava se najviše jednom po frameu. Prvi dio teksta
+    // skriva loader i otkriva karticu; akcije (PDF / Nova analiza) čekaju kraj analize.
+    let dioFrame = 0;
+    let dioMarkdown = '';
+    function prikaziDio(markdown) {
+      dioMarkdown = markdown;
+      if (dioFrame) return;
+      dioFrame = requestAnimationFrame(() => {
+        dioFrame = 0;
+        analizaEl.innerHTML = marked.parse(dioMarkdown);
+        if (analizaEl.style.display === 'none') {
+          hide(loadingEl);
+          reveal(analizaEl);
+        }
+      });
+    }
+    function otkaziDio() {
+      cancelAnimationFrame(dioFrame);
+      dioFrame = 0;
+    }
+
+    const NAPOMENA_SKRACENO =
+      '\n\n---\n\n*Napomena: izvještaj je skraćen jer je dosegnuta najveća dopuštena duljina odgovora.*';
+
+    // Čita SSE odgovor funkcije (data: {...}\n\n) i svaki događaj predaje naDogadjaj.
+    async function procitajDogadjaje(body, naDogadjaj) {
+      const reader = body.pipeThrough(new TextDecoderStream()).getReader();
+      let buf = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) return;
+        buf += value;
+        let i;
+        while ((i = buf.indexOf('\n\n')) !== -1) {
+          const red = buf.slice(0, i);
+          buf = buf.slice(i + 2);
+          if (red.startsWith('data:')) naDogadjaj(JSON.parse(red.slice(5)));
+        }
+      }
+    }
+
     function prikaziAnalizu(markdown) {
+      otkaziDio();
       analizaEl.innerHTML = marked.parse(markdown);
       hide(loadingEl);
       hide(errorEl);
@@ -613,25 +656,47 @@
           body: JSON.stringify(data),
         });
 
-        const payload = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
+        // Greške prije početka analize (limit, podaci, nedostupno) stižu kao JSON { error }.
+        if (!res.ok || !(res.headers.get('Content-Type') || '').includes('text/event-stream')) {
+          const payload = await res.json().catch(() => ({}));
           showError(payload.error || 'Analiza trenutno nije dostupna. Pokušajte ponovo.', res.status === 403);
           return;
         }
 
-        if (!payload.analiza) {
-          showError('Analiza je vraćena prazna. Pokušajte ponovo.');
+        // Analiza stiže streamom: tekst se prikazuje kako stiže, a tek događaj "kraj"
+        // znači da je uspjela (i da je izbrojana u limit).
+        let analiza = '';
+        let kraj = null;
+        let greska = null;
+        try {
+          await procitajDogadjaje(res.body, (d) => {
+            if (typeof d.tekst === 'string') {
+              analiza += d.tekst;
+              prikaziDio(analiza);
+            } else if (d.kraj) {
+              kraj = d;
+            } else if (d.greska) {
+              greska = d.greska;
+            }
+          });
+        } catch {
+          kraj = null;
+        }
+
+        if (greska || !kraj) {
+          showError(greska || 'Veza je prekinuta prije kraja analize. Pokušajte ponovo — ova analiza vam se ne broji u limit.');
           return;
         }
 
-        prikaziAnalizu(payload.analiza);
+        if (kraj.skraceno) analiza += NAPOMENA_SKRACENO;
+
+        prikaziAnalizu(analiza);
 
         // Spremi gotov rezultat da F5 prikaže istu analizu bez novog poziva.
         if (data.request_id) {
           try {
             sessionStorage.setItem('propiq_analiza_rezultat',
-              JSON.stringify({ request_id: data.request_id, analiza: payload.analiza }));
+              JSON.stringify({ request_id: data.request_id, analiza }));
           } catch {}
         }
 
