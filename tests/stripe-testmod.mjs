@@ -37,7 +37,7 @@ const { activePlanForEmail } = createRequire(import.meta.url)('../netlify/lib/st
 const email = `propiq-test-${Date.now()}@example.com`;
 const customer = await stripe('POST', 'customers', {
   // Mala slova: Stripeov Search (koji pokriva "Ana@Mail.hr") indeksira nove kupce s kašnjenjem
-  // do ~1 min, pa bi test s velikim slovima ovisio o sreći. Taj slučaj pokriva tests/pretplata.test.js.
+  // do ~1 min, pa bi test s velikim slovima ovisio o sreći. Taj slučaj pokriva tests/pretplata.test.mjs.
   email,
   payment_method: 'pm_card_visa',
   'invoice_settings[default_payment_method]': 'pm_card_visa',

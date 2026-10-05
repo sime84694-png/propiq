@@ -1,5 +1,5 @@
 // PropIQ — koji plan ima email, prema AKTIVNIM pretplatama na Stripeu.
-// Koriste ga netlify/functions/analiza.js (pristup) i purchase-status.js (mjerenje).
+// Koriste ga netlify/functions/analiza.mjs (pristup) i purchase-status.js (mjerenje).
 //
 // Pristup daje samo pretplata u statusu "active" ili "trialing". Otkazana (canceled),
 // istekla (incomplete_expired), neplaćena (past_due, unpaid), pauzirana (paused) i

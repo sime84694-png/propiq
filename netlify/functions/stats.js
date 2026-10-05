@@ -1,4 +1,4 @@
-// PropIQ — interni pregled brojača analiza (vidi incrementStats u analiza.js).
+// PropIQ — interni pregled brojača analiza (vidi incrementStats u analiza.mjs).
 // GET /.netlify/functions/stats?key=<STATS_KEY>[&month=YYYY-MM]
 // Vraća { total, months: { "2026-10": { "ig-hook": { free: 3, pro: 1 } } } }.
 // Bez ispravnog ključa (ili ako STATS_KEY nije postavljen) vraća 401.

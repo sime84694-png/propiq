@@ -8,10 +8,10 @@ Testovi su u `tests/`.
 
 ```bash
 npm install
-node --test 'tests/**/*.test.js'
+node --test --experimental-test-module-mocks 'tests/**/*.test.mjs'
 ```
 
-`tests/pretplata.test.js` provjerava pristup plaćenom planu (aktivna Stripe pretplata po emailu).
+`tests/pretplata.test.mjs` provjerava pristup plaćenom planu (aktivna Stripe pretplata po emailu) i stream analize.
 Stripe, Anthropic i Netlify Blobs su lažirani, pa ne trebaju ključevi i ništa se ne troši.
 
 Provjera na pravom Stripe **test** modu (s live ključem odbija pokretanje):

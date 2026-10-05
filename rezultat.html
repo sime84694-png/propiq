@@ -465,7 +465,7 @@
     <!-- Akcije (prikazuju se samo kad je analiza uspješno učitana) -->
     <div class="analiza-actions" id="analiza-actions">
       <button class="btn-primary" onclick="window.print()">Spremi kao PDF</button>
-      <a href="index.html" class="btn-ghost">Nova analiza</a>
+      <a href="index.html" class="btn-ghost" id="nova-analiza-btn">Nova analiza</a>
     </div>
 
     <!-- Greška -->
@@ -519,6 +519,7 @@
     }
 
     function showError(msg, isQuota) {
+      otkaziDio();
       hide(loadingEl);
       hide(analizaEl);
       document.getElementById('analiza-actions').style.display = 'none';
@@ -537,6 +538,81 @@
       analizaEl.style.setProperty('--mx', `${e.clientX - rect.left}px`);
       analizaEl.style.setProperty('--my', `${e.clientY - rect.top}px`);
     });
+
+    // Podaci i gotova analiza ostaju u sessionStorageu (F5 prikazuje isti rezultat)
+    // i brišu se tek kad korisnik krene u novu analizu.
+    document.getElementById('nova-analiza-btn').addEventListener('click', () => {
+      try {
+        sessionStorage.removeItem('propiq_analiza_data');
+        sessionStorage.removeItem('propiq_analiza_rezultat');
+      } catch {}
+    });
+
+    // Tekst koji stiže streamom iscrtava se najviše jednom po frameu. Prvi dio teksta
+    // skriva loader i otkriva karticu; akcije (PDF / Nova analiza) čekaju kraj analize.
+    let dioFrame = 0;
+    let dioMarkdown = '';
+    function prikaziDio(markdown) {
+      dioMarkdown = markdown;
+      if (dioFrame) return;
+      dioFrame = requestAnimationFrame(() => {
+        dioFrame = 0;
+        analizaEl.innerHTML = marked.parse(dioMarkdown);
+        if (analizaEl.style.display === 'none') {
+          hide(loadingEl);
+          reveal(analizaEl);
+        }
+      });
+    }
+    function otkaziDio() {
+      cancelAnimationFrame(dioFrame);
+      dioFrame = 0;
+    }
+
+    const NAPOMENA_SKRACENO =
+      '\n\n---\n\n*Napomena: izvještaj je skraćen jer je dosegnuta najveća dopuštena duljina odgovora.*';
+
+    // Čita SSE odgovor funkcije (data: {...}\n\n) i svaki događaj predaje naDogadjaj.
+    async function procitajDogadjaje(body, naDogadjaj) {
+      const reader = body.pipeThrough(new TextDecoderStream()).getReader();
+      let buf = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) return;
+        buf += value;
+        let i;
+        while ((i = buf.indexOf('\n\n')) !== -1) {
+          const red = buf.slice(0, i);
+          buf = buf.slice(i + 2);
+          if (red.startsWith('data:')) naDogadjaj(JSON.parse(red.slice(5)));
+        }
+      }
+    }
+
+    function prikaziAnalizu(markdown) {
+      otkaziDio();
+      analizaEl.innerHTML = marked.parse(markdown);
+      hide(loadingEl);
+      hide(errorEl);
+      reveal(analizaEl);
+
+      // Prikaži akcije (Spremi kao PDF / Nova analiza) tek kad analiza postoji
+      document.getElementById('analiza-actions').style.display = 'flex';
+      // Pripremi print zaglavlje: naslov analize + trenutni datum (hrvatski format)
+      document.getElementById('print-title').textContent = document.getElementById('greeting').textContent;
+      document.getElementById('print-date').textContent =
+        new Date().toLocaleDateString('hr-HR', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function procitajSpremljeniRezultat(requestId) {
+      if (!requestId) return null;
+      try {
+        const spremljeno = JSON.parse(sessionStorage.getItem('propiq_analiza_rezultat') || 'null');
+        return spremljeno && spremljeno.request_id === requestId && spremljeno.analiza ? spremljeno.analiza : null;
+      } catch {
+        return null;
+      }
+    }
 
     async function loadAnaliza() {
       let raw;
@@ -565,6 +641,14 @@
         if (first) document.getElementById('greeting').textContent = `Analiza za ${first}`;
       }
 
+      // F5 nakon gotove analize: prikaži spremljeni rezultat bez novog poziva funkcije
+      // (i bez ponovnog mjerenja konverzije).
+      const spremljenaAnaliza = procitajSpremljeniRezultat(data.request_id);
+      if (spremljenaAnaliza) {
+        prikaziAnalizu(spremljenaAnaliza);
+        return;
+      }
+
       try {
         const res = await fetch('/.netlify/functions/analiza', {
           method: 'POST',
@@ -572,35 +656,52 @@
           body: JSON.stringify(data),
         });
 
-        const payload = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
+        // Greške prije početka analize (limit, podaci, nedostupno) stižu kao JSON { error }.
+        if (!res.ok || !(res.headers.get('Content-Type') || '').includes('text/event-stream')) {
+          const payload = await res.json().catch(() => ({}));
           showError(payload.error || 'Analiza trenutno nije dostupna. Pokušajte ponovo.', res.status === 403);
           return;
         }
 
-        if (!payload.analiza) {
-          showError('Analiza je vraćena prazna. Pokušajte ponovo.');
+        // Analiza stiže streamom: tekst se prikazuje kako stiže, a tek događaj "kraj"
+        // znači da je uspjela (i da je izbrojana u limit).
+        let analiza = '';
+        let kraj = null;
+        let greska = null;
+        try {
+          await procitajDogadjaje(res.body, (d) => {
+            if (typeof d.tekst === 'string') {
+              analiza += d.tekst;
+              prikaziDio(analiza);
+            } else if (d.kraj) {
+              kraj = d;
+            } else if (d.greska) {
+              greska = d.greska;
+            }
+          });
+        } catch {
+          kraj = null;
+        }
+
+        if (greska || !kraj) {
+          showError(greska || 'Veza je prekinuta prije kraja analize. Pokušajte ponovo — ova analiza vam se ne broji u limit.');
           return;
         }
 
-        analizaEl.innerHTML = marked.parse(payload.analiza);
-        hide(loadingEl);
-        hide(errorEl);
-        reveal(analizaEl);
+        if (kraj.skraceno) analiza += NAPOMENA_SKRACENO;
 
-        // Prikaži akcije (Spremi kao PDF / Nova analiza) tek kad analiza postoji
-        document.getElementById('analiza-actions').style.display = 'flex';
-        // Pripremi print zaglavlje: naslov analize + trenutni datum (hrvatski format)
-        document.getElementById('print-title').textContent = document.getElementById('greeting').textContent;
-        document.getElementById('print-date').textContent =
-          new Date().toLocaleDateString('hr-HR', { day: 'numeric', month: 'long', year: 'numeric' });
+        prikaziAnalizu(analiza);
 
-        // Podaci više nisu potrebni — očisti da se ista analiza ne ponavlja na refresh.
-        try { sessionStorage.removeItem('propiq_analiza_data'); } catch {}
+        // Spremi gotov rezultat da F5 prikaže istu analizu bez novog poziva.
+        if (data.request_id) {
+          try {
+            sessionStorage.setItem('propiq_analiza_rezultat',
+              JSON.stringify({ request_id: data.request_id, analiza }));
+          } catch {}
+        }
 
-        // Glavna konverzija. Broji se jednom: podaci za analizu su upravo obrisani,
-        // pa refresh ne može ponovo prikazati (ni izmjeriti) istu analizu.
+        // Glavna konverzija. Broji se jednom: refresh prikazuje spremljeni rezultat
+        // i ovdje ne dolazi.
         try {
           window.propiqTrack && window.propiqTrack('analysis_success', {
             plan: data.plan || 'free',

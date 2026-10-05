@@ -2248,18 +2248,26 @@
         plan:        new URLSearchParams(window.location.search).get('plan') || '',
         session_id:  new URLSearchParams(window.location.search).get('session_id') || '',
         source:      SOURCE,
+        // ID ovog zahtjeva: rezultat.html po njemu kešira gotovu analizu, a funkcija
+        // isti zahtjev ponovljen zbog F5 ne broji dvaput u limitu.
+        request_id:  (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12)),
       };
 
       // Podaci forme se spremaju za rezultat.html, koja poziva Netlify Function
       // (/.netlify/functions/analiza) i tamo prikazuje AI analizu.
       try {
+        sessionStorage.removeItem('propiq_analiza_rezultat');
         sessionStorage.setItem('propiq_analiza_data', JSON.stringify(data));
       } catch {}
 
-      // Email notifikacija korisniku putem Formspree
+      // Email notifikacija korisniku putem Formspree. Čeka se odgovor (najviše 4 s) jer bi
+      // preusmjeravanje na rezultat.html prekinulo zahtjev; greška ili timeout ne blokiraju analizu.
       const agencija = data.agencija ? ` (${data.agencija})` : '';
-      fetch('https://formspree.io/f/mjgpakbd', {
+      const formspreeCtrl = new AbortController();
+      const formspreeTimer = setTimeout(() => formspreeCtrl.abort(), 4000);
+      await fetch('https://formspree.io/f/mjgpakbd', {
         method: 'POST',
+        signal: formspreeCtrl.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email:   data.email,
@@ -2268,7 +2276,10 @@
           _subject: 'Potvrda zahtjeva za PropIQ analizu',
           _replyto: data.email,
         }),
-      }).catch((err) => { console.error('Formspree slanje nije uspjelo:', err); });
+      })
+        .then((res) => { if (!res.ok) console.error('Formspree slanje nije uspjelo: HTTP', res.status); })
+        .catch((err) => { console.error('Formspree slanje nije uspjelo:', err); })
+        .finally(() => clearTimeout(formspreeTimer));
 
       // Mjerenje (poštuje pristanak — vidi assets/js/consent.js). GA4 šalje događaje u paketima pa bi se
       // izgubio pri prelasku na rezultat.html; defer() ga sprema i šalje ga rezultat.html pri učitavanju.
