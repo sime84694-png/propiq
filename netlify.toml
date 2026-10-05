@@ -1,3 +1,6 @@
+[build]
+  publish = "public"
+
 [functions]
   directory = "netlify/functions"
 
@@ -5,3 +8,19 @@
   from = "/*"
   to = "/404.html"
   status = 404
+
+# Sigurnosna zaglavlja. CSP dopušta samo izvore koje stranice stvarno koriste:
+#  - jsDelivr: marked + DOMPurify (rezultat.html, uz SRI)
+#  - Cloudflare Web Analytics: beacon (sve stranice)
+#  - Formspree: fetch iz index.html
+#  - Google tag (GA4/Ads) i Meta Pixel: učitavaju se tek uz pristanak (assets/js/consent.js)
+# 'unsafe-inline' je potreban jer stranice imaju inline <script> i <style>.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://www.google.com https://*.doubleclick.net https://www.facebook.com; font-src 'self'; connect-src 'self' https://formspree.io https://cloudflareinsights.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.google.com https://*.doubleclick.net https://pagead2.googlesyndication.com https://www.facebook.com https://connect.facebook.net; frame-src https://td.doubleclick.net https://www.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self' https://formspree.io; frame-ancestors 'none'"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"

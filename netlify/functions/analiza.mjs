@@ -18,6 +18,13 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+// Ograničenja ulaza (ulaze u prompt i u ključeve Bloba). Ista ograničenja su i kao maxlength u index.html.
+const MAX_OGLAS = 15000;
+const MAX_IME = 100;
+const MAX_AGENCIJA = 100;
+const MAX_EMAIL = 254;
+const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const json = (status, body) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
@@ -180,6 +187,16 @@ export default async (req) => {
     return json(400, { error: 'Nedostaje email adresa.' });
   }
 
+  if (oglasTekst.length > MAX_OGLAS) {
+    return json(400, { error: `Tekst oglasa je predugačak (najviše ${MAX_OGLAS} znakova).` });
+  }
+  if (ime.length > MAX_IME || agencija.length > MAX_AGENCIJA) {
+    return json(400, { error: `Ime i naziv agencije smiju imati najviše ${MAX_IME} znakova.` });
+  }
+  if (email.length > MAX_EMAIL || !EMAIL_FORMAT.test(email)) {
+    return json(400, { error: 'Neispravna email adresa.' });
+  }
+
   // Plan se NE čita iz URL-a (?plan=, session_id) — samo iz aktivne pretplate na Stripeu
   // za upisani email. Ako Stripe nije dostupan, korisnik se privremeno tretira kao besplatni.
   let verificiraniPlan = null;
@@ -321,7 +338,12 @@ export default async (req) => {
         posalji({ greska: 'Analiza je vraćena prazna. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
         return;
       }
-      await zabiljeziUspjeh();
+      // Greška pri bilježenju (npr. Blobs) ne smije poništiti analizu koju je korisnik već vidio.
+      try {
+        await zabiljeziUspjeh();
+      } catch (err) {
+        console.error('Bilježenje uspješne analize nije uspjelo:', err);
+      }
       posalji({ kraj: true, skraceno: stopReason === 'max_tokens' });
     } catch (err) {
       if (preglednikOtisao) return; // preglednik je zatvorio vezu (npr. F5) — ništa se ne broji

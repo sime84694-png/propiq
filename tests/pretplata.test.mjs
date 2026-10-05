@@ -8,12 +8,16 @@ import assert from 'node:assert/strict';
 
 // ── lažni Netlify Blobs (u memoriji) ──
 const blobs = new Map();
+let blobsUpisPada = false; // simulira ispad Netlify Blobs pri upisu
 mock.module('@netlify/blobs', {
   namedExports: {
     getStore(name) {
       return {
         async get(k) { return blobs.get(`${name}/${k}`) ?? null; },
-        async set(k, v) { blobs.set(`${name}/${k}`, v); },
+        async set(k, v) {
+          if (blobsUpisPada) throw new Error('Blobs nedostupan');
+          blobs.set(`${name}/${k}`, v);
+        },
         async list({ prefix = '' } = {}) {
           const p = `${name}/${prefix}`;
           return { blobs: [...blobs.keys()].filter((k) => k.startsWith(p)).map((k) => ({ key: k.slice(name.length + 1) })) };
@@ -119,6 +123,7 @@ async function koliko(email, max = 12, extra) {
 
 test.beforeEach(() => {
   blobs.clear();
+  blobsUpisPada = false;
   claudeOdgovor = () => claudeStream('## Procjena vrijednosti\nTest.');
 });
 
@@ -387,4 +392,49 @@ test('Anthropic odbije zahtjev prije streama: JSON 502, limit se ne troši', asy
   assert.equal(r.status, 502);
   assert.match(r.body.error, /nije dostupna/);
   assert.equal(iskoristeno('odbijen@primjer.hr'), 0);
+});
+
+// ── V2: ograničenja duljine ulaza ──
+test('predugačak tekst oglasa: 400, Anthropic se ne zove i limit se ne troši', async () => {
+  const pozivi = mockFetch({});
+  const r = await pozovi({ email: 'dugo@primjer.hr', oglas_tekst: 'x'.repeat(15001) });
+  assert.equal(r.status, 400);
+  assert.match(r.body.error, /predugačak/);
+  assert.equal(pozivi.length, 0);
+  assert.equal(iskoristeno('dugo@primjer.hr'), 0);
+});
+
+test('tekst oglasa točno na granici (15000 znakova) prolazi', async () => {
+  mockFetch({});
+  const r = await pozovi({ email: 'granica@primjer.hr', oglas_tekst: 'x'.repeat(15000) });
+  assert.equal(r.status, 200);
+});
+
+test('predugačko ime ili agencija: 400', async () => {
+  mockFetch({});
+  const a = await pozovi({ email: 'ime@primjer.hr', oglas_tekst: 'T', ime: 'a'.repeat(101) });
+  const b = await pozovi({ email: 'ime@primjer.hr', oglas_tekst: 'T', agencija: 'a'.repeat(101) });
+  assert.equal(a.status, 400);
+  assert.equal(b.status, 400);
+});
+
+test('predugačak ili neispravan email: 400, bez poziva prema Stripeu i Anthropicu', async () => {
+  const pozivi = mockFetch({});
+  for (const email of [`${'a'.repeat(250)}@x.hr`, 'bez-znaka-at', 'dva@@x.hr', 'razmak u@x.hr', 'a@bez-tocke']) {
+    const r = await pozovi({ email, oglas_tekst: 'T' });
+    assert.equal(r.status, 400, email);
+    assert.match(r.body.error, /email/i, email);
+  }
+  assert.equal(pozivi.length, 0);
+});
+
+// ── V3: greška pri bilježenju ne smije poništiti već prikazanu analizu ──
+test('Blobs pada pri bilježenju nakon uspješnog streama: analiza ipak završava s "kraj"', async () => {
+  mockFetch({});
+  blobsUpisPada = true;
+  const r = await pozovi({ email: 'blobs@primjer.hr', oglas_tekst: 'T', request_id: 'req-blobs-1' });
+  assert.equal(r.status, 200);
+  assert.ok(r.body.kraj);
+  assert.equal(r.body.greska, undefined);
+  assert.match(r.body.tekst, /Procjena vrijednosti/);
 });

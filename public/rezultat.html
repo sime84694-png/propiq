@@ -493,9 +493,17 @@
     <section id="upsell-pro"></section>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js" integrity="sha384-948ahk4ZmxYVYOc+rxN1H2gM1EJ2Duhp7uHtZ4WSLkV4Vtx5MUqnV+l7u9B+jFv+" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js" integrity="sha384-a7SzOxErzJ3ZpQz0zJ32d67dSitNzPcbfybc/ykU9KJhMgZkwqfSxlhhdJRS+XGL" crossorigin="anonymous"></script>
   <script>
     marked.use({ breaks: true, gfm: true });
+
+    // Izlaz modela je nepouzdan: Markdown -> HTML uvijek prolazi kroz DOMPurify.
+    // Ako se DOMPurify ne učita, ne prikazuje se ništa (nikad sirovi HTML).
+    function markdownUHtml(md) {
+      if (!window.DOMPurify) return '';
+      return DOMPurify.sanitize(marked.parse(md));
+    }
 
     const loadingEl = document.getElementById('loading');
     const analizaEl = document.getElementById('analiza');
@@ -557,7 +565,7 @@
       if (dioFrame) return;
       dioFrame = requestAnimationFrame(() => {
         dioFrame = 0;
-        analizaEl.innerHTML = marked.parse(dioMarkdown);
+        analizaEl.innerHTML = markdownUHtml(dioMarkdown);
         if (analizaEl.style.display === 'none') {
           hide(loadingEl);
           reveal(analizaEl);
@@ -591,7 +599,7 @@
 
     function prikaziAnalizu(markdown) {
       otkaziDio();
-      analizaEl.innerHTML = marked.parse(markdown);
+      analizaEl.innerHTML = markdownUHtml(markdown);
       hide(loadingEl);
       hide(errorEl);
       reveal(analizaEl);

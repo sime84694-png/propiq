@@ -1967,20 +1967,20 @@
         <div class="form-row">
           <div class="form-group">
             <label for="ime">Ime i prezime</label>
-            <input type="text" id="ime" name="ime" placeholder="Marko Kovačević" required>
+            <input type="text" id="ime" name="ime" placeholder="Marko Kovačević" maxlength="100" required>
           </div>
           <div class="form-group">
             <label for="email">Email adresa</label>
-            <input type="email" id="email" name="email" placeholder="marko@agencija.hr" required>
+            <input type="email" id="email" name="email" placeholder="marko@agencija.hr" maxlength="254" required>
           </div>
         </div>
         <div class="form-group">
           <label for="agencija">Naziv agencije <span style="opacity:.4;font-weight:400;text-transform:none;letter-spacing:0">(opcionalno)</span></label>
-          <input type="text" id="agencija" name="agencija" placeholder="Npr. Adriatic Estates d.o.o.">
+          <input type="text" id="agencija" name="agencija" placeholder="Npr. Adriatic Estates d.o.o." maxlength="100">
         </div>
         <div class="form-group">
           <label for="oglas_tekst">Tekst oglasa s Njuškala</label>
-          <textarea id="oglas_tekst" name="oglas_tekst" placeholder="Kopirajte naslov, cijenu, opis i karakteristike nekretnine..." required></textarea>
+          <textarea id="oglas_tekst" name="oglas_tekst" placeholder="Kopirajte naslov, cijenu, opis i karakteristike nekretnine..." maxlength="15000" required></textarea>
         </div>
         <button type="submit" class="form-submit" id="form-submit-btn">
           <div class="spinner"></div>
