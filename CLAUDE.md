@@ -173,3 +173,9 @@ npx @claude-flow/cli@latest doctor --fix
 ```
 
 **Agent tool** handles execution (agents, files, code, git). **MCP tools** handle coordination (swarm, memory, hooks). **CLI** is the same via Bash.
+
+## gstack
+
+Za pregledavanje weba koristi `/browse` iz gstacka.
+
+Dostupni skillovi: `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, `/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`, `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/qa`, `/qa-only`, `/design-review`, `/investigate`, `/retro`, `/cso`, `/autoplan`, `/careful`, `/guard`, `/learn`, `/gstack-upgrade`.
