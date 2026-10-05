@@ -19,3 +19,19 @@ node_modules/
 brag-output*/
 
 .claude-ads/
+
+# Promo videi (veliki, ostaju lokalno)
+promo/
+
+# Postavke drugih AI alata i skillova (lokalno)
+.agents/
+.codex/
+.grok/
+.kiro/
+skills/
+skills-lock.json
+AGENTS.md
+deno.lock
+
+# Mjerenja brzine (lokalno)
+perf/
