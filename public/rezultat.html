@@ -7,6 +7,7 @@
   <!-- Pristanak + mjerenje: MORA biti prije svih tagova (Consent Mode v2 default "denied") -->
   <script src="assets/js/tracking-config.js"></script>
   <script src="assets/js/consent.js"></script>
+  <script src="assets/js/izracuni.js"></script>
   <title>Vaša analiza — PropIQ</title>
   <meta name="robots" content="noindex, nofollow">
   <!-- Playfair Display s vlastitog hostinga (bez zahtjeva prema Googleu prije pristanka; licenca SIL OFL) -->
@@ -159,49 +160,208 @@
     }
     @keyframes breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 
-    /* ─── Analiza card ─── */
-    .analiza-card {
+    /* ─── Izvještaj: kartice ─── */
+    .izvjestaj { display: none; }
+    .kartica {
       position: relative;
-      overflow: hidden;
       background: var(--cream-04);
       border: 1px solid var(--cream-08);
       border-radius: 20px;
-      padding: 36px 32px;
-      --mx: 50%;
-      --my: 0%;
-      opacity: 0;
-      transform: translateY(16px);
-      transition: opacity 0.7s var(--ease), transform 0.7s var(--ease), border-color 0.4s var(--ease);
+      padding: 30px 32px;
+      margin-bottom: 16px;
+      animation: fadeUp 0.8s var(--ease) both;
+      animation-delay: calc(var(--i, 0) * 0.09s);
+      transition: border-color 0.4s var(--ease);
     }
-    .analiza-card.show { opacity: 1; transform: translateY(0); }
-    .analiza-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(480px circle at var(--mx) var(--my), rgba(212,175,55,0.07), transparent 60%);
-      opacity: 0;
-      transition: opacity 0.5s var(--ease);
-      pointer-events: none;
-    }
-    .analiza-card:hover::before { opacity: 1; }
-    .analiza-card:hover { border-color: var(--cream-15); }
-    .analiza-card h1, .analiza-card h2, .analiza-card h3 {
-      color: var(--cream);
-      margin: 26px 0 12px;
+    .kartica:hover { border-color: var(--cream-15); }
+    .kartica h2 {
+      font-family: var(--font-serif);
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 16px;
       line-height: 1.3;
     }
-    .analiza-card h1 { font-size: 1.5rem; }
-    .analiza-card h2 { font-size: 1.25rem; }
-    .analiza-card h3 { font-size: 1.05rem; }
-    .analiza-card h1:first-child, .analiza-card h2:first-child, .analiza-card h3:first-child { margin-top: 0; }
-    .analiza-card p { margin: 12px 0; color: var(--cream-70); }
-    .analiza-card ul, .analiza-card ol { margin: 12px 0 12px 22px; color: var(--cream-70); }
-    .analiza-card li { margin: 6px 0; }
-    .analiza-card strong { color: var(--cream); font-weight: 700; }
-    .analiza-card hr { border: none; border-top: 1px solid var(--cream-08); margin: 24px 0; }
-    .analiza-card table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
-    .analiza-card th, .analiza-card td { border: 1px solid var(--cream-15); padding: 8px 12px; text-align: left; }
-    .analiza-card th { background: var(--cream-08); color: var(--cream); }
+    .kartica h3 {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--cream-40);
+      margin: 22px 0 10px;
+    }
+    .kartica p { color: var(--cream-70); margin: 8px 0; }
+    .kartica ul { list-style: none; }
+    .kartica li {
+      position: relative;
+      padding-left: 18px;
+      margin: 8px 0;
+      color: var(--cream-70);
+    }
+    .kartica li::before {
+      content: '';
+      position: absolute;
+      left: 2px; top: 0.65em;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+    /* null vrijednosti: manji, prigušeni font (ne kao prave brojke) */
+    .nd, .metrika-vrijednost.nd, .raspon.nd, .ponuda.nd, .lokacija.nd {
+      color: var(--cream-40);
+      font-family: inherit;
+      font-style: normal;
+      font-weight: 400;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+    .napomena { font-size: 0.78rem; color: var(--cream-40); margin-top: 14px; }
+
+    /* a) zaglavlje */
+    .kartica.zaglavlje h2 { font-size: 1.65rem; margin-bottom: 6px; }
+    .lokacija { color: var(--cream-70); font-size: 0.95rem; margin-bottom: 22px; }
+    .metrike {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .metrika {
+      background: var(--cream-04);
+      border: 1px solid var(--cream-08);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .metrika-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--cream-40);
+      margin-bottom: 4px;
+    }
+    .metrika-vrijednost {
+      font-family: var(--font-serif);
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .metrika-vrijednost.mala { font-size: 1.05rem; }
+
+    /* b) preporuka */
+    .preporuka-red { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+    .znacka {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 100px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+    .znacka::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .znacka.povoljno   { color: #6fcf97; background: rgba(111,207,151,0.08); border-color: rgba(111,207,151,0.32); }
+    .znacka.pregovaraj { color: var(--gold); background: rgba(212,175,55,0.08); border-color: rgba(212,175,55,0.32); }
+    .znacka.oprez      { color: #e0705a; background: rgba(220,80,60,0.08); border-color: rgba(220,80,60,0.32); }
+    .znacka.nedovoljno { color: var(--cream-40); background: var(--cream-04); border-color: var(--cream-15); }
+    .nedovoljno-tekst { color: var(--cream-70); font-size: 0.92rem; margin-bottom: 14px; }
+    .cijena-unos { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--cream-08); }
+    .cijena-unos label { display: block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; color: var(--cream-40); margin-bottom: 8px; }
+    .cijena-unos-red { display: flex; gap: 10px; flex-wrap: wrap; }
+    .cijena-unos input {
+      flex: 1 1 160px; min-width: 0; padding: 10px 14px; border-radius: 10px;
+      border: 1px solid var(--cream-15); background: var(--cream-04); color: var(--cream); font: inherit;
+    }
+    .cijena-unos button {
+      padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(212,175,55,0.5);
+      background: rgba(212,175,55,0.12); color: var(--gold); font: inherit; font-weight: 700; cursor: pointer;
+    }
+    .cijena-greska { color: #e0705a; font-size: 0.85rem; margin-top: 8px; }
+    .upisali { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 100px; border: 1px solid var(--cream-15); color: var(--cream-40); font-family: inherit; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; vertical-align: middle; white-space: nowrap; }
+    .upisali-popis { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 16px; font-size: 0.88rem; color: var(--cream-70); }
+    .rucno-napomena { color: var(--cream-40); font-size: 0.78rem; margin-top: 10px; }
+    .referenca-napomena { color: var(--cream-40); font-size: 0.78rem; margin-top: 10px; }
+    .ocjena { font-family: var(--font-serif); font-size: 2.4rem; font-weight: 700; line-height: 1; }
+    .ocjena small { font-size: 1rem; color: var(--cream-40); font-weight: 600; }
+    .sazetak { color: var(--cream); font-size: 1.02rem; }
+
+    /* c) fer vrijednost */
+    .raspon { font-family: var(--font-serif); font-size: 1.7rem; font-weight: 700; margin-bottom: 4px; }
+    .raspon-po-m2 { color: var(--cream-40); font-size: 0.88rem; margin-bottom: 18px; }
+    .traka { position: relative; height: 10px; border-radius: 100px; background: var(--cream-08); margin: 30px 0 34px; }
+    .traka-fer {
+      position: absolute; top: 0; bottom: 0;
+      border-radius: 100px;
+      background: linear-gradient(90deg, rgba(212,175,55,0.35), rgba(212,175,55,0.7));
+    }
+    .traka-cijena {
+      position: absolute; top: -7px;
+      width: 4px; height: 24px;
+      margin-left: -2px;
+      border-radius: 2px;
+      background: var(--cream);
+      box-shadow: 0 0 12px rgba(240,236,228,0.45);
+    }
+    .traka-oznaka {
+      position: absolute; top: -26px;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 0.72rem; font-weight: 700; color: var(--cream);
+    }
+    .traka-krajevi { position: absolute; left: 0; right: 0; top: 18px; display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--cream-40); }
+    .polozaj { font-size: 0.92rem; margin-bottom: 14px; color: var(--cream); }
+    .chip {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 100px;
+      border: 1px solid var(--cream-15);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--cream-70);
+      margin-bottom: 10px;
+    }
+    .chip.niska { color: #e0705a; border-color: rgba(220,80,60,0.32); }
+    .chip.srednja { color: var(--gold); border-color: rgba(212,175,55,0.32); }
+    .chip.visoka { color: #6fcf97; border-color: rgba(111,207,151,0.32); }
+
+    /* d) prinos */
+    .metrike.cetiri { grid-template-columns: repeat(2, 1fr); }
+    .napomene { margin-top: 14px; }
+    .napomene li { font-size: 0.78rem; color: var(--cream-40); margin: 4px 0; }
+    .napomene li::before { background: var(--cream-40); }
+
+    /* e) rizici */
+    .rizik { padding: 14px 0; border-top: 1px solid var(--cream-08); }
+    .rizik:first-of-type { border-top: none; padding-top: 0; }
+    .rizik-glava { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+    .rizik-naslov { font-weight: 700; color: var(--cream); }
+    .rizik p { margin: 0; font-size: 0.93rem; }
+    .razina {
+      flex: none;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+    .razina.nizak   { color: #6fcf97; border-color: rgba(111,207,151,0.32); }
+    .razina.srednji { color: var(--gold); border-color: rgba(212,175,55,0.32); }
+    .razina.visok   { color: #e0705a; border-color: rgba(220,80,60,0.32); }
+    .porez { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--cream-08); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--cream-70); font-size: 0.93rem; }
+    .porez strong { color: var(--cream); }
+
+    /* f) pregovaranje */
+    .ponuda-red { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+    .ponuda { font-family: var(--font-serif); font-size: 1.7rem; font-weight: 700; }
+    .usteda { color: #6fcf97; font-weight: 700; font-size: 0.92rem; }
+
+    /* h) footer */
+    .footer-napomena { text-align: center; font-size: 0.8rem; color: var(--cream-40); margin: 28px 0 0; }
 
     /* ─── Greška ─── */
     .error-box {
@@ -343,7 +503,9 @@
     @media (max-width: 600px) {
       .wrap { padding: 32px 18px 60px; }
       h1 { font-size: 1.6rem; }
-      .analiza-card { padding: 26px 20px; }
+      .kartica { padding: 24px 20px; }
+      .metrike { grid-template-columns: 1fr 1fr; }
+      .kartica.zaglavlje h2 { font-size: 1.35rem; }
       .error-box { padding: 32px 22px; }
     }
 
@@ -375,7 +537,7 @@
       .top, .eyebrow, #greeting, .subtitle, #loading, #error,
       #upsell-pro, .analiza-actions { display: none !important; }
 
-      /* zaglavlje prve stranice (stisnuto da analiza do 500 riječi stane na 1 stranicu) */
+      /* zaglavlje prve stranice */
       .print-header {
         display: block !important;
         margin: 0 0 12px;
@@ -386,49 +548,35 @@
       .print-title { font-family: var(--font-serif); font-size: 1.3rem; color: #000 !important; margin: 4px 0 2px; }
       .print-date { font-size: 0.78rem; color: #444 !important; }
 
-      /* analiza -> čist dokument na bijelom */
-      .analiza-card {
-        display: block !important;
-        opacity: 1 !important;
-        transform: none !important;
+      /* kartice -> čist dokument na bijelom */
+      .izvjestaj { display: block !important; }
+      .kartica {
+        animation: none !important;
         background: #fff !important;
-        border: none !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        overflow: visible !important;
+        border: 1px solid #bbb !important;
+        border-radius: 8px !important;
+        padding: 12px 14px !important;
+        margin-bottom: 10px !important;
         color: #000 !important;
-        font-size: 0.9rem;
-      }
-      .analiza-card::before { display: none !important; }
-      .analiza-card h1, .analiza-card h2, .analiza-card h3 {
-        font-family: var(--font-serif);
-        color: #000 !important;
-        margin: 13px 0 6px;
-        page-break-after: avoid;
-      }
-      .analiza-card h1 { font-size: 1.3rem; }
-      .analiza-card h2 { font-size: 1.12rem; }
-      .analiza-card h3 { font-size: 1rem; }
-      .analiza-card > :first-child { margin-top: 0 !important; }
-      .analiza-card p, .analiza-card li, .analiza-card strong { color: #000 !important; }
-      .analiza-card p { margin: 6px 0; }
-      .analiza-card ul, .analiza-card ol { margin: 6px 0 6px 20px; }
-      .analiza-card li { margin: 2px 0; }
-      .analiza-card a { color: #000 !important; text-decoration: underline; }
-      .analiza-card hr { border-top: 1px solid #bbb !important; }
-      .analiza-card table { border-collapse: collapse; }
-      .analiza-card th, .analiza-card td { border: 1px solid #999 !important; color: #000 !important; }
-      .analiza-card th { background: #eee !important; }
-
-      /* ne lomiti blokove i liste nasred stranice */
-      .analiza-card p, .analiza-card ul, .analiza-card ol, .analiza-card li,
-      .analiza-card table, .analiza-card tr, .print-header {
+        font-size: 0.88rem;
         page-break-inside: avoid;
       }
-
-      /* ne ispisivati URL iza linkova */
-      .analiza-card a[href]::after { content: ""; }
+      .kartica h2, .kartica p, .kartica li, .kartica strong, .metrika-vrijednost, .raspon, .ocjena,
+      .ponuda, .sazetak, .rizik-naslov, .polozaj, .porez, .porez strong { color: #000 !important; }
+      .kartica h3, .metrika-label, .raspon-po-m2, .referenca-napomena, .napomene li, .napomena, .nd, .traka-krajevi,
+      .footer-napomena, .ocjena small { color: #444 !important; }
+      .kartica h2 { font-size: 1.05rem; margin-bottom: 8px; }
+      .kartica.zaglavlje h2 { font-size: 1.3rem; }
+      .metrika { background: #fff !important; border: 1px solid #ccc !important; }
+      .znacka, .chip, .razina { color: #000 !important; border-color: #000 !important; background: #fff !important; }
+      .traka { background: #ddd !important; }
+      .traka-fer { background: #999 !important; }
+      .traka-cijena { background: #000 !important; box-shadow: none !important; }
+      .traka-oznaka { color: #000 !important; }
+      .usteda { color: #000 !important; }
+      .cijena-unos { display: none !important; }
+      .kartica li::before { background: #000 !important; }
+      .rizik { page-break-inside: avoid; border-top-color: #ccc !important; }
     }
   </style>
 </head>
@@ -456,11 +604,11 @@
         <div class="spinner-pulse"></div>
         <div class="spinner"></div>
       </div>
-      <p>Analiziramo nekretninu… ovo traje nekoliko sekundi.</p>
+      <p id="loading-tekst" aria-live="polite">Procjenjujem fer vrijednost…</p>
     </div>
 
     <!-- Rezultat -->
-    <div class="analiza-card" id="analiza" style="display:none;"></div>
+    <div class="izvjestaj" id="analiza"></div>
 
     <!-- Akcije (prikazuju se samo kad je analiza uspješno učitana) -->
     <div class="analiza-actions" id="analiza-actions">
@@ -493,19 +641,10 @@
     <section id="upsell-pro"></section>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js" integrity="sha384-948ahk4ZmxYVYOc+rxN1H2gM1EJ2Duhp7uHtZ4WSLkV4Vtx5MUqnV+l7u9B+jFv+" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js" integrity="sha384-a7SzOxErzJ3ZpQz0zJ32d67dSitNzPcbfybc/ykU9KJhMgZkwqfSxlhhdJRS+XGL" crossorigin="anonymous"></script>
   <script>
-    marked.use({ breaks: true, gfm: true });
-
-    // Izlaz modela je nepouzdan: Markdown -> HTML uvijek prolazi kroz DOMPurify.
-    // Ako se DOMPurify ne učita, ne prikazuje se ništa (nikad sirovi HTML).
-    function markdownUHtml(md) {
-      if (!window.DOMPurify) return '';
-      return DOMPurify.sanitize(marked.parse(md));
-    }
-
     const loadingEl = document.getElementById('loading');
+    // Stvarne faze: server javlja koji je poziv u tijeku (bez postotaka, trajanje nije predvidivo).
+    const FAZE = { procjena: 'Procjenjujem fer vrijednost…', analiza: 'Analiziram rizike i pregovore…' };
     const analizaEl = document.getElementById('analiza');
     const errorEl = document.getElementById('error');
     const errorMsgEl = document.getElementById('error-msg');
@@ -527,7 +666,6 @@
     }
 
     function showError(msg, isQuota) {
-      otkaziDio();
       hide(loadingEl);
       hide(analizaEl);
       document.getElementById('analiza-actions').style.display = 'none';
@@ -539,14 +677,6 @@
       reveal(errorEl);
     }
 
-    // Suptilan "spotlight" koji prati miša preko kartice s analizom —
-    // ista ideja kao na glavnoj stranici, samo suzdržanije.
-    analizaEl.addEventListener('mousemove', (e) => {
-      const rect = analizaEl.getBoundingClientRect();
-      analizaEl.style.setProperty('--mx', `${e.clientX - rect.left}px`);
-      analizaEl.style.setProperty('--my', `${e.clientY - rect.top}px`);
-    });
-
     // Podaci i gotova analiza ostaju u sessionStorageu (F5 prikazuje isti rezultat)
     // i brišu se tek kad korisnik krene u novu analizu.
     document.getElementById('nova-analiza-btn').addEventListener('click', () => {
@@ -555,30 +685,6 @@
         sessionStorage.removeItem('propiq_analiza_rezultat');
       } catch {}
     });
-
-    // Tekst koji stiže streamom iscrtava se najviše jednom po frameu. Prvi dio teksta
-    // skriva loader i otkriva karticu; akcije (PDF / Nova analiza) čekaju kraj analize.
-    let dioFrame = 0;
-    let dioMarkdown = '';
-    function prikaziDio(markdown) {
-      dioMarkdown = markdown;
-      if (dioFrame) return;
-      dioFrame = requestAnimationFrame(() => {
-        dioFrame = 0;
-        analizaEl.innerHTML = markdownUHtml(dioMarkdown);
-        if (analizaEl.style.display === 'none') {
-          hide(loadingEl);
-          reveal(analizaEl);
-        }
-      });
-    }
-    function otkaziDio() {
-      cancelAnimationFrame(dioFrame);
-      dioFrame = 0;
-    }
-
-    const NAPOMENA_SKRACENO =
-      '\n\n---\n\n*Napomena: izvještaj je skraćen jer je dosegnuta najveća dopuštena duljina odgovora.*';
 
     // Čita SSE odgovor funkcije (data: {...}\n\n) i svaki događaj predaje naDogadjaj.
     async function procitajDogadjaje(body, naDogadjaj) {
@@ -597,9 +703,310 @@
       }
     }
 
-    function prikaziAnalizu(markdown) {
-      otkaziDio();
-      analizaEl.innerHTML = markdownUHtml(markdown);
+    // ─── Prikaz izvještaja ───
+    // Sve što je došlo od modela ubacuje se isključivo kao tekst (textContent), nikad kao HTML,
+    // pa nepouzdan tekst ne može umetnuti HTML ni skriptu.
+    const ND = 'nije navedeno u oglasu';
+    const NIJE_MOGUCE = 'nije moguće izračunati';
+    const NEMA_PROCJENE = 'nema procjene';
+    const NF = new Intl.NumberFormat('hr-HR', { maximumFractionDigits: 0 });
+    const NF1 = new Intl.NumberFormat('hr-HR', { maximumFractionDigits: 1 });
+    const jeBroj = (v) => typeof v === 'number' && Number.isFinite(v);
+    const eur = (v) => (jeBroj(v) ? `${NF.format(v)} €` : null);
+    const posto = (v) => (jeBroj(v) ? `${NF1.format(v)} %` : null);
+
+    function el(tag, cls, tekst) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (tekst !== undefined && tekst !== null) e.textContent = tekst;
+      return e;
+    }
+    // Tri vrste null vrijednosti (null se nikad ne prikazuje kao 0):
+    //   'oglas'  — podatak koji oglas ne navodi (površina, cijena, lokacija)
+    //   'racun'  — izračun kojem fali ulaz; uz kratki razlog (npr. "nedostaje cijena")
+    //   'procjena' — AI procjena koja je null
+    function nullTekst(vrsta, razlog) {
+      if (vrsta === 'racun') return razlog ? `${NIJE_MOGUCE} — ${razlog}` : NIJE_MOGUCE;
+      return vrsta === 'procjena' ? NEMA_PROCJENE : ND;
+    }
+    function vrijednost(v, cls, vrsta, razlog) {
+      const e = el('span', cls);
+      if (v === null || v === undefined) { e.className = (cls ? cls + ' ' : '') + 'nd'; e.textContent = nullTekst(vrsta, razlog); }
+      else e.textContent = v;
+      return e;
+    }
+    const oznakaUpisali = () => el('span', 'upisali', 'upisali ste');
+    function metrika(label, v, vrsta, razlog, mala, upisao) {
+      const m = el('div', 'metrika');
+      const lab = el('div', 'metrika-label', label);
+      if (upisao) lab.appendChild(oznakaUpisali());
+      m.appendChild(lab);
+      m.appendChild(vrijednost(v, 'metrika-vrijednost' + (mala ? ' mala' : ''), vrsta, razlog));
+      // vrijednost je span; blok radi preko .metrika-vrijednost display
+      m.lastChild.style.display = 'block';
+      return m;
+    }
+    function lista(stavke, cls) {
+      const ul = el('ul', cls);
+      stavke.forEach((t) => ul.appendChild(el('li', null, t)));
+      return ul;
+    }
+    let kartIndeks = 0;
+    function kartica(cls, naslov) {
+      const k = el('section', 'kartica' + (cls ? ' ' + cls : ''));
+      k.style.setProperty('--i', kartIndeks++);
+      if (naslov) k.appendChild(el('h2', null, naslov));
+      return k;
+    }
+
+    const ZNACKE = {
+      povoljno: 'Povoljna prilika',
+      pregovaraj: 'Za pregovore',
+      oprez: 'Oprez',
+    };
+    const POUZDANOST = { niska: 'Pouzdanost procjene: niska', srednja: 'Pouzdanost procjene: srednja', visoka: 'Pouzdanost procjene: visoka' };
+    const RAZINE = { nizak: 'Nizak', srednji: 'Srednji', visok: 'Visok' };
+
+    // Ručni unos cijene: preračun na klijentu istim formulama kao poslužitelj (assets/js/izracuni.js),
+    // bez novog AI poziva. Preporuka i ocjena se ne izmišljaju — ostaju "Nedovoljno podataka".
+    function preracunajSCijenom(a, tekst, greskaEl, uneseno, referenca) {
+      const cijena = PropIQIzracuni.parsirajCijenu(tekst);
+      if (cijena === null) {
+        greskaEl.textContent = 'Upišite valjanu cijenu u eurima (npr. 185000).';
+        return;
+      }
+      const iz = PropIQIzracuni.izracunaj({ ...a, cijena_eur: cijena });
+      analizaEl.replaceChildren(izgradiIzvjestaj(a, iz, cijena, uneseno, referenca));
+    }
+
+    // Napomena pod fer vrijednošću: od koje je tržišne reference procjena krenula (podatak dolazi s poslužitelja).
+    // DZS traži navođenje izvora, pa su izvori uvijek dio napomene.
+    const IZVORI_REFERENCE = 'Izvori: Ministarstvo prostornoga uređenja, graditeljstva i državne imovine (Pregled tržišta nekretnina 2025.); Državni zavod za statistiku.';
+    function referencaTekst(r) {
+      const x = r && r.realizirana;
+      if (!x || !jeBroj(x.uskladeno_eur_m2)) return 'Nema referentnih tržišnih podataka za ovu lokaciju';
+      const tromjesecje = `${x.indeks_razdoblje}${x.privremeno ? ' (privremeni podaci)' : ''}`;
+      const podrucje = r.ko ? `k.o. ${r.ko} (${r.naziv})` : r.naziv;
+      const napomena = r.napomena_kvart ? ` ${r.napomena_kvart}` : '';
+      return `Referenca: medijan stvarno plaćenih cijena stanova za ${podrucje} ${x.godina}. (${NF.format(x.broj_prodaja)} prodaja), ` +
+        `usklađen DZS indeksom na ${tromjesecje}: ${NF.format(x.uskladeno_eur_m2)} €/m².${napomena} ${IZVORI_REFERENCE}`;
+    }
+    // Najam nema referentnog izvora po m²: procjena je AI procjena s ograničenom pouzdanošću (postavlja je poslužitelj).
+    function najamTekst(najam) {
+      const ima = najam && (jeBroj(najam.dugorocni_mj_eur) || jeBroj(najam.turisticki_godisnje_eur));
+      if (!ima) return null;
+      const pouzdanost = najam.pouzdanost ? ` Pouzdanost procjene najma: ${najam.pouzdanost}.` : '';
+      return `Procjena najma je AI procjena bez referentnih tržišnih podataka (nema javno dostupnog izvora najma po m²).${pouzdanost}`;
+    }
+
+    function izgradiIzvjestaj(a, iz, rucnaCijena, uneseno, referenca) {
+      kartIndeks = 0;
+      const frag = document.createDocumentFragment();
+      const razlozi = iz.razlozi || {};
+      const un = uneseno || {};
+      const nemaCijene = !jeBroj(a.cijena_eur);
+      const cijena = nemaCijene && jeBroj(rucnaCijena) ? rucnaCijena : a.cijena_eur;
+      const rucnaNapomena = () => el('p', 'rucno-napomena', `Na temelju cijene koju ste upisali (${eur(rucnaCijena)}).`);
+
+      // a) zaglavlje
+      const z = kartica('zaglavlje');
+      z.appendChild(el('h2', null, a.naslov));
+      const lok = [a.lokacija.grad, a.lokacija.kvart].filter(Boolean).join(' · ');
+      const lokEl = z.appendChild(vrijednost(lok || null, 'lokacija'));
+      lokEl.style.display = 'block';
+      if (un.grad || un.kvart) lokEl.appendChild(oznakaUpisali());
+      const mz = el('div', 'metrike');
+      mz.appendChild(metrika('Površina', jeBroj(a.povrsina_m2) ? `${NF1.format(a.povrsina_m2)} m²` : null, 'oglas', undefined, false, jeBroj(un.povrsina_m2)));
+      mz.appendChild(metrika('Tražena cijena', eur(cijena), 'oglas', undefined, false, jeBroj(un.cijena_eur)));
+      mz.appendChild(metrika('Cijena po m²', eur(iz.cijena_po_m2) && `${eur(iz.cijena_po_m2)}/m²`, 'racun', razlozi.cijena_po_m2));
+      z.appendChild(mz);
+      const dodatno = [
+        ['kat', 'Kat', (v) => (v === 0 ? 'prizemlje' : String(v))], ['lift', 'Lift', (v) => (v === 'da' ? 'da' : 'ne')],
+        ['parking', 'Parking', (v) => v], ['godina_gradnje', 'Godina gradnje', (v) => String(v)],
+      ].filter(([k]) => un[k] !== undefined && un[k] !== null);
+      if (dodatno.length) {
+        const popis = el('div', 'upisali-popis');
+        dodatno.forEach(([k, naziv, f]) => {
+          const stavka = el('span', null, `${naziv}: ${f(un[k])}`);
+          stavka.appendChild(oznakaUpisali());
+          popis.appendChild(stavka);
+        });
+        z.appendChild(popis);
+      }
+      if (nemaCijene) {
+        const unos = el('div', 'cijena-unos');
+        const oznaka = el('label', null, 'Upiši traženu cijenu (€)');
+        oznaka.htmlFor = 'rucna-cijena';
+        unos.appendChild(oznaka);
+        const unosRed = el('div', 'cijena-unos-red');
+        const polje = el('input');
+        polje.id = 'rucna-cijena';
+        polje.type = 'text';
+        polje.inputMode = 'numeric';
+        polje.maxLength = 15;
+        polje.placeholder = 'npr. 185000';
+        if (jeBroj(rucnaCijena)) polje.value = String(rucnaCijena);
+        const gumb = el('button', null, 'Preračunaj');
+        gumb.type = 'button';
+        const greska = el('div', 'cijena-greska');
+        const pokreni = () => preracunajSCijenom(a, polje.value, greska, uneseno, referenca);
+        gumb.addEventListener('click', pokreni);
+        polje.addEventListener('keydown', (e) => { if (e.key === 'Enter') pokreni(); });
+        unosRed.appendChild(polje);
+        unosRed.appendChild(gumb);
+        unos.appendChild(unosRed);
+        unos.appendChild(greska);
+        z.appendChild(unos);
+        if (jeBroj(rucnaCijena)) z.appendChild(rucnaNapomena());
+      }
+      frag.appendChild(z);
+
+      // b) preporuka
+      const p = kartica('preporuka');
+      const red = el('div', 'preporuka-red');
+      if (a.preporuka === null || a.ocjena === null) {
+        // Bez tražene cijene nema investicijske ocjene ni preporuke.
+        red.appendChild(el('span', 'znacka nedovoljno', 'Nedovoljno podataka'));
+        p.appendChild(red);
+        p.appendChild(el('p', 'nedovoljno-tekst', jeBroj(rucnaCijena)
+          ? 'Brojke ispod preračunate su na temelju cijene koju ste upisali, ali ocjena i preporuka nisu izdane. Za njih ponovno pokrenite analizu s cijenom u oglasu.'
+          : 'Oglas ne navodi traženu cijenu, a bez nje nema investicijske ocjene ni preporuke (povoljno / pregovaraj / oprez). Upišite cijenu u zaglavlju za preračun brojki ili ponovno pokrenite analizu s cijenom.'));
+      } else {
+        red.appendChild(el('span', 'znacka ' + a.preporuka, ZNACKE[a.preporuka]));
+        const oc = el('div', 'ocjena', String(a.ocjena));
+        oc.appendChild(el('small', null, ' / 10'));
+        red.appendChild(oc);
+        p.appendChild(red);
+      }
+      p.appendChild(el('p', 'sazetak', a.sazetak));
+      frag.appendChild(p);
+
+      // c) fer vrijednost
+      const f = kartica('fer', 'Fer vrijednost');
+      const fv = a.fer_vrijednost;
+      const raspon = jeBroj(fv.min_eur) && jeBroj(fv.max_eur) ? `${eur(fv.min_eur)} – ${eur(fv.max_eur)}` : null;
+      f.appendChild(vrijednost(raspon, 'raspon', 'procjena')).style.display = 'block';
+      const poM2 = jeBroj(iz.fer_po_m2.min) && jeBroj(iz.fer_po_m2.max)
+        ? `${eur(iz.fer_po_m2.min)} – ${eur(iz.fer_po_m2.max)} po m²` : null;
+      if (poM2) f.appendChild(el('div', 'raspon-po-m2', poM2));
+      else if (raspon) f.appendChild(vrijednost(null, 'raspon-po-m2', 'racun', razlozi.fer_po_m2));
+      if (iz.traka) {
+        const t = iz.traka;
+        const traka = el('div', 'traka');
+        const ferDio = el('div', 'traka-fer');
+        ferDio.style.left = t.fer_od_posto + '%';
+        ferDio.style.width = Math.max(t.fer_do_posto - t.fer_od_posto, 1) + '%';
+        traka.appendChild(ferDio);
+        const marker = el('div', 'traka-cijena');
+        marker.style.left = t.cijena_posto + '%';
+        traka.appendChild(marker);
+        const oznaka = el('div', 'traka-oznaka', `Tražena: ${eur(cijena)}`);
+        oznaka.style.left = Math.min(85, Math.max(15, t.cijena_posto)) + '%';
+        traka.appendChild(oznaka);
+        const krajevi = el('div', 'traka-krajevi');
+        krajevi.appendChild(el('span', null, eur(t.od_eur)));
+        krajevi.appendChild(el('span', null, eur(t.do_eur)));
+        traka.appendChild(krajevi);
+        f.appendChild(traka);
+        const tekstPolozaja = {
+          ispod: 'Tražena cijena je ispod procijenjenog fer raspona.',
+          unutar: 'Tražena cijena je unutar procijenjenog fer raspona.',
+          iznad: 'Tražena cijena je iznad procijenjenog fer raspona.',
+        }[t.polozaj];
+        f.appendChild(el('p', 'polozaj', tekstPolozaja));
+        if (nemaCijene && jeBroj(rucnaCijena)) f.appendChild(rucnaNapomena());
+      } else {
+        const polozaj = el('p', 'polozaj');
+        polozaj.appendChild(document.createTextNode('Pozicija tražene cijene na traci fer vrijednosti: '));
+        polozaj.appendChild(vrijednost(null, null, 'racun', razlozi.traka));
+        f.appendChild(polozaj);
+      }
+      f.appendChild(el('span', 'chip ' + fv.pouzdanost, POUZDANOST[fv.pouzdanost]));
+      // Obrazloženje se slaže iz istog popisa korekcija i izračunatih brojeva (polazište → korekcije → zbroj → raspon).
+      f.appendChild(el('p', null, fv.izracun ? PropIQIzracuni.obrazlozenjeFer(fv.izracun) : fv.obrazlozenje));
+      if (fv.bez_reference) f.appendChild(el('p', 'referenca-napomena', 'Za ovu lokaciju nema referentnog medijana: raspon je izravna procjena modela, bez izračuna iz korekcija, pa je manje provjerljiv.'));
+      f.appendChild(el('p', 'referenca-napomena', referencaTekst(referenca)));
+      frag.appendChild(f);
+
+      // d) prinos
+      const pr = kartica('prinos', 'Prinos od najma');
+      const mp = el('div', 'metrike cetiri');
+      mp.appendChild(metrika('Bruto prinos', posto(iz.bruto_prinos), 'racun', razlozi.bruto_prinos));
+      mp.appendChild(metrika('Neto prinos', posto(iz.neto_prinos), 'racun', razlozi.neto_prinos));
+      mp.appendChild(metrika('Dugoročni najam', eur(a.najam.dugorocni_mj_eur) && `${eur(a.najam.dugorocni_mj_eur)} / mj.`, 'procjena'));
+      mp.appendChild(metrika('Godine povrata', jeBroj(iz.godine_povrata) ? `${NF1.format(iz.godine_povrata)} god.` : null, 'racun', razlozi.godine_povrata));
+      pr.appendChild(mp);
+      if (nemaCijene && jeBroj(rucnaCijena)) pr.appendChild(rucnaNapomena());
+      if (jeBroj(a.najam.turisticki_godisnje_eur)) {
+        const tur = `Turistički najam: procjena ${eur(a.najam.turisticki_godisnje_eur)} godišnje` +
+          (jeBroj(iz.bruto_prinos_turisticki) ? ` (bruto prinos ${posto(iz.bruto_prinos_turisticki)}).` : '.');
+        pr.appendChild(el('p', null, tur));
+      }
+      pr.appendChild(lista(iz.pretpostavke, 'napomene'));
+      const najamNapomena = najamTekst(a.najam);
+      if (najamNapomena) pr.appendChild(el('p', 'referenca-napomena', najamNapomena));
+      frag.appendChild(pr);
+
+      // e) rizici + porez na promet
+      const r = kartica('rizici', 'Rizici');
+      if (a.rizici.length) {
+        a.rizici.forEach((rz) => {
+          const d = el('div', 'rizik');
+          const g = el('div', 'rizik-glava');
+          g.appendChild(el('span', 'rizik-naslov', rz.naslov));
+          g.appendChild(el('span', 'razina ' + rz.razina, RAZINE[rz.razina]));
+          d.appendChild(g);
+          d.appendChild(el('p', null, rz.opis));
+          r.appendChild(d);
+        });
+      } else {
+        r.appendChild(el('p', null, 'Iz oglasa nisu uočeni posebni rizici.'));
+      }
+      const poreznaRed = el('div', 'porez');
+      poreznaRed.appendChild(el('span', null, 'Porez na promet nekretnina (3 %)'));
+      const ps = el('strong');
+      ps.appendChild(vrijednost(eur(iz.porez_na_promet), null, 'racun', razlozi.porez_na_promet));
+      poreznaRed.appendChild(ps);
+      r.appendChild(poreznaRed);
+      if (nemaCijene && jeBroj(rucnaCijena)) r.appendChild(rucnaNapomena());
+      frag.appendChild(r);
+
+      // f) pregovaranje
+      const n = kartica('pregovaranje', 'Strategija pregovaranja');
+      const pn = a.pregovaranje;
+      n.appendChild(el('div', 'metrika-label', 'Ciljana ponuda'));
+      const pRed = el('div', 'ponuda-red');
+      pRed.appendChild(vrijednost(eur(pn.ciljana_ponuda_eur), 'ponuda', 'procjena'));
+      if (jeBroj(iz.usteda_eur)) {
+        pRed.appendChild(el('span', 'usteda', `ušteda ${eur(iz.usteda_eur)} (${posto(iz.usteda_posto)})`));
+      } else if (jeBroj(pn.ciljana_ponuda_eur) && nemaCijene) {
+        const u = el('span');
+        u.appendChild(document.createTextNode('ušteda: '));
+        u.appendChild(vrijednost(null, null, 'racun', razlozi.usteda));
+        pRed.appendChild(u);
+      }
+      n.appendChild(pRed);
+      if (nemaCijene && jeBroj(rucnaCijena) && jeBroj(iz.usteda_eur)) n.appendChild(rucnaNapomena());
+      if (pn.aduti.length) { n.appendChild(el('h3', null, 'Vaši aduti')); n.appendChild(lista(pn.aduti)); }
+      if (pn.pitanja_prodavatelju.length) { n.appendChild(el('h3', null, 'Pitanja za prodavatelja')); n.appendChild(lista(pn.pitanja_prodavatelju)); }
+      frag.appendChild(n);
+
+      // g) što oglas ne navodi
+      const nd = kartica('nedostaje', 'Što oglas ne navodi');
+      if (a.nedostajuci_podaci.length) nd.appendChild(lista(a.nedostajuci_podaci));
+      else nd.appendChild(el('p', null, 'Oglas navodi sve ključne podatke.'));
+      frag.appendChild(nd);
+
+      // h) footer
+      const ft = el('p', 'footer-napomena', 'Analiza je informativna procjena i nije investicijski savjet.');
+      ft.style.animation = `fadeUp 0.8s var(--ease) both`;
+      ft.style.animationDelay = `${kartIndeks * 0.09}s`;
+      frag.appendChild(ft);
+      return frag;
+    }
+
+    function prikaziAnalizu(rezultat) {
+      analizaEl.replaceChildren(izgradiIzvjestaj(rezultat.analiza, rezultat.izracuni, undefined, rezultat.uneseno, rezultat.referenca));
       hide(loadingEl);
       hide(errorEl);
       reveal(analizaEl);
@@ -612,11 +1019,14 @@
         new Date().toLocaleDateString('hr-HR', { day: 'numeric', month: 'long', year: 'numeric' });
     }
 
+    const jeRezultat = (r) => !!r && typeof r === 'object' && !!r.analiza && typeof r.analiza === 'object' &&
+      !!r.izracuni && typeof r.izracuni === 'object';
+
     function procitajSpremljeniRezultat(requestId) {
       if (!requestId) return null;
       try {
         const spremljeno = JSON.parse(sessionStorage.getItem('propiq_analiza_rezultat') || 'null');
-        return spremljeno && spremljeno.request_id === requestId && spremljeno.analiza ? spremljeno.analiza : null;
+        return spremljeno && spremljeno.request_id === requestId && jeRezultat(spremljeno.analiza) ? spremljeno.analiza : null;
       } catch {
         return null;
       }
@@ -671,34 +1081,38 @@
           return;
         }
 
-        // Analiza stiže streamom: tekst se prikazuje kako stiže, a tek događaj "kraj"
-        // znači da je uspjela (i da je izbrojana u limit).
-        let analiza = '';
+        // Rezultat stiže kao SSE: tek događaj "kraj" s izvještajem znači da je analiza
+        // uspjela (i da je izbrojana u limit).
+        let analiza = null;
         let kraj = null;
         let greska = null;
         try {
           await procitajDogadjaje(res.body, (d) => {
-            if (typeof d.tekst === 'string') {
-              analiza += d.tekst;
-              prikaziDio(analiza);
-            } else if (d.kraj) {
+            if (d.kraj) {
               kraj = d;
+              analiza = d.rezultat;
             } else if (d.greska) {
               greska = d.greska;
+            } else if (FAZE[d.faza]) {
+              document.getElementById('loading-tekst').textContent = FAZE[d.faza];
             }
           });
         } catch {
           kraj = null;
         }
 
-        if (greska || !kraj) {
+        if (greska || !kraj || !jeRezultat(analiza)) {
           showError(greska || 'Veza je prekinuta prije kraja analize. Pokušajte ponovo — ova analiza vam se ne broji u limit.');
           return;
         }
 
-        if (kraj.skraceno) analiza += NAPOMENA_SKRACENO;
-
-        prikaziAnalizu(analiza);
+        try {
+          prikaziAnalizu(analiza);
+        } catch (err) {
+          console.error('Prikaz izvještaja nije uspio:', err);
+          showError('Izvještaj se nije mogao prikazati. Pokušajte ponovo.');
+          return;
+        }
 
         // Spremi gotov rezultat da F5 prikaže istu analizu bez novog poziva.
         if (data.request_id) {

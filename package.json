@@ -3,5 +3,8 @@
   "private": true,
   "dependencies": {
     "@netlify/blobs": "^10.0.0"
+  },
+  "scripts": {
+    "test": "node --test --experimental-test-module-mocks tests/*.test.mjs"
   }
 }

@@ -1,0 +1,117 @@
+{
+  "napomena": "Referentni podaci za slijepu procjenu. (1) \"realizirane\": medijan STVARNO PLAĆENIH cijena stanova/apartmana (transakcije iz sustava eNekretnine) u 2025. po gradovima, iz publikacije MPGI/EIZ. (2) \"indeks\": DZS indeks cijena stambenih objekata (Ø 2025 = 100) po regijama, za usklađivanje medijana 2025. na zadnje objavljeno tromjesečje: uskladeno = medijan × (indeks zadnjeg razdoblja / indeks prosjeka 2025.). (3) \"trazena\": tražene (oglasne) cijene — namjerno prazno dok nema dozvole izvora; kod ih koristi čim se popune. Sve vrijednosti prepisane su s izvora; ništa nije procijenjeno.",
+  "azurirano": "2026-10",
+  "realizirane": {
+    "opis": "Medijan €/m² prodanih stanova/apartmana (svih starosti i stanja; cijeli grad, bez razlike po kvartovima) u 2025. i broj prodaja.",
+    "godina": 2025,
+    "izvor": {
+      "naziv": "Ministarstvo prostornoga uređenja, graditeljstva i državne imovine / Ekonomski institut, Zagreb: Pregled tržišta nekretnina Republike Hrvatske 2025.",
+      "url": "https://mpgi.gov.hr/UserDocsImages/dokumenti/stambeno/Pregled-trzista-nekretnina-2025.pdf",
+      "prilozi": "https://mpgi.gov.hr/UserDocsImages/dokumenti/stambeno/Prilozi_PTN2025.zip",
+      "tablica": "Tablica 3.6. (tiskana str. 56; PDF str. 57); vrijednosti provjerene s prilogom \"Medijalne cijene po m2 po jedinicama lokalne samouprave od 2012. do 2025. godine.xlsx\" (list Stanovi_apartmani EUR) i \"Broj kupoprodajnih transakcija ... .xlsx\" (list Stanovi i apartmani)"
+    },
+    "gradovi": {
+      "Zagreb": { "medijan_eur_m2": 2917, "broj_prodaja": 7616, "regija_dzs": "Zagreb" },
+      "Rijeka": { "medijan_eur_m2": 2808, "broj_prodaja": 1136, "regija_dzs": "Jadran" },
+      "Kaštela": { "medijan_eur_m2": 2553, "broj_prodaja": 117, "regija_dzs": "Jadran" },
+      "Split": { "medijan_eur_m2": 4067, "broj_prodaja": 820, "regija_dzs": "Jadran" },
+      "Pazin": { "medijan_eur_m2": 2182, "broj_prodaja": 22, "regija_dzs": null },
+      "Pula": { "medijan_eur_m2": 2456, "broj_prodaja": 388, "regija_dzs": "Jadran" },
+      "Koprivnica": { "medijan_eur_m2": 2097, "broj_prodaja": 129, "regija_dzs": "Ostalo" },
+      "Bjelovar": { "medijan_eur_m2": 1624, "broj_prodaja": 133, "regija_dzs": "Ostalo" },
+      "Osijek": { "medijan_eur_m2": 1666, "broj_prodaja": 670, "regija_dzs": "Ostalo" },
+      "Samobor": { "medijan_eur_m2": 2371, "broj_prodaja": 114, "regija_dzs": "Ostalo" },
+      "Velika Gorica": { "medijan_eur_m2": 2247, "broj_prodaja": 404, "regija_dzs": "Ostalo" },
+      "Sisak": { "medijan_eur_m2": 1325, "broj_prodaja": 119, "regija_dzs": "Ostalo" },
+      "Varaždin": { "medijan_eur_m2": 2128, "broj_prodaja": 167, "regija_dzs": "Ostalo" },
+      "Zadar": { "medijan_eur_m2": 2874, "broj_prodaja": 707, "regija_dzs": "Jadran" },
+      "Čakovec": { "medijan_eur_m2": 1757, "broj_prodaja": 172, "regija_dzs": "Ostalo" },
+      "Vukovar": { "medijan_eur_m2": 1011, "broj_prodaja": 135, "regija_dzs": "Ostalo" },
+      "Vinkovci": { "medijan_eur_m2": 1441, "broj_prodaja": 152, "regija_dzs": "Ostalo" },
+      "Virovitica": { "medijan_eur_m2": 1519, "broj_prodaja": 72, "regija_dzs": "Ostalo" },
+      "Karlovac": { "medijan_eur_m2": 1813, "broj_prodaja": 260, "regija_dzs": "Ostalo" },
+      "Slavonski Brod": { "medijan_eur_m2": 1488, "broj_prodaja": 140, "regija_dzs": "Ostalo" },
+      "Šibenik": { "medijan_eur_m2": 2436, "broj_prodaja": 182, "regija_dzs": "Jadran" },
+      "Krapina": { "medijan_eur_m2": 2232, "broj_prodaja": 110, "regija_dzs": "Ostalo" },
+      "Dubrovnik": { "medijan_eur_m2": 3921, "broj_prodaja": 142, "regija_dzs": "Jadran" },
+      "Požega": { "medijan_eur_m2": 1189, "broj_prodaja": 66, "regija_dzs": "Ostalo" },
+      "Gospić": { "medijan_eur_m2": 1229, "broj_prodaja": 44, "regija_dzs": null }
+    },
+    "zagreb_katastarske_opcine": {
+      "napomena": "Medijan po katastarskim općinama (k.o.) Zagreba; koristi se kao polazište samo kad je kvart pouzdano mapiran na k.o. (netlify/lib/trziste.mjs: točan naziv k.o. ili potvrđeni alias) i k.o. ima najmanje 30 prodaja; inače se koristi gradski medijan. Nazivi koji nisu jedna k.o. (Centar, Klara, Trešnjevka, Stenjevec, Vrapče, Dubrava, Sesvete) ne mapiraju se. Popis je strojno pročitan iz PDF-a i može biti nepotpun (npr. redak koji se prelama preko stranice).",
+      "godina": 2025,
+      "izvor": {
+        "naziv": "Isti Pregled 2025., Tablica 3.10. (tiskana str. 68–69; PDF str. 69–70)",
+        "url": "https://mpgi.gov.hr/UserDocsImages/dokumenti/stambeno/Pregled-trzista-nekretnina-2025.pdf"
+      },
+      "opcine": {
+        "Blato": { "broj_prodaja": 845, "medijan_eur_m2": 2861 },
+        "Brezovica": { "broj_prodaja": 18, "medijan_eur_m2": 1939 },
+        "Centar": { "broj_prodaja": 260, "medijan_eur_m2": 3390 },
+        "Centar Novi": { "broj_prodaja": 591, "medijan_eur_m2": 3256 },
+        "Črnomerec": { "broj_prodaja": 335, "medijan_eur_m2": 3181 },
+        "Demerje": { "broj_prodaja": 16, "medijan_eur_m2": 1165 },
+        "Donja Dubrava": { "broj_prodaja": 66, "medijan_eur_m2": 2701 },
+        "Donje Vrapče": { "broj_prodaja": 366, "medijan_eur_m2": 3187 },
+        "Dubrava": { "broj_prodaja": 534, "medijan_eur_m2": 2829 },
+        "Gornje Vrapče": { "broj_prodaja": 20, "medijan_eur_m2": 3170 },
+        "Gornji Stenjevec": { "broj_prodaja": 31, "medijan_eur_m2": 2869 },
+        "Gračani": { "broj_prodaja": 56, "medijan_eur_m2": 2501 },
+        "Granešina Nova": { "broj_prodaja": 27, "medijan_eur_m2": 2223 },
+        "Jakuševec": { "broj_prodaja": 86, "medijan_eur_m2": 2828 },
+        "Klara": { "broj_prodaja": 412, "medijan_eur_m2": 2545 },
+        "Klara Nova": { "broj_prodaja": 204, "medijan_eur_m2": 2446 },
+        "Lučko": { "broj_prodaja": 24, "medijan_eur_m2": 2090 },
+        "Maksimir": { "broj_prodaja": 50, "medijan_eur_m2": 3287 },
+        "Mikulići": { "broj_prodaja": 46, "medijan_eur_m2": 2719 },
+        "Odra": { "broj_prodaja": 122, "medijan_eur_m2": 2367 },
+        "Peščenica": { "broj_prodaja": 658, "medijan_eur_m2": 3090 },
+        "Podsused": { "broj_prodaja": 70, "medijan_eur_m2": 2332 },
+        "Remete": { "broj_prodaja": 40, "medijan_eur_m2": 2759 },
+        "Resnik": { "broj_prodaja": 64, "medijan_eur_m2": 2531 },
+        "Rudeš": { "broj_prodaja": 151, "medijan_eur_m2": 3071 },
+        "Sesvete": { "broj_prodaja": 153, "medijan_eur_m2": 2061 },
+        "Sesvete Novo": { "broj_prodaja": 116, "medijan_eur_m2": 2167 },
+        "Sesvetski Kraljevec": { "broj_prodaja": 163, "medijan_eur_m2": 1946 },
+        "Stenjevec": { "broj_prodaja": 220, "medijan_eur_m2": 2908 },
+        "Stenjevec Jug": { "broj_prodaja": 324, "medijan_eur_m2": 3207 },
+        "Stenjevec Sjever": { "broj_prodaja": 46, "medijan_eur_m2": 3350 },
+        "Šašinovec": { "broj_prodaja": 40, "medijan_eur_m2": 1803 },
+        "Šestine": { "broj_prodaja": 65, "medijan_eur_m2": 2839 },
+        "Trešnjevka": { "broj_prodaja": 134, "medijan_eur_m2": 3135 },
+        "Trešnjevka Nova": { "broj_prodaja": 256, "medijan_eur_m2": 3048 },
+        "Trnje": { "broj_prodaja": 349, "medijan_eur_m2": 3269 },
+        "Vrapče": { "broj_prodaja": 139, "medijan_eur_m2": 3037 },
+        "Zaprudski Otok": { "broj_prodaja": 442, "medijan_eur_m2": 2946 },
+        "Žitnjak": { "broj_prodaja": 48, "medijan_eur_m2": 2890 }
+      }
+    }
+  },
+  "indeks": {
+    "naziv": "DZS: Indeksi cijena stambenih objekata (novi i postojeći zajedno)",
+    "osnova": "Ø 2025. = 100 (stupac \"Ø 2025.\" u tablici 1. priopćenja)",
+    "prosjek_2025": { "Zagreb": 100, "Jadran": 100, "Ostalo": 100 },
+    "definicija_regija": "DZS dijeli područja na Grad Zagreb, Jadran i Ostalo; službeni popis pripadajućih gradova i općina nalazi se u PC-Axis bazi (nije dohvaćen). Ovdje: Zagreb = Grad Zagreb; Jadran = veliki gradovi na jadranskoj obali (Rijeka, Kaštela, Split, Pula, Zadar, Šibenik, Dubrovnik); Ostalo = unutrašnji gradovi izvan obale. Pazin i Gospić nisu razvrstani (nije potvrđeno) pa nemaju usklađenu vrijednost ni referencu.",
+    "razdoblja": {
+      "2026-Q1": {
+        "naziv": "I. tromjesečje 2026.",
+        "objavljeno": "2026-07-02",
+        "privremeno": false,
+        "izvor": "CIJ-2026-2-1/1, tablica 1. (podaci.dzs.hr/2026/hr/121605)",
+        "regije": { "Zagreb": 109.04, "Jadran": 107.22, "Ostalo": 109.77 }
+      },
+      "2026-Q2": {
+        "naziv": "II. tromjesečje 2026.",
+        "objavljeno": "2026-10-01",
+        "privremeno": true,
+        "izvor": "CIJ-2026-2-1/2, tablica 1. (podaci.dzs.hr/2026/hr/121053)",
+        "regije": { "Zagreb": 113.53, "Jadran": 108.46, "Ostalo": 113.34 }
+      }
+    },
+    "koristi": "2026-Q2"
+  },
+  "trazena": {
+    "napomena": "Prazno dok nemamo dozvolu izvora tražene (oglasne) cijene. Oblik: gradovi.<grad> = { prosjek_eur_m2, izvor, datum, kvartovi: { <kvart>: { prosjek_eur_m2, izvor, datum } } }.",
+    "gradovi": {}
+  }
+}
