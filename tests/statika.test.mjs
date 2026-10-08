@@ -115,8 +115,7 @@ test('index.html: polja forme imaju maxlength jednak ograničenjima na poslužit
   const src = fs.readFileSync(path.join(root, 'netlify/functions/analiza.mjs'), 'utf8');
   const lim = (n) => Number(src.match(new RegExp(`const ${n} = (\\d+);`))[1]);
   const maxlength = (id) => Number(html.match(new RegExp(`id="${id}"[^>]*maxlength="(\\d+)"`))[1]);
-  assert.equal(maxlength('ime'), lim('MAX_IME'));
-  assert.equal(maxlength('agencija'), lim('MAX_AGENCIJA'));
+  assert.ok(!/id="ime"|id="agencija"/.test(html), 'forma više ne traži ime ni agenciju');
   assert.equal(maxlength('email'), lim('MAX_EMAIL'));
   assert.equal(maxlength('oglas_tekst'), lim('MAX_OGLAS'));
 });

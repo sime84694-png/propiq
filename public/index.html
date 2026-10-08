@@ -1359,26 +1359,11 @@
     .modal-close:hover { background: var(--cream-15); color: var(--cream); }
     .modal-close svg { width: 14px; height: 14px; }
 
-    .modal-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--cream-08);
-      border: 1px solid var(--cream-15);
-      color: var(--cream-70);
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      padding: 5px 12px;
-      border-radius: 100px;
-      margin-bottom: 16px;
-    }
-
     .modal h3 {
-      font-size: 1.7rem;
+      font-family: var(--font-serif);
+      font-size: 1.8rem;
       font-weight: 800;
-      letter-spacing: -0.8px;
+      letter-spacing: -0.02em;
       margin-bottom: 6px;
       line-height: 1.1;
       padding-right: 36px;
@@ -1442,7 +1427,13 @@
     .form-group textarea { resize: vertical; min-height: 110px; }
 
     /* Ključni podaci (neobavezno) */
-    .kljucni-podaci { margin: 4px 0 14px; padding: 16px; border: 1px solid var(--cream-08); border-radius: 14px; background: var(--cream-04); }
+    .kljucni-podaci { margin: 4px 0 14px; }
+    .kljucni-podaci > summary { cursor: pointer; list-style: none; font-size: 0.85rem; font-weight: 600; color: var(--gold); padding: 4px 0; user-select: none; }
+    .kljucni-podaci > summary::-webkit-details-marker { display: none; }
+    .kljucni-podaci > summary:hover { color: var(--cream); }
+    .kljucni-podaci[open] { padding: 16px; border: 1px solid var(--cream-08); border-radius: 14px; background: var(--cream-04); }
+    .kljucni-podaci[open] > summary { display: none; }
+    .form-note { margin-top: 14px; text-align: center; font-size: 0.75rem; line-height: 1.5; color: var(--cream-40); }
     .kljucni-podaci h4 { font-size: 0.78rem; font-weight: 700; line-height: 1.5; color: var(--cream-70); margin-bottom: 14px; }
     .kljucni-podaci .form-group { margin-bottom: 12px; }
     .kljucni-podaci .form-group input, .kljucni-podaci .form-group select { padding: 11px 14px; }
@@ -2010,41 +2001,28 @@
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
-      <div class="modal-eyebrow">
-        <svg width="7" height="7" viewBox="0 0 7 7" fill="currentColor"><circle cx="3.5" cy="3.5" r="3.5"/></svg>
-        AI analiza nekretnine
-      </div>
-      <h3>Analiziraj oglas</h3>
-      <p class="modal-subtitle">Zalijepite tekst oglasa i dobijte AI analizu isplativosti.</p>
+      <h3>Koliko oglas stvarno vrijedi?</h3>
+      <p class="modal-subtitle">Zalijepi oglas, za oko pola minute znaš je li cijena fer.</p>
       <form id="zahtjev-form">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="ime">Ime i prezime</label>
-            <input type="text" id="ime" name="ime" placeholder="Marko Kovačević" maxlength="100" required>
-          </div>
-          <div class="form-group">
-            <label for="email">Email adresa</label>
-            <input type="email" id="email" name="email" placeholder="marko@agencija.hr" maxlength="254" required>
-          </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="ime.prezime@primjer.hr" maxlength="254" required>
         </div>
         <div class="form-group">
-          <label for="agencija">Naziv agencije <span style="opacity:.4;font-weight:400;text-transform:none;letter-spacing:0">(opcionalno)</span></label>
-          <input type="text" id="agencija" name="agencija" placeholder="Npr. Adriatic Estates d.o.o." maxlength="100">
+          <label for="oglas_tekst">Tekst oglasa</label>
+          <textarea id="oglas_tekst" name="oglas_tekst" placeholder="Zalijepi naslov, cijenu, opis i karakteristike nekretnine s bilo kojeg oglasnika…" maxlength="15000"></textarea>
         </div>
-        <div class="form-group">
-          <label for="oglas_tekst">Tekst oglasa s Njuškala</label>
-          <textarea id="oglas_tekst" name="oglas_tekst" placeholder="Kopirajte naslov, cijenu, opis i karakteristike nekretnine..." maxlength="15000"></textarea>
-        </div>
-        <fieldset class="kljucni-podaci" style="min-width:0">
-          <h4>Ključni podaci (neobavezno — ako ih oglas nema ili ih želite ispraviti)</h4>
+        <details class="kljucni-podaci" id="kp_blok">
+          <summary>+ Dodaj cijenu, površinu ili kvart (neobavezno)</summary>
+          <h4>Ključni podaci (neobavezno — ako ih oglas nema ili ih želiš ispraviti)</h4>
           <div class="form-row">
             <div class="form-group">
               <label for="kp_cijena">Cijena (€)</label>
-              <input type="text" id="kp_cijena" name="cijena_eur" inputmode="numeric" placeholder="npr. 185.000" maxlength="15" autocomplete="off">
+              <input type="text" id="kp_cijena" name="cijena_eur" inputmode="numeric" placeholder="npr. 195.000" maxlength="15" autocomplete="off">
             </div>
             <div class="form-group">
               <label for="kp_povrsina">Stambena površina (m²)</label>
-              <input type="text" id="kp_povrsina" name="povrsina_m2" inputmode="decimal" placeholder="npr. 58" maxlength="8" autocomplete="off">
+              <input type="text" id="kp_povrsina" name="povrsina_m2" inputmode="decimal" placeholder="npr. 62" maxlength="8" autocomplete="off">
             </div>
           </div>
           <div class="form-row">
@@ -2080,12 +2058,13 @@
               </div>
             </div>
           </details>
-        </fieldset>
+        </details>
         <div class="form-greska" id="form-greska" role="alert"></div>
         <button type="submit" class="form-submit" id="form-submit-btn">
           <div class="spinner"></div>
           <span class="btn-text">Pokreni analizu</span>
         </button>
+        <p class="form-note">Prve 3 analize besplatno · bez kartice · polazište su stvarno plaćene cijene (MPGI/DZS)</p>
       </form>
       <div class="form-success" id="form-success">
         <div class="result-header">
@@ -2291,6 +2270,7 @@
     function resetForm() {
       document.getElementById('zahtjev-form').reset();
       document.getElementById('kp_vise').open = false;
+      document.getElementById('kp_blok').open = false;
       document.getElementById('form-greska').classList.remove('visible');
       const btn = document.getElementById('form-submit-btn');
       btn.disabled = false;
@@ -2336,9 +2316,9 @@
         kat: polje('kp_kat'), godina_gradnje: polje('kp_godina'), lift: polje('kp_lift'), parking: polje('kp_parking'),
       });
       const prikaziGresku = (poruka) => { greskaEl.textContent = poruka; greskaEl.classList.add('visible'); greskaEl.scrollIntoView({ block: 'nearest' }); };
-      if (!pv.ok) return prikaziGresku(pv.razlog);
+      if (!pv.ok) { document.getElementById('kp_blok').open = true; return prikaziGresku(pv.razlog); }
       if (!PropIQIzracuni.mozeAnaliza(polje('oglas_tekst'), pv.podaci)) {
-        return prikaziGresku('Zalijepite tekst oglasa ili upišite barem cijenu, površinu i grad.');
+        return prikaziGresku('Zalijepi tekst oglasa ili upiši barem cijenu, površinu i grad.');
       }
 
       const btn = document.getElementById('form-submit-btn');
@@ -2346,9 +2326,7 @@
       btn.classList.add('loading');
 
       const data = {
-        ime:         document.getElementById('ime').value,
         email:       document.getElementById('email').value,
-        agencija:    document.getElementById('agencija').value,
         oglas_tekst: document.getElementById('oglas_tekst').value,
         podaci:      pv.podaci,
         plan:        new URLSearchParams(window.location.search).get('plan') || '',
@@ -2368,7 +2346,6 @@
 
       // Email notifikacija korisniku putem Formspree. Čeka se odgovor (najviše 4 s) jer bi
       // preusmjeravanje na rezultat.html prekinulo zahtjev; greška ili timeout ne blokiraju analizu.
-      const agencija = data.agencija ? ` (${data.agencija})` : '';
       const formspreeCtrl = new AbortController();
       const formspreeTimer = setTimeout(() => formspreeCtrl.abort(), 4000);
       await fetch('https://formspree.io/f/mjgpakbd', {
@@ -2377,8 +2354,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email:   data.email,
-          name:    data.ime,
-          message: `Poštovani ${data.ime}${agencija},\n\nZaprimili smo vaš zahtjev za AI analizu nekretnine. Analiza se otvara izravno u vašem pregledniku.\n\nNapomena: analiza ostaje dostupna samo dok je kartica preglednika otvorena. Ako će vam trebati kasnije, obavezno je spremite.\n\nHvala na korištenju PropIQ-a.`,
+          message: `Zaprimili smo tvoj zahtjev za analizu oglasa. Analiza se otvara izravno u tvom pregledniku.\n\nNapomena: analiza ostaje dostupna samo dok je kartica preglednika otvorena. Ako će ti trebati kasnije, obavezno je spremi.\n\nHvala što koristiš PropIQ.`,
           _subject: 'Potvrda zahtjeva za PropIQ analizu',
           _replyto: data.email,
         }),
@@ -2411,14 +2387,14 @@
         if (res.ok) {
           const istek = new Date(p.istek).toLocaleDateString('hr-HR');
           document.getElementById('email').value = p.email || '';
-          poruka(`Paket je aktiviran: ${p.preostalo} analiza, vrijedi do ${istek}. Pri analizi upišite isti email (${p.email}).`);
+          poruka(`Paket je aktiviran: ${p.preostalo} analiza, vrijedi do ${istek}. Pri analizi upiši isti email (${p.email}).`);
         } else if (res.status === 409) {
-          poruka(`Ovaj paket je već aktiviran. Za analizu upišite email s kojim ste platili${p.email_maskiran ? ` (${p.email_maskiran})` : ''}.`);
+          poruka(`Ovaj paket je već aktiviran. Za analizu upiši email s kojim je plaćeno${p.email_maskiran ? ` (${p.email_maskiran})` : ''}.`);
         } else {
-          poruka((p.error || 'Paket nismo mogli aktivirati.') + ' Ako ste platili, javite nam se na kontakt email.');
+          poruka((p.error || 'Paket nismo mogli aktivirati.') + ' Ako je plaćeno, javi nam se na kontakt email.');
         }
       } catch {
-        poruka('Paket nismo mogli aktivirati zbog greške veze. Osvježite stranicu; ako ste platili, javite nam se na kontakt email.');
+        poruka('Paket nismo mogli aktivirati zbog greške veze. Osvježi stranicu; ako je plaćeno, javi nam se na kontakt email.');
       }
     })();
 

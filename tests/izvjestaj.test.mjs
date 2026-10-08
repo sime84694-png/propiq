@@ -343,7 +343,7 @@ test('klijent i poslužitelj dijele validaciju polja; index.html ne duplicira pr
     assert.ok(html.includes(`id="${id}"`), id);
   }
   assert.match(html, /<details class="vise-detalja"[\s\S]*kp_kat[\s\S]*kp_godina[\s\S]*kp_lift[\s\S]*kp_parking[\s\S]*<\/details>/);
-  assert.ok(html.includes('Ključni podaci (neobavezno — ako ih oglas nema ili ih želite ispraviti)'));
+  assert.ok(html.includes('Ključni podaci (neobavezno — ako ih oglas nema ili ih želiš ispraviti)'));
   assert.ok(!/id="oglas_tekst"[^>]*required/.test(html), 'tekst oglasa više nije obavezan');
 });
 
