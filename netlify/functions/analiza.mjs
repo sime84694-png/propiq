@@ -226,7 +226,7 @@ async function procitajClaudeStream(body) {
   return { tekst, stopReason, izlazniTokeni };
 }
 
-export default async (req) => {
+export default async (req, context) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: CORS });
   }
@@ -582,7 +582,9 @@ export default async (req) => {
 
   const body = new ReadableStream({
     start(ctrl) {
-      prenesi(ctrl); // ne čeka se: Response se vraća odmah, a događaji teku kako stižu
+      // Response se vraća odmah, a događaji teku kako stižu; waitUntil javi Netlifyju da posao traje i nakon povrata.
+      const posao = prenesi(ctrl);
+      if (context && typeof context.waitUntil === 'function') context.waitUntil(posao);
     },
     cancel() {
       preglednikOtisao = true;
