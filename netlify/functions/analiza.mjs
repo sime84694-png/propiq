@@ -6,6 +6,7 @@
 //                                         — uspješan kraj; limit i statistika su tada zapisani
 //   data: {"greska":"..."}                — neuspjeh usred analize; limit se ne troši
 //   data: {"faza":"procjena"|"analiza"}   — napredak: koji je poziv u tijeku (bez postotaka)
+//   : otkucaj                            — SSE komentar svakih 5 s da veza ne ostane bez prometa
 // Dva sekvencijalna poziva (anti-"anchoring"), oba unutar istih 55 s:
 //   1) slijepa procjena fer vrijednosti i najma — oglas BEZ ikakvih cijena (netlify/lib/redakcija.mjs);
 //   2) analiza s punim tekstom i cijenom; rezultat poziva 1 dobiva kao FIKSAN podatak, a fer vrijednost
@@ -482,6 +483,11 @@ export default async (req) => {
     const posalji = (dogadjaj) => {
       if (!preglednikOtisao) ctrl.enqueue(encoder.encode(`data: ${JSON.stringify(dogadjaj)}\n\n`));
     };
+    // Netlify prekida stream bez prometa ~20 s (izmjereno na previewu; poziv 2 traje ~20 s bez ijednog
+    // bajta). SSE komentar svakih 5 s održava vezu; klijent ga preskače (ne počinje s "data:").
+    const otkucaj = setInterval(() => {
+      if (!preglednikOtisao) { try { ctrl.enqueue(encoder.encode(': otkucaj\n\n')); } catch {} }
+    }, 5000);
     try {
       posalji({ faza: 'procjena' });
       // Svaki poziv ima najviše dva pokušaja: ako JSON ne prođe validaciju (odrezan, krivi tipovi,
@@ -556,6 +562,7 @@ export default async (req) => {
       const sada = Date.now();
       console.log(`Trajanje poziva: procjena ${trajanja.procjena ?? '-'} ms, analiza ${trajanja.analizaOd ? sada - trajanja.analizaOd : '-'} ms, ukupno ${sada - pocetak} ms; izlazni tokeni: procjena ${trajanja.procjenaTokeni ?? '-'}, analiza ${trajanja.analizaTokeni ?? '-'}.`);
       clearTimeout(timeout);
+      clearInterval(otkucaj);
       try { ctrl.close(); } catch {}
     }
   }

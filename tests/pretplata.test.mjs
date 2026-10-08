@@ -930,3 +930,21 @@ test('cijena samo u tekstu oglasa: poziv 2 ne dobiva brojke razlike i traži opi
   const poruka = pozivi.find((p) => p.alat === 'izvjestaj').poruke;
   assert.match(poruka, /Razlika cijene i raspona nije izračunata/);
 });
+
+// ── heartbeat: Netlify prekida stream bez prometa ~20 s, a poziv 2 šuti toliko ──
+test('dok poziv 2 traje, stream šalje SSE komentar (otkucaj) i rezultat ostaje ispravan', async () => {
+  mockFetch({});
+  const prije = claudeOdgovor;
+  claudeOdgovor = async () => { await new Promise((r) => setTimeout(r, 5300)); return claudeStream(izvjestajJson()); };
+  try {
+    const res = await handler(new Request('http://localhost/.netlify/functions/analiza', {
+      method: 'POST', body: JSON.stringify({ email: 'otkucaj@primjer.hr', oglas_tekst: 'Stan Trešnjevka 58 m2' }),
+    }));
+    const tekst = await res.text();
+    assert.ok(tekst.includes(': otkucaj\n\n'), 'nema heartbeata u streamu');
+    const dogadjaji = tekst.split('\n\n').filter((d) => d.startsWith('data:')).map((d) => JSON.parse(d.slice(5)));
+    assert.ok(dogadjaji.some((d) => d.kraj), 'nema događaja kraj');
+  } finally {
+    claudeOdgovor = prije;
+  }
+});
