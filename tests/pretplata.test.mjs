@@ -337,7 +337,7 @@ test('stream: rezultat { analiza, izracuni } stiže na kraju, limit i statistika
   claudeOdgovor = () => claudeStream(izvjestajJson());
   const r = await pozovi({ email: 'stream@primjer.hr', oglas_tekst: 'X', request_id: 'req-strm-0001' });
   assert.equal(r.status, 200);
-  assert.deepEqual(r.dogadjaji.map((d) => d.faza || (d.kraj && 'kraj')), ['procjena', 'analiza', 'kraj'],
+  assert.deepEqual(r.dogadjaji.map((d) => d.faza || (d.kraj && 'kraj')), ['procjena', 'analiza', 'gotovo', 'zapisano', 'saljem', 'kraj'],
     'faze napretka stižu redom, s rezultatom tek na kraju');
   assert.deepEqual(Object.keys(r.body.rezultat).sort(), ['analiza', 'izracuni', 'referenca', 'uneseno']);
   assert.equal(r.body.rezultat.analiza.naslov, IZVJESTAJ.naslov);

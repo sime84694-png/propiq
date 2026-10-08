@@ -537,6 +537,8 @@ export default async (req) => {
         trajanja.analizaOd = Date.now();
         const v = await izvrsi('analiza', null, () => pozivAnalize(procjena.procjena), (tekst) => parsirajIValidiraj(tekst, podaci, procjena.procjena), MIN_ZA_ANALIZU_MS);
         if (v) rezultat = { analiza: v.analiza, izracuni: izracunaj(v.analiza), uneseno: podaci, referenca: referencaZaKlijenta(referenca) };
+        console.log(`[dijagnostika] gotovo: poziv 2 završen za ${Date.now() - pocetak} ms, rezultat ${rezultat ? 'da' : 'ne'}`);
+        posalji({ faza: 'gotovo' });
       }
       if (!rezultat) {
         posalji({ greska: 'Analiza nije uspjela složiti izvještaj. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
@@ -548,7 +550,18 @@ export default async (req) => {
       } catch (err) {
         console.error('Bilježenje uspješne analize nije uspjelo:', err);
       }
-      posalji({ kraj: true, rezultat });
+      console.log(`[dijagnostika] zapisano: ${Date.now() - pocetak} ms`);
+      posalji({ faza: 'zapisano' });
+      const krajJson = JSON.stringify({ kraj: true, rezultat });
+      const bajtova = Buffer.byteLength(krajJson, 'utf8');
+      console.log(`[dijagnostika] saljem kraj: ${bajtova} B, ${Date.now() - pocetak} ms, preglednikOtisao=${preglednikOtisao}`);
+      posalji({ faza: 'saljem', bajtova });
+      try {
+        if (!preglednikOtisao) ctrl.enqueue(encoder.encode(`data: ${krajJson}\n\n`));
+        console.log(`[dijagnostika] kraj enqueue-an: ${Date.now() - pocetak} ms`);
+      } catch (err) {
+        console.error('[dijagnostika] enqueue kraj nije uspio:', err);
+      }
     } catch (err) {
       if (preglednikOtisao) return; // preglednik je zatvorio vezu (npr. F5) — ništa se ne broji
       const isteklo = (err && err.name === 'AbortError') || err instanceof VrijemeIsteklo;
@@ -563,7 +576,7 @@ export default async (req) => {
       console.log(`Trajanje poziva: procjena ${trajanja.procjena ?? '-'} ms, analiza ${trajanja.analizaOd ? sada - trajanja.analizaOd : '-'} ms, ukupno ${sada - pocetak} ms; izlazni tokeni: procjena ${trajanja.procjenaTokeni ?? '-'}, analiza ${trajanja.analizaTokeni ?? '-'}.`);
       clearTimeout(timeout);
       clearInterval(otkucaj);
-      try { ctrl.close(); } catch {}
+      try { ctrl.close(); console.log(`[dijagnostika] ctrl.close() ok: ${Date.now() - pocetak} ms`); } catch (err) { console.error('[dijagnostika] ctrl.close() nije uspio:', err); }
     }
   }
 
