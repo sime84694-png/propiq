@@ -64,7 +64,6 @@ function pokriveno(host, izvori) {
 
 test('CSP dopušta sve vanjske izvore koje stranice stvarno koriste', () => {
   const zahtjevi = [
-    ['script-src', 'cdn.jsdelivr.net'],
     ['script-src', 'static.cloudflareinsights.com'],
     ['script-src', 'www.googletagmanager.com'],
     ['script-src', 'connect.facebook.net'],
@@ -99,24 +98,15 @@ test('svaki <script src> i fetch() na stranicama ima domenu koju CSP dopušta', 
 });
 
 // ── K3 + K4 ──
-test('rezultat.html: skripte s CDN-a imaju fiksnu verziju, integrity i crossorigin', () => {
+// Izvještaj se gradi iz strukturiranih podataka kroz textContent, pa nepouzdan tekst modela
+// ne može umetnuti HTML. Zato rezultat.html ne treba (i ne smije učitavati) vanjske skripte.
+test('rezultat.html: izvještaj se gradi kroz textContent, bez innerHTML i bez vanjskih skripti', () => {
   const html = fs.readFileSync(javno('rezultat.html'), 'utf8');
-  const cdn = [...html.matchAll(/<script[^>]*src="(https:\/\/cdn\.jsdelivr\.net[^"]+)"[^>]*>/g)];
-  assert.ok(cdn.length >= 2, 'marked i DOMPurify');
-  for (const [tag, url] of cdn) {
-    assert.match(url, /@\d+\.\d+\.\d+\//, `fiksna verzija: ${url}`);
-    assert.match(tag, /integrity="sha384-[A-Za-z0-9+/=]+"/, `integrity: ${url}`);
-    assert.match(tag, /crossorigin="anonymous"/, `crossorigin: ${url}`);
-  }
-  assert.ok(cdn.some(([, u]) => /\/marked@/.test(u)) && cdn.some(([, u]) => /\/dompurify@/.test(u)));
-});
-
-test('rezultat.html: izlaz iz markeda nikad ne ide u innerHTML bez DOMPurify', () => {
-  const html = fs.readFileSync(javno('rezultat.html'), 'utf8');
-  assert.ok(!/innerHTML\s*=\s*marked\.parse/.test(html));
-  assert.equal([...html.matchAll(/marked\.parse\(/g)].length, 1, 'marked.parse samo na jednom mjestu');
-  assert.match(html, /DOMPurify\.sanitize\(marked\.parse\(/);
-  assert.match(html, /if \(!window\.DOMPurify\) return ''/, 'bez DOMPurify ne prikazuje se ništa');
+  const skripta = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+  assert.ok(!/\binnerHTML\b|\binsertAdjacentHTML\b|\bouterHTML\b|document\.write/.test(skripta));
+  assert.ok(!/marked|DOMPurify/.test(skripta));
+  const vanjske = [...html.matchAll(/<script[^>]+src=["'](https?:\/\/[^"']+)["']/g)].map((m) => new URL(m[1]).hostname);
+  assert.deepEqual(vanjske, ['static.cloudflareinsights.com'], 'samo Cloudflare Web Analytics');
 });
 
 // ── V2 (forma) ──

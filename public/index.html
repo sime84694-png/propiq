@@ -7,6 +7,7 @@
   <!-- Pristanak + mjerenje: MORA biti prije svih tagova (Consent Mode v2 default "denied") -->
   <script src="assets/js/tracking-config.js"></script>
   <script src="assets/js/consent.js"></script>
+  <script src="assets/js/izracuni.js"></script>
   <title>PropIQ — AI Investicijski Savjetnik za Nekretnine</title>
 
   <!-- SEO -->
@@ -1433,6 +1434,30 @@
 
     .form-group textarea { resize: vertical; min-height: 110px; }
 
+    /* Ključni podaci (neobavezno) */
+    .kljucni-podaci { margin: 4px 0 14px; padding: 16px; border: 1px solid var(--cream-08); border-radius: 14px; background: var(--cream-04); }
+    .kljucni-podaci h4 { font-size: 0.78rem; font-weight: 700; line-height: 1.5; color: var(--cream-70); margin-bottom: 14px; }
+    .kljucni-podaci .form-group { margin-bottom: 12px; }
+    .kljucni-podaci .form-group input, .kljucni-podaci .form-group select { padding: 11px 14px; }
+    .form-group select {
+      width: 100%; background: var(--cream-04); border: 1.5px solid var(--cream-08); border-radius: 10px;
+      padding: 13px 16px; color: var(--cream); font-size: 0.93rem; font-family: inherit; outline: none;
+    }
+    .form-group select:focus { border-color: var(--cream-40); background: var(--cream-08); }
+    .form-group select option { background: #111; color: var(--cream); }
+    .vise-detalja { margin-top: 2px; }
+    .vise-detalja summary {
+      cursor: pointer; list-style: none; font-size: 0.8rem; font-weight: 700; color: var(--cream-40);
+      padding: 6px 0; user-select: none;
+    }
+    .vise-detalja summary::-webkit-details-marker { display: none; }
+    .vise-detalja summary::before { content: '+ '; }
+    .vise-detalja[open] summary::before { content: '− '; }
+    .vise-detalja summary:hover { color: var(--cream); }
+    .vise-detalja .form-row { margin-top: 10px; }
+    .form-greska { display: none; color: #e0705a; font-size: 0.85rem; margin: 4px 0 8px; }
+    .form-greska.visible { display: block; }
+
     .form-submit {
       width: 100%;
       margin-top: 8px;
@@ -1980,8 +2005,55 @@
         </div>
         <div class="form-group">
           <label for="oglas_tekst">Tekst oglasa s Njuškala</label>
-          <textarea id="oglas_tekst" name="oglas_tekst" placeholder="Kopirajte naslov, cijenu, opis i karakteristike nekretnine..." maxlength="15000" required></textarea>
+          <textarea id="oglas_tekst" name="oglas_tekst" placeholder="Kopirajte naslov, cijenu, opis i karakteristike nekretnine..." maxlength="15000"></textarea>
         </div>
+        <fieldset class="kljucni-podaci" style="min-width:0">
+          <h4>Ključni podaci (neobavezno — ako ih oglas nema ili ih želite ispraviti)</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="kp_cijena">Cijena (€)</label>
+              <input type="text" id="kp_cijena" name="cijena_eur" inputmode="numeric" placeholder="npr. 185.000" maxlength="15" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="kp_povrsina">Stambena površina (m²)</label>
+              <input type="text" id="kp_povrsina" name="povrsina_m2" inputmode="decimal" placeholder="npr. 58" maxlength="8" autocomplete="off">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="kp_grad">Grad</label>
+              <input type="text" id="kp_grad" name="grad" placeholder="npr. Zagreb" maxlength="80">
+            </div>
+            <div class="form-group">
+              <label for="kp_kvart">Kvart</label>
+              <input type="text" id="kp_kvart" name="kvart" placeholder="npr. Trešnjevka" maxlength="80">
+            </div>
+          </div>
+          <details class="vise-detalja" id="kp_vise">
+            <summary>Više detalja</summary>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="kp_kat">Kat</label>
+                <input type="text" id="kp_kat" name="kat" inputmode="numeric" placeholder="0 = prizemlje" maxlength="4" autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label for="kp_godina">Godina gradnje</label>
+                <input type="text" id="kp_godina" name="godina_gradnje" inputmode="numeric" placeholder="npr. 1985" maxlength="4" autocomplete="off">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="kp_lift">Lift</label>
+                <select id="kp_lift" name="lift"><option value="">—</option><option value="da">Da</option><option value="ne">Ne</option></select>
+              </div>
+              <div class="form-group">
+                <label for="kp_parking">Parking</label>
+                <select id="kp_parking" name="parking"><option value="">—</option><option value="da">Da</option><option value="ne">Ne</option><option value="javni">Javni</option></select>
+              </div>
+            </div>
+          </details>
+        </fieldset>
+        <div class="form-greska" id="form-greska" role="alert"></div>
         <button type="submit" class="form-submit" id="form-submit-btn">
           <div class="spinner"></div>
           <span class="btn-text">Pokreni analizu</span>
@@ -2190,6 +2262,8 @@
 
     function resetForm() {
       document.getElementById('zahtjev-form').reset();
+      document.getElementById('kp_vise').open = false;
+      document.getElementById('form-greska').classList.remove('visible');
       const btn = document.getElementById('form-submit-btn');
       btn.disabled = false;
       btn.classList.remove('loading');
@@ -2236,6 +2310,21 @@
 
     document.getElementById('zahtjev-form').addEventListener('submit', async function(e) {
       e.preventDefault();
+      const greskaEl = document.getElementById('form-greska');
+      greskaEl.classList.remove('visible');
+
+      // Neobavezna strukturirana polja: ista validacija kao na poslužitelju (assets/js/izracuni.js).
+      const polje = (id) => document.getElementById(id).value;
+      const pv = PropIQIzracuni.validirajPodatke({
+        cijena_eur: polje('kp_cijena'), povrsina_m2: polje('kp_povrsina'), grad: polje('kp_grad'), kvart: polje('kp_kvart'),
+        kat: polje('kp_kat'), godina_gradnje: polje('kp_godina'), lift: polje('kp_lift'), parking: polje('kp_parking'),
+      });
+      const prikaziGresku = (poruka) => { greskaEl.textContent = poruka; greskaEl.classList.add('visible'); greskaEl.scrollIntoView({ block: 'nearest' }); };
+      if (!pv.ok) return prikaziGresku(pv.razlog);
+      if (!PropIQIzracuni.mozeAnaliza(polje('oglas_tekst'), pv.podaci)) {
+        return prikaziGresku('Zalijepite tekst oglasa ili upišite barem cijenu, površinu i grad.');
+      }
+
       const btn = document.getElementById('form-submit-btn');
       btn.disabled = true;
       btn.classList.add('loading');
@@ -2245,6 +2334,7 @@
         email:       document.getElementById('email').value,
         agencija:    document.getElementById('agencija').value,
         oglas_tekst: document.getElementById('oglas_tekst').value,
+        podaci:      pv.podaci,
         plan:        new URLSearchParams(window.location.search).get('plan') || '',
         session_id:  new URLSearchParams(window.location.search).get('session_id') || '',
         source:      SOURCE,
