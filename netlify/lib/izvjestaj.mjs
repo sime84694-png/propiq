@@ -109,9 +109,8 @@ export const TOOL = {
         },
       },
       pregovaranje: {
-        type: 'object', additionalProperties: false, required: ['ciljana_ponuda_eur', 'aduti', 'pitanja_prodavatelju'],
+        type: 'object', additionalProperties: false, required: ['aduti', 'pitanja_prodavatelju'],
         properties: {
-          ciljana_ponuda_eur: brojIliNull,
           aduti: popis(3, 'Do 3 argumenta, svaki jedna kratka rečenica (do ~100 znakova).'),
           pitanja_prodavatelju: popis(4, 'Do 4 pitanja, svako kratko (do ~100 znakova).'),
         },
@@ -175,15 +174,23 @@ export function cinjeniceSazetka(cijena, fer) {
   return { polozaj: 'unutar', razlika_eur: 0, posto: 0 };
 }
 
+function ponudaRedak(cilj) {
+  if (!cilj) return '';
+  return cilj.napomena
+    ? `- Ciljana ponuda: nema pregovora, ${cilj.napomena} (tražena cijena ${eurHr(cilj.ponuda_eur)} €); ne predlaži nižu ponudu.\n`
+    : `- Ciljana ponuda (izračunao sustav): ${eurHr(cilj.ponuda_eur)} €; smiješ je navesti u sažetku i adutima, ali samo ovaj iznos.\n`;
+}
+
 // Blok za poruku modela: gotovi brojevi za sažetak. cijenaZnana: cijena je potvrđena kodom (upisana u formu);
 // inače je model tek izvlači iz oglasa, pa brojke razlike ne dobiva i ne smije ih navoditi.
 export function tekstCinjenicaSazetka(cijena, fer, cijenaZnana) {
   const pravilo = 'Sažetak: ne računaj postotke ni razlike u eurima; navedi isključivo brojke iz ovog bloka (prepiši ih točno) i nikakve druge postotke ni iznose.';
   const c = cijenaZnana ? cinjeniceSazetka(cijena, fer) : null;
   if (!c) return `Gotovi brojevi za sažetak:\n- Razlika cijene i raspona nije izračunata: u sažetku NE navodi postotke ni razlike u eurima prema rasponu, samo opisno (ispod/unutar/iznad raspona).\n${pravilo}`;
+  const cilj = izracuni.izracunajPonudu(cijena, fer.min_eur, fer.max_eur);
   const razlika = c.polozaj === 'unutar' ? 'cijena je unutar raspona, nema razlike (ne navodi postotak ni razliku u eurima)'
     : `${eurHr(c.razlika_eur)} € (${postoHr(c.posto)} % ${c.polozaj === 'iznad' ? 'iznad gornje' : 'ispod donje'} granice raspona)`;
-  return `Gotovi brojevi za sažetak (izračunao sustav):\n- Tražena cijena ${eurHr(cijena)} €, fer raspon ${eurHr(fer.min_eur)}–${eurHr(fer.max_eur)} €.\n- Položaj: ${c.polozaj} raspona.\n- Razlika: ${razlika}.\n${pravilo}`;
+  return `Gotovi brojevi za sažetak (izračunao sustav):\n- Tražena cijena ${eurHr(cijena)} €, fer raspon ${eurHr(fer.min_eur)}–${eurHr(fer.max_eur)} €.\n- Položaj: ${c.polozaj} raspona.\n- Razlika: ${razlika}.\n${ponudaRedak(cilj)}${pravilo}`;
 }
 
 const BROJ_U_TEKSTU = String.raw`\d{1,3}(?:[.  ]\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?`;
@@ -200,7 +207,8 @@ function brojIzTeksta(t) {
 // cijena, granica raspona ili izračunata razlika. Vraća razlog odbijanja ili null.
 export function provjeriSazetak(sazetak, cijena, fer) {
   const c = cinjeniceSazetka(cijena, fer);
-  const dopustenoEur = [cijena, fer && fer.min_eur, fer && fer.max_eur, c && c.razlika_eur > 0 ? c.razlika_eur : null].filter((v) => typeof v === 'number');
+  const cilj = fer ? izracuni.izracunajPonudu(cijena, fer.min_eur, fer.max_eur) : null;
+  const dopustenoEur = [cijena, fer && fer.min_eur, fer && fer.max_eur, c && c.razlika_eur > 0 ? c.razlika_eur : null, cilj && cilj.ponuda_eur].filter((v) => typeof v === 'number');
   for (const m of String(sazetak).matchAll(RE_BROJ_JEDINICA)) {
     const x = brojIzTeksta(m[1]) * (m[2] ? 1000 : 1);
     if (!Number.isFinite(x)) continue;
@@ -350,7 +358,6 @@ export function validirajAnalizu(ulaz) {
         return { naslov: r.naslov.trim(), opis: r.opis.trim(), razina: r.razina };
       }),
       pregovaranje: {
-        ciljana_ponuda_eur: broj(u.pregovaranje.ciljana_ponuda_eur, 'pregovaranje.ciljana_ponuda_eur', { strogoPozitivan: true, max: 1e9 }),
         aduti: popisStr(u.pregovaranje.aduti, 'pregovaranje.aduti', 5),
         pitanja_prodavatelju: popisStr(u.pregovaranje.pitanja_prodavatelju, 'pregovaranje.pitanja_prodavatelju', 6),
       },

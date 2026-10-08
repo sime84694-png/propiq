@@ -976,17 +976,14 @@
       const pn = a.pregovaranje;
       n.appendChild(el('div', 'metrika-label', 'Ciljana ponuda'));
       const pRed = el('div', 'ponuda-red');
-      pRed.appendChild(vrijednost(eur(pn.ciljana_ponuda_eur), 'ponuda', 'procjena'));
+      pRed.appendChild(vrijednost(jeBroj(iz.ciljana_ponuda_eur) ? eur(iz.ciljana_ponuda_eur) : null, 'ponuda', 'procjena', razlozi.usteda));
       if (jeBroj(iz.usteda_eur)) {
         pRed.appendChild(el('span', 'usteda', `ušteda ${eur(iz.usteda_eur)} (${posto(iz.usteda_posto)})`));
-      } else if (jeBroj(pn.ciljana_ponuda_eur) && nemaCijene) {
-        const u = el('span');
-        u.appendChild(document.createTextNode('ušteda: '));
-        u.appendChild(vrijednost(null, null, 'racun', razlozi.usteda));
-        pRed.appendChild(u);
+      } else if (iz.ciljana_ponuda_napomena) {
+        pRed.appendChild(el('span', 'usteda', iz.ciljana_ponuda_napomena));
       }
       n.appendChild(pRed);
-      if (nemaCijene && jeBroj(rucnaCijena) && jeBroj(iz.usteda_eur)) n.appendChild(rucnaNapomena());
+      if (nemaCijene && jeBroj(rucnaCijena) && jeBroj(iz.ciljana_ponuda_eur)) n.appendChild(rucnaNapomena());
       if (pn.aduti.length) { n.appendChild(el('h3', null, 'Vaši aduti')); n.appendChild(lista(pn.aduti)); }
       if (pn.pitanja_prodavatelju.length) { n.appendChild(el('h3', null, 'Pitanja za prodavatelja')); n.appendChild(lista(pn.pitanja_prodavatelju)); }
       frag.appendChild(n);

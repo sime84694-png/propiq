@@ -22,6 +22,13 @@
     ZAOKRUZENJE_EUR: 5000,        // ukupni € zaokružen na ovaj korak
   };
 
+  // ── ciljana ponuda: računa je kod iz tražene cijene i fer raspona, model je ne vraća ──
+  const PONUDA = {
+    UDIO_RASPONA: 0.25,           // cijena unutar raspona: donja granica + ovaj udio širine raspona (ne iznad tražene)
+    ZAOKRUZENJE_EUR: 5000,        // ponuda zaokružena na ovaj korak
+    NAPOMENA_ISPOD: 'cijena je već ispod fer raspona',
+  };
+
   const pozitivan = (v) => typeof v === 'number' && Number.isFinite(v) && v > 0;
   const zaokruzi = (v, d = 0) => (v === null ? null : Math.round(v * 10 ** d) / 10 ** d);
 
@@ -176,6 +183,19 @@
     };
   }
 
+  // Ciljana ponuda iz tražene cijene i fer raspona. Vraća { ponuda_eur, napomena } ili null (nema cijene ili raspona).
+  //   cijena > max → sredina raspona; min ≤ cijena ≤ max → min + UDIO_RASPONA širine (najviše do cijene);
+  //   cijena < min → nema pregovora: ponuda je tražena cijena uz napomenu.
+  function izracunajPonudu(cijena, min, max) {
+    if (!pozitivan(cijena) || !pozitivan(min) || !pozitivan(max) || min > max) return null;
+    if (cijena < min) return { ponuda_eur: cijena, napomena: PONUDA.NAPOMENA_ISPOD };
+    const korak = PONUDA.ZAOKRUZENJE_EUR;
+    const sirovo = cijena > max ? (min + max) / 2 : Math.min(min + PONUDA.UDIO_RASPONA * (max - min), cijena);
+    let ponuda = Math.round(sirovo / korak) * korak;
+    if (ponuda > cijena) ponuda -= korak; // zaokruživanje nikad ne smije prijeći traženu cijenu
+    return { ponuda_eur: ponuda, napomena: null };
+  }
+
   const cijeliHr = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   const predznak = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n);
 
@@ -203,7 +223,7 @@
     const najam = pozitivan(a.najam.dugorocni_mj_eur);
     const turisticki = pozitivan(a.najam.turisticki_godisnje_eur);
     const fer = pozitivan(a.fer_vrijednost.min_eur) && pozitivan(a.fer_vrijednost.max_eur);
-    const ponuda = pozitivan(a.pregovaranje.ciljana_ponuda_eur);
+    const ponuda = izracunajPonudu(a.cijena_eur, a.fer_vrijednost.min_eur, a.fer_vrijednost.max_eur) !== null;
     const spoji = (nedostaje) => (nedostaje.length ? `nedostaje ${nedostaje.join(' i ')}` : null);
     const cijenaM2 = spoji([!cijena && 'cijena', !m2 && 'površina'].filter(Boolean));
     const prinos = !cijena ? 'nedostaje cijena' : !najam ? 'nema procjene najma' : null;
@@ -215,7 +235,7 @@
       neto_prinos: prinos,
       godine_povrata: prinos,
       bruto_prinos_turisticki: !cijena ? 'nedostaje cijena' : !turisticki ? 'nema procjene turističkog najma' : null,
-      usteda: !cijena ? 'nedostaje cijena' : !ponuda ? 'nema ciljane ponude' : null,
+      usteda: !cijena ? 'nedostaje cijena' : !ponuda ? 'nema procjene fer vrijednosti' : null,
       traka: !cijena ? 'nedostaje cijena' : !fer ? 'nema procjene fer vrijednosti' : null,
     };
   }
@@ -228,7 +248,8 @@
     const izFer = a.fer_vrijednost.izracun || null;
     const fMin = a.fer_vrijednost.min_eur;
     const fMax = a.fer_vrijednost.max_eur;
-    const ponuda = pozitivan(a.pregovaranje.ciljana_ponuda_eur) ? a.pregovaranje.ciljana_ponuda_eur : null;
+    const cilj = izracunajPonudu(cijena, fMin, fMax);
+    const ponuda = cilj ? cilj.ponuda_eur : null;
 
     const najamGod = dug === null ? null : dug * 12;
     const netoGod = najamGod === null ? null : najamGod * (1 - TROSKOVI_NAJMA) * (1 - POREZ_NA_NAJAM);
@@ -268,6 +289,8 @@
       neto_prinos: cijena !== null && netoGod !== null ? zaokruzi((netoGod / cijena) * 100, 1) : null,
       godine_povrata: cijena !== null && netoGod !== null ? zaokruzi(cijena / netoGod, 1) : null,
       bruto_prinos_turisticki: cijena !== null && tur !== null ? zaokruzi((tur / cijena) * 100, 1) : null,
+      ciljana_ponuda_eur: ponuda,
+      ciljana_ponuda_napomena: cilj ? cilj.napomena : null,
       usteda_eur: zaokruzi(usteda),
       usteda_posto: usteda !== null ? zaokruzi((usteda / cijena) * 100, 1) : null,
       traka,
@@ -282,7 +305,7 @@
   }
 
   return {
-    TROSKOVI_NAJMA, POREZ_NA_NAJAM, POREZ_NA_PROMET, FER, GRANICE, ocistiKorekcije, izracunajFer, obrazlozenjeFer, MAX_TEKST_POLJA,
+    TROSKOVI_NAJMA, POREZ_NA_NAJAM, POREZ_NA_PROMET, FER, PONUDA, GRANICE, izracunajPonudu, ocistiKorekcije, izracunajFer, obrazlozenjeFer, MAX_TEKST_POLJA,
     izracunaj, razloziIzracuna, parsirajCijenu, parsirajBroj, validirajPodatke, mozeAnaliza, primijeniPodatke,
   };
 });

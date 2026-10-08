@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { odrediReferencu, tekstReference } from '../netlify/lib/trziste.mjs';
-import { TOOL, TOOL_PROCJENA, TOOL_PROCJENA_BEZ_REFERENCE, MAX_OBRAZLOZENJE, skratiObrazlozenje, danasZagreb, godinaRenovacije, vremenskeCinjenice, validirajAnalizu, parsirajIValidirajProcjenu, primijeniPreporuku, preporukaIzRaspona, parsirajIValidiraj, izracunaj, parsirajCijenu, validirajPodatke, mozeAnaliza, primijeniPodatke } from '../netlify/lib/izvjestaj.mjs';
+import { TOOL, TOOL_PROCJENA, TOOL_PROCJENA_BEZ_REFERENCE, MAX_OBRAZLOZENJE, skratiObrazlozenje, danasZagreb, godinaRenovacije, vremenskeCinjenice, validirajAnalizu, provjeriSazetak, tekstCinjenicaSazetka, parsirajIValidirajProcjenu, primijeniPreporuku, preporukaIzRaspona, parsirajIValidiraj, izracunaj, parsirajCijenu, validirajPodatke, mozeAnaliza, primijeniPodatke } from '../netlify/lib/izvjestaj.mjs';
 import zajednicki from '../public/assets/js/izracuni.js';
 
 const osnova = () => ({
@@ -121,8 +121,9 @@ test('izračuni: €/m², fer €/m², porez na promet, prinosi, godine povrata'
   assert.equal(i.neto_prinos, 4.1);                  // 7290 / 180000
   assert.equal(i.godine_povrata, 24.7);              // 180000 / 7290
   assert.equal(i.bruto_prinos_turisticki, 5);        // 9000 / 180000
-  assert.equal(i.usteda_eur, 18000);                 // 180000 − 162000
-  assert.equal(i.usteda_posto, 10);
+  assert.equal(i.ciljana_ponuda_eur, 160000);        // cijena iznad raspona 150–170k → sredina
+  assert.equal(i.usteda_eur, 20000);                 // 180000 − 160000
+  assert.equal(i.usteda_posto, 11.1);
   assert.equal(i.pretpostavke.length, 4);
   assert.match(i.pretpostavke[0], /10 % troškova.*10 % poreza/);
 });
@@ -153,9 +154,60 @@ test('izračuni: nedostajući ulaz daje null, nikad 0 ili NaN', () => {
   assert.ok(!/NaN|Infinity/.test(sve));
 });
 
-test('ušteda se računa samo kad je ciljana ponuda niža od tražene cijene', () => {
-  assert.equal(izr({ pregovaranje: { ciljana_ponuda_eur: 190000, aduti: [], pitanja_prodavatelju: [] } }).usteda_eur, null);
-  assert.equal(izr({ pregovaranje: { ciljana_ponuda_eur: null, aduti: [], pitanja_prodavatelju: [] } }).usteda_eur, null);
+const ponuda = (cijena, min, max) => zajednicki.izracunajPonudu(cijena, min, max);
+
+test('ciljana ponuda: tražena iznad raspona → sredina raspona', () => {
+  assert.deepEqual(ponuda(694896, 400000, 460000), { ponuda_eur: 430000, napomena: null }); // slučaj iz prijave
+  assert.equal(ponuda(500000, 400000, 450000).ponuda_eur, 425000);
+  assert.equal(ponuda(500000, 401000, 460000).ponuda_eur, 430000); // 430.500 → 430.000 (korak 5.000)
+});
+
+test('ciljana ponuda: tražena unutar raspona → donja granica + 25 % širine, ne iznad tražene', () => {
+  assert.equal(ponuda(450000, 400000, 460000).ponuda_eur, 415000);
+  assert.equal(ponuda(460000, 400000, 460000).ponuda_eur, 415000); // na gornjoj granici
+  assert.equal(ponuda(400000, 400000, 460000).ponuda_eur, 400000); // na donjoj granici: nije iznad tražene
+  assert.equal(ponuda(402000, 400000, 460000).ponuda_eur, 400000); // 415k bi bilo iznad tražene; zaokruženo ne prelazi
+  assert.equal(ponuda(404000, 400000, 460000).ponuda_eur, 400000);
+});
+
+test('ciljana ponuda: tražena ispod raspona → nema pregovora, tražena cijena + napomena, bez uštede', () => {
+  assert.deepEqual(ponuda(380000, 400000, 460000), { ponuda_eur: 380000, napomena: 'cijena je već ispod fer raspona' });
+  const i = izr({ cijena_eur: 140000 });
+  assert.equal(i.ciljana_ponuda_eur, 140000);
+  assert.equal(i.ciljana_ponuda_napomena, 'cijena je već ispod fer raspona');
+  assert.equal(i.usteda_eur, null);
+  assert.equal(i.usteda_posto, null);
+});
+
+test('ciljana ponuda: bez cijene ili bez raspona → nema procjene', () => {
+  assert.equal(ponuda(null, 400000, 460000), null);
+  assert.equal(ponuda(500000, null, null), null);
+  const bezRaspona = izr({ fer_vrijednost: { min_eur: null, max_eur: null, pouzdanost: 'niska', obrazlozenje: 'Bez reference.' } });
+  assert.equal(bezRaspona.ciljana_ponuda_eur, null);
+  assert.equal(bezRaspona.usteda_eur, null);
+  assert.equal(izr({ cijena_eur: null }).ciljana_ponuda_eur, null);
+});
+
+test('izračun: slučaj iz prijave (694.896 €, raspon 400–460k) → 430.000 €, ušteda iz istog izračuna', () => {
+  const i = izr({ cijena_eur: 694896, fer_vrijednost: { min_eur: 400000, max_eur: 460000, pouzdanost: 'srednja', obrazlozenje: 'x' } });
+  assert.equal(i.ciljana_ponuda_eur, 430000);
+  assert.equal(i.usteda_eur, 264896);
+  assert.equal(i.usteda_posto, 38.1);
+});
+
+test('model više ne vraća ciljanu ponudu: shema je nema, validacija je ignorira', () => {
+  assert.ok(!('ciljana_ponuda_eur' in TOOL.input_schema.properties.pregovaranje.properties));
+  assert.ok(!TOOL.input_schema.properties.pregovaranje.required.includes('ciljana_ponuda_eur'));
+  const a = valjan({ pregovaranje: { ciljana_ponuda_eur: 1, aduti: [], pitanja_prodavatelju: [] } }).analiza;
+  assert.ok(!('ciljana_ponuda_eur' in a.pregovaranje));
+});
+
+test('sažetak smije navesti ciljanu ponudu iz koda, ne neku drugu', () => {
+  const fer = { min_eur: 400000, max_eur: 460000 };
+  assert.equal(provjeriSazetak('Predložena ponuda je 430.000 €.', 694896, fer), null);
+  assert.match(provjeriSazetak('Predložena ponuda je 380.000 €.', 694896, fer), /iznos/);
+  assert.match(tekstCinjenicaSazetka(694896, fer, true), /Ciljana ponuda \(izračunao sustav\): 430\.000 €/);
+  assert.match(tekstCinjenicaSazetka(380000, fer, true), /nema pregovora, cijena je već ispod fer raspona/);
 });
 
 test('traka: položaj tražene cijene u odnosu na fer raspon', () => {
@@ -217,7 +269,7 @@ test('preračun s upisanom cijenom jednak je izračunu poslužitelja za istu cij
   assert.equal(klijent.cijena_po_m2, 3000);
   assert.equal(klijent.neto_prinos, 4.1);
   assert.equal(klijent.porez_na_promet, 5400);
-  assert.equal(klijent.usteda_eur, 18000);
+  assert.equal(klijent.usteda_eur, 20000);
   assert.equal(klijent.traka.polozaj, 'iznad');
 });
 

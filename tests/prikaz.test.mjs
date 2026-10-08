@@ -144,7 +144,7 @@ test('ručni unos cijene: polje + gumb u zaglavlju, preračun na klijentu, ocjen
   assert.ok(/4,1\s?%/.test(t), 'neto prinos');
   assert.ok(/24,7\s?god/.test(t), 'godine povrata');
   assert.ok(/5[.\s ]?400\s?€/.test(t), 'porez 3 %');
-  assert.ok(/ušteda 18[.\s ]?000/.test(t), 'ušteda prema ciljanoj ponudi');
+  assert.ok(/ušteda 20[.\s ]?000/.test(t), 'ušteda prema ciljanoj ponudi');
   assert.ok(nadji(zadnjiPrikaz, (n) => n.className === 'znacka nedovoljno').length === 1, 'ocjena se ne izmišlja');
   assert.ok(/ponovno pokrenite analizu s cijenom/.test(t));
   assert.ok((t.match(/na temelju cijene koju ste upisali/gi) || []).length >= 3);
@@ -156,7 +156,7 @@ test('ručni unos cijene: polje + gumb u zaglavlju, preračun na klijentu, ocjen
 });
 
 test('preračun bez ciljane ponude: ušteda se ne prikazuje', () => {
-  const a = validirajAnalizu({ ...puno, cijena_eur: null, pregovaranje: { ciljana_ponuda_eur: null, aduti: [], pitanja_prodavatelju: [] } }).analiza;
+  const a = validirajAnalizu({ ...puno, cijena_eur: null, fer_vrijednost: { min_eur: null, max_eur: null, pouzdanost: 'niska', obrazlozenje: 'Bez reference.' } }).analiza;
   const c = ctx.izgradi(a, izracunaj(a));
   nadji(c, (n) => n.tag === 'input')[0].value = '180000';
   nadji(c, (n) => n.tag === 'button')[0].sluSatelji.click();

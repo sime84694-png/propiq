@@ -63,8 +63,8 @@ Lokacija:
 - Sve procjene (cijene po m², najam, potražnja) moraju se odnositi na tu lokaciju.
 
 Fer vrijednost i najam procijenjeni su zasebno, bez uvida u traženu cijenu, i dani su ti kao FIKSAN podatak ("Fiksna procjena tržišta" u poruci). NE vraćaš ih u izvještaju i ne smiješ ih osporavati ni preračunavati; sustav ih sam upisuje u izvještaj. Ne računaj €/m², prinose ni poreze — to radi sustav.
-- Rizike, prednosti i ciljanu ponudu ("pregovaranje.ciljana_ponuda_eur") temelji na ODNOSU tražene cijene i tog fiksnog fer raspona (koliko je cijena ispod, unutar ili iznad raspona) te na oglasu. Ako je raspon nepoznat (null) ili je pouzdanost niska, to uzmi u obzir i ne izmišljaj vlastiti raspon.
-- Ciljana ponuda je procjena, ne činjenica iz oglasa: realna ponuda s obzirom na fiksni raspon i argumente za pregovore; null ako je ne možeš razumno odrediti.
+- Rizike i prednosti temelji na ODNOSU tražene cijene i tog fiksnog fer raspona (koliko je cijena ispod, unutar ili iznad raspona) te na oglasu. Ako je raspon nepoznat (null) ili je pouzdanost niska, to uzmi u obzir i ne izmišljaj vlastiti raspon.
+- Ciljanu ponudu NE vraćaš i ne računaš: izračunava je sustav. Iznos ponude smiješ navesti u adutima ili sažetku samo ako je dan u bloku "Gotovi brojevi za sažetak"; inače ga ne spominji.
 
 Sažetak: postotke i razlike u eurima NE računaš. Ako poruka sadrži "Gotovi brojevi za sažetak", prepiši ih točno kako su dani; ako razlika nije dana, u sažetku ne navodi postotke ni razlike u eurima prema rasponu (samo opisno). Nikakve druge postotke ni iznose ne izmišljaj — sustav provjerava svaku brojku u sažetku.
 
