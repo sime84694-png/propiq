@@ -1338,13 +1338,14 @@
       font-family: 'Helvetica Neue', Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
       outline: 0;
+      display: flex; flex-direction: column;
       scrollbar-width: thin; scrollbar-color: var(--cream-15) transparent;
       animation: modalIn 0.45s var(--m-ease) both;
     }
     @keyframes modalIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
     @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
 
-    .modal button, .modal input, .modal textarea, .modal select { font: inherit; color: inherit; }
+    :where(.modal) :is(button, input, textarea, select) { font: inherit; color: inherit; }
 
     /* Zaglavlje: neprozirna podloga, ostaje na vrhu i ne prekriva sadržaj */
     .modal-bar {
@@ -1393,10 +1394,11 @@
     .fade-late { opacity: 0; animation: modalFade 1.2s ease 1.4s forwards; }
     @keyframes tlocrtDraw { to { stroke-dashoffset: 0; } }
 
-    .modal-forma { padding: 0 var(--m-pad); }
+    .modal > * { flex-shrink: 0; }
+    .modal-forma { flex: 1 0 auto; display: flex; flex-direction: column; padding: 0 var(--m-pad); }
     .modal .fade { opacity: 0; transform: translateY(10px); animation: modalUp 0.6s var(--m-ease) forwards; animation-delay: calc(var(--i, 0) * 70ms + 120ms); }
     @keyframes modalUp { to { opacity: 1; transform: none; } }
-    .modal-forma > form { padding-top: 24px; }
+    .modal-forma > form { flex: 1; display: flex; flex-direction: column; padding-top: 24px; }
 
     /* Polja kao mekane kartice */
     .form-group {
@@ -1467,7 +1469,7 @@
     /* Gumb: pill, krem kao u hero sekciji, zlato samo kao akcent. Na dnu ekrana, s blagim gradijentom */
     .form-akcija {
       position: sticky; bottom: 0; z-index: 4;
-      margin: 0 calc(var(--m-pad) * -1); padding: 28px var(--m-pad) calc(16px + env(safe-area-inset-bottom));
+      margin: auto calc(var(--m-pad) * -1) 0; padding: 28px var(--m-pad) calc(16px + env(safe-area-inset-bottom));
       background: linear-gradient(to top, var(--m-bg) 58%, rgba(10,8,6,0));
     }
     .form-submit {
