@@ -1066,7 +1066,7 @@ test('paket: plaćena sesija daje 5 analiza koje vrijede 90 dana od kupnje', asy
   assert.equal(krediti()[0].preostalo, 0);
   const sesta = await analiza('kupac@primjer.hr');
   assert.equal(sesta.status, 403);
-  assert.match(sesta.body.error, /paket je istekao ili ste iskoristili sve analize/i);
+  assert.match(sesta.body.error, /paket je istekao ili su sve analize iz njega iskorištene/i);
   assert.match(sesta.body.error, /#cijene/, 'poruka nudi planove');
 });
 

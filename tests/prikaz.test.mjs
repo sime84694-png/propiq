@@ -53,7 +53,7 @@ const prikaz = (promjene) => {
 test('puni izvještaj: sve kartice, ocjena, značka, ušteda i footer', () => {
   const t = prikaz({});
   for (const dio of ['Stan, Zagreb', 'Zagreb · Trešnjevka', 'Za pregovore', '5 / 10', 'Fer vrijednost', 'Prinos od najma',
-    'Rizici', 'Porez na promet', 'Strategija pregovaranja', 'ušteda', 'Vaši aduti', 'Pitanja za prodavatelja',
+    'Rizici', 'Porez na promet', 'Strategija pregovaranja', 'ušteda', 'Tvoji aduti', 'Pitanja za prodavatelja',
     'Što oglas ne navodi', 'Energetski razred', 'nije investicijski savjet', 'iznad procijenjenog fer raspona']) {
     assert.ok(t.includes(dio), dio);
   }
@@ -146,8 +146,8 @@ test('ručni unos cijene: polje + gumb u zaglavlju, preračun na klijentu, ocjen
   assert.ok(/5[.\s ]?400\s?€/.test(t), 'porez 3 %');
   assert.ok(/ušteda 20[.\s ]?000/.test(t), 'ušteda prema ciljanoj ponudi');
   assert.ok(nadji(zadnjiPrikaz, (n) => n.className === 'znacka nedovoljno').length === 1, 'ocjena se ne izmišlja');
-  assert.ok(/ponovno pokrenite analizu s cijenom/.test(t));
-  assert.ok((t.match(/na temelju cijene koju ste upisali/gi) || []).length >= 3);
+  assert.ok(/ponovno pokreni analizu s cijenom/.test(t));
+  assert.ok((t.match(/na temelju cijene iz tvog unosa/gi) || []).length >= 3);
   assert.ok(!/nije moguće izračunati — nedostaje cijena/.test(t));
   assert.ok(nadji(zadnjiPrikaz, (n) => n.className.includes('traka-cijena')).length === 1, 'pozicija na traci');
   assert.ok(!/NaN|undefined|null|Infinity/.test(t));
@@ -165,7 +165,7 @@ test('preračun bez ciljane ponude: ušteda se ne prikazuje', () => {
 
 const upisali = (c) => nadji(c, (n) => n.className === 'upisali').length;
 
-test('oznaka "upisali ste" uz svaku vrijednost koju je upisao korisnik', () => {
+test('oznaka "tvoj unos" uz svaku vrijednost koju je upisao korisnik', () => {
   const a = validirajAnalizu(puno).analiza;
   const iz = izracunaj(a);
   assert.equal(upisali(ctx.izgradi(a, iz)), 0, 'bez unesenih podataka nema oznaka');
@@ -174,7 +174,7 @@ test('oznaka "upisali ste" uz svaku vrijednost koju je upisao korisnik', () => {
   const sve = ctx.izgradi(a, iz, undefined, { cijena_eur: 180000, povrsina_m2: 60, grad: 'Zagreb', kvart: 'Trešnjevka', kat: 0, lift: 'ne', parking: 'javni', godina_gradnje: 1985 });
   assert.equal(upisali(sve), 3 + 4, 'cijena, površina, lokacija + kat, lift, parking, godina');
   const t = sve.textContent;
-  for (const dio of ['Kat: prizemlje', 'Lift: ne', 'Parking: javni', 'Godina gradnje: 1985', 'upisali ste']) assert.ok(t.includes(dio), dio);
+  for (const dio of ['Kat: prizemlje', 'Lift: ne', 'Parking: javni', 'Godina gradnje: 1985', 'tvoj unos']) assert.ok(t.includes(dio), dio);
 });
 
 test('s upisanom cijenom polje "Upiši traženu cijenu" se ne prikazuje; bez nje i bez cijene u oglasu ostaje', () => {

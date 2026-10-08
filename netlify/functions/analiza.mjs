@@ -65,7 +65,7 @@ Podaci koje je korisnik upisao u formu (cijena, površina, grad, kvart, kat, lif
 
 Lokacija:
 - Odredi je iz CIJELOG oglasa (naslov, lokacija, opis), ne samo iz naziva naselja. Mnoga hrvatska mjesta i kvartovi dijele isto ime (Blato u Zagrebu i Blato na Korčuli, Brod, Sveti Petar, Gornji i Donji Grad). Ako se spominje grad, županija ili okolni kvartovi, oni određuju koje je mjesto — nikad ne pretpostavljaj poznatije mjesto istog imena.
-- "grad" je grad/općina, "kvart" kvart/naselje; nepoznato je null. Ako lokacija nije jednoznačna, upiši najvjerojatniju i to naglasi u "nedostajuci_podaci" ("pretpostavka lokacije — provjerite").
+- "grad" je grad/općina, "kvart" kvart/naselje; nepoznato je null. Ako lokacija nije jednoznačna, upiši najvjerojatniju i to naglasi u "nedostajuci_podaci" ("pretpostavka lokacije — provjeri").
 - Sve procjene (cijene po m², najam, potražnja) moraju se odnositi na tu lokaciju.
 
 Fer vrijednost i najam procijenjeni su zasebno, bez uvida u traženu cijenu, i dani su ti kao FIKSAN podatak ("Fiksna procjena tržišta" u poruci). NE vraćaš ih u izvještaju i ne smiješ ih osporavati ni preračunavati; sustav ih sam upisuje u izvještaj. Ne računaj €/m², prinose ni poreze — to radi sustav.
@@ -271,11 +271,11 @@ export default async (req, context) => {
     return json(r.status, r.body);
   }
   if (korak !== 'procjena' && korak !== 'analiza') {
-    return json(400, { error: 'Nepoznat korak analize. Osvježite stranicu i pokušajte ponovo.' });
+    return json(400, { error: 'Nepoznat korak analize. Osvježi stranicu i pokušaj ponovo.' });
   }
   const procjenaId = String(data.procjena_id || '');
   if (korak === 'analiza' && !PROCJENA_ID_FORMAT.test(procjenaId)) {
-    return json(404, { error: 'Procjena nije pronađena. Pokrenite analizu ponovo.' });
+    return json(404, { error: 'Procjena nije pronađena. Pokreni analizu ponovo.' });
   }
 
   const ime = (data.ime || '').toString().trim();
@@ -295,7 +295,7 @@ export default async (req, context) => {
   const podaci = pv.podaci;
 
   if (!mozeAnaliza(oglasTekst, podaci)) {
-    return json(400, { error: 'Nedostaje tekst oglasa. Bez njega upišite barem cijenu, površinu i grad.' });
+    return json(400, { error: 'Nedostaje tekst oglasa. Bez njega upiši barem cijenu, površinu i grad.' });
   }
 
   if (!email) {
@@ -356,7 +356,7 @@ export default async (req, context) => {
     quotaKey = `${email}:${new Date().toISOString().slice(0, 7)}`; // npr. "2026-09"
     trenutnoIskoristeno = parseInt((await store.get(quotaKey)) || '0', 10);
     if (trenutnoIskoristeno < LIM.STANDARD_MJESECNO) izvor = 'standard';
-    else porukaLimita = { status: 403, error: `Iskoristili ste svih ${LIM.STANDARD_MJESECNO} analiza za ovaj mjesec u Standard planu. Nadogradite na Pro za neograničene analize, ili pričekajte sljedeći obračunski ciklus.` };
+    else porukaLimita = { status: 403, error: `Iskorištenih je svih ${LIM.STANDARD_MJESECNO} analiza za ovaj mjesec u Standard planu. Nadogradi na Pro za neograničene analize ili pričekaj sljedeći obračunski ciklus.` };
   }
   if (!izvor) {
     const k = await krediti(hashEmaila(email));
@@ -364,7 +364,7 @@ export default async (req, context) => {
       izvor = 'paket';
       kreditKey = k.aktivni[0].key;
     } else if (k.ikadaKupljen && !porukaLimita) {
-      porukaLimita = { status: 403, error: `Vaš paket je istekao ili ste iskoristili sve analize iz njega. Odaberite plan za daljnje analize: ${PLANOVI_URL}` };
+      porukaLimita = { status: 403, error: `Paket je istekao ili su sve analize iz njega iskorištene. Odaberi plan za daljnje analize: ${PLANOVI_URL}` };
     }
   }
   if (!izvor && verificiraniPlan !== 'standard') {
@@ -377,8 +377,8 @@ export default async (req, context) => {
       izvor = 'free';
     } else if (!porukaLimita) {
       porukaLimita = stripeNedostupan
-        ? { status: 503, error: 'Trenutno ne možemo provjeriti vašu pretplatu. Pokušajte ponovo za minutu ili nas kontaktirajte na sime.zubcic23@gmail.com.' }
-        : { status: 403, error: `Iskoristili ste sve ${LIM.FREE_UKUPNO} besplatne analize. Ako ste platili Standard, Pro ili Paket, upišite email s kojim ste platili. Inače odaberite plan za daljnje analize: ${PLANOVI_URL}` };
+        ? { status: 503, error: 'Trenutno ne možemo provjeriti tvoju pretplatu. Pokušaj ponovo za minutu ili nam se javi na sime.zubcic23@gmail.com.' }
+        : { status: 403, error: `Iskorištene su sve ${LIM.FREE_UKUPNO} besplatne analize. Ako je plaćen Standard, Pro ili Paket, upiši email s kojim je plaćeno. Inače odaberi plan za daljnje analize: ${PLANOVI_URL}` };
     }
   }
   if (!izvor && !ponovljeno) return json(porukaLimita.status, { error: porukaLimita.error });
@@ -521,14 +521,14 @@ export default async (req, context) => {
   // Greške korak-zahtjeva: 5xx (klijent ih jednom ponavlja); limit se nikad ne troši prije uspjelog koraka B.
   const greskaKoraka = (naziv, err) => {
     if (err instanceof AnthropicNedostupan) {
-      return json(502, { error: 'Analiza trenutno nije dostupna. Pokušajte ponovo za koji trenutak.' });
+      return json(502, { error: 'Analiza trenutno nije dostupna. Pokušaj ponovo za koji trenutak.' });
     }
     if ((err && err.name === 'AbortError') || err instanceof VrijemeIsteklo) {
       console.error(`Anthropic API timeout (${naziv}: 55 s ili premalo preostalog vremena).`);
-      return json(504, { error: 'Analiza traje predugo. Pokušajte ponovo s kraćim tekstom oglasa — ova analiza vam se ne broji u limit.' });
+      return json(504, { error: 'Analiza traje predugo. Pokušaj ponovo s kraćim tekstom oglasa — ova analiza se ne broji u limit.' });
     }
     console.error(`Korak ${naziv} je prekinut:`, err);
-    return json(502, { error: 'Veza je prekinuta prije kraja analize. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
+    return json(502, { error: 'Veza je prekinuta prije kraja analize. Pokušaj ponovo — ova analiza se ne broji u limit.' });
   };
   // Jezična obrada (ćirilica → latinica, ponovljene riječi, strani pojmovi) bilježi se u log, nikad klijentu.
   const logObrade = (naziv, v) => { if (v.ok && v.obrada && v.obrada.length) console.log(`Jezična obrada (${naziv}):`, JSON.stringify(v.obrada)); };
@@ -555,14 +555,14 @@ export default async (req, context) => {
       }, MIN_ZA_PONOVNU_PROCJENU_MS);
       logTrajanje('procjena');
       if (!procjena) {
-        return json(502, { error: 'Procjena nije uspjela. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
+        return json(502, { error: 'Procjena nije uspjela. Pokušaj ponovo — ova analiza se ne broji u limit.' });
       }
       const id = crypto.randomBytes(16).toString('hex');
       try {
         await zapisiBlob(procjene, `${id}:${Date.now()}`, { e: hashEmaila(email), h: tekstHash, p: procjena.procjena }, PROCJENE_CUVANJE_MS);
       } catch (err) {
         console.error('Procjena nije spremljena:', err);
-        return json(500, { error: 'Došlo je do greške pri spremanju procjene. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
+        return json(500, { error: 'Došlo je do greške pri spremanju procjene. Pokušaj ponovo — ova analiza se ne broji u limit.' });
       }
       return json(200, { procjena_id: id, procjena: procjena.procjena });
     } catch (err) {
@@ -577,18 +577,18 @@ export default async (req, context) => {
   try {
     const zapis = await procitajZahtjev(procjene, `${procjenaId}:`);
     if (!zapis || zapis.e !== hashEmaila(email)) {
-      return json(404, { error: 'Procjena nije pronađena. Pokrenite analizu ponovo.' });
+      return json(404, { error: 'Procjena nije pronađena. Pokreni analizu ponovo.' });
     }
     if (Date.now() - zapis.t >= PROCJENE_CUVANJE_MS) {
-      return json(410, { error: 'Procjena je istekla. Pokrenite analizu ponovo.' });
+      return json(410, { error: 'Procjena je istekla. Pokreni analizu ponovo.' });
     }
     if (zapis.h !== tekstHash) {
-      return json(400, { error: 'Procjena ne pripada ovom oglasu. Pokrenite analizu ponovo.' });
+      return json(400, { error: 'Procjena ne pripada ovom oglasu. Pokreni analizu ponovo.' });
     }
     const v = await izvrsi('analiza', () => pozivAnalize(zapis.p), (tekst) => { const v = parsirajIValidiraj(tekst, podaci, zapis.p); logObrade('analiza', v); return v; }, MIN_ZA_ANALIZU_MS);
     logTrajanje('analiza');
     if (!v) {
-      return json(502, { error: 'Analiza nije uspjela složiti izvještaj. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
+      return json(502, { error: 'Analiza nije uspjela složiti izvještaj. Pokušaj ponovo — ova analiza se ne broji u limit.' });
     }
     const rezultat = { analiza: v.analiza, izracuni: izracunaj(v.analiza), uneseno: podaci, referenca: referencaZaKlijenta(referenca) };
     // Greška pri bilježenju (npr. Blobs) ne smije poništiti analizu koju je korisnik već dobio.
