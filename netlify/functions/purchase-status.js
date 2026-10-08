@@ -9,7 +9,8 @@ const json = (statusCode, body) => ({
   body: JSON.stringify(body),
 });
 
-const { stripeGet, PLAN_BY_PRICE } = require('../lib/stripe-plan');
+const { stripeGet } = require('../lib/stripe-plan');
+const { PLAN_BY_PRICE_SVE } = require('../lib/cjenik');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'GET') {
@@ -41,7 +42,7 @@ exports.handler = async (event) => {
       paid: true,
       value: (s.amount_total || 0) / 100,
       currency: (s.currency || 'eur').toUpperCase(),
-      plan: PLAN_BY_PRICE[priceId] || 'unknown',
+      plan: PLAN_BY_PRICE_SVE[priceId] || 'unknown',
     });
   } catch (err) {
     console.error('purchase-status: greška pri čitanju Stripe sesije:', err);

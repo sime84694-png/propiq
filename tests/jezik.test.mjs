@@ -61,9 +61,9 @@ test('omjerCijene: cijena / sredina raspona, jedna decimala', () => {
   assert.equal(omjerCijene(590000, { min_eur: null, max_eur: null }), null);
 });
 
-test('blok gotovih brojki sadrži omjer ("1,6×"); bez potvrđene cijene zabranjuje omjere', () => {
+test('blok gotovih brojki sadrži omjer ("1,6 puta više od sredine raspona"); bez potvrđene cijene zabranjuje omjere', () => {
   const b = tekstCinjenicaSazetka(590000, FER, true);
-  assert.match(b, /Omjer tražene cijene i sredine fer raspona: 1,6×/);
+  assert.match(b, /Omjer tražene cijene i sredine fer raspona: 1,6 puta više od sredine raspona/);
   assert.match(b, /Prvu rečenicu sažetka .* slaže sustav/);
   assert.match(tekstCinjenicaSazetka(590000, FER, false), /ni omjere/);
 });
@@ -111,9 +111,9 @@ test('validacija odbija ponudu nazvanu vrijednošću (iznos ponude iz koda)', ()
 // ── B6 prva rečenica sažetka ──
 test('prvaRecenicaSazetka: iznad, ispod i unutar raspona, gramatički ispravno', () => {
   assert.equal(prvaRecenicaSazetka(590000, FER),
-    'Tražena cijena od 590.000 € nalazi se 190.000 € (47,5 %) iznad gornje granice fer raspona od 350.000 do 400.000 €, što je 1,6× sredina raspona.');
+    'Tražena cijena od 590.000 € nalazi se 190.000 € (47,5 %) iznad gornje granice fer raspona od 350.000 do 400.000 €, što je 1,6 puta više od sredine raspona.');
   assert.equal(prvaRecenicaSazetka(300000, FER),
-    'Tražena cijena od 300.000 € nalazi se 50.000 € (14,3 %) ispod donje granice fer raspona od 350.000 do 400.000 €, što je 0,8× sredina raspona.');
+    'Tražena cijena od 300.000 € nalazi se 50.000 € (14,3 %) ispod donje granice fer raspona od 350.000 do 400.000 €, što je 0,8 sredine raspona.');
   assert.equal(prvaRecenicaSazetka(375000, FER), 'Tražena cijena od 375.000 € nalazi se unutar fer raspona od 350.000 do 400.000 €.');
   assert.equal(prvaRecenicaSazetka(null, FER), null);
 });
@@ -122,7 +122,7 @@ test('sažetak: prvu rečenicu slaže kod, od modela ostaje samo prva rečenica'
   const v = validirajAnalizu(osnova({ sazetak: 'Cijena je iznad raspona zbog lokacije. Druga rečenica se odbacuje.' }), { slozi: true });
   assert.equal(v.ok, true);
   assert.equal(v.analiza.sazetak,
-    'Tražena cijena od 590.000 € nalazi se 190.000 € (47,5 %) iznad gornje granice fer raspona od 350.000 do 400.000 €, što je 1,6× sredina raspona. Cijena je iznad raspona zbog lokacije.');
+    'Tražena cijena od 590.000 € nalazi se 190.000 € (47,5 %) iznad gornje granice fer raspona od 350.000 do 400.000 €, što je 1,6 puta više od sredine raspona. Cijena je iznad raspona zbog lokacije.');
   assert.equal(validirajAnalizu(osnova({ sazetak: 'Cijena je iznad raspona. Još jedna.' })).analiza.sazetak, 'Cijena je iznad raspona. Još jedna.', 'bez slozi sažetak ostaje kakav je');
 });
 

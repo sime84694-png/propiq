@@ -23,6 +23,8 @@ export function omjerCijene(cijena, fer) {
   return Math.round((cijena / ((fer.min_eur + fer.max_eur) / 2)) * 10) / 10;
 }
 const omjerHr = (o) => o.toFixed(1).replace('.', ',');
+// Omjer riječima, ne znakom ×: "1,6 puta više od sredine raspona" (iznad) / "0,8 sredine raspona" (ispod).
+const omjerOpis = (o) => (o > 1 ? `${omjerHr(o)} puta više od sredine raspona` : `${omjerHr(o)} sredine raspona`);
 
 // Prva rečenica sažetka (cijena, raspon, razlika, %, omjer) slaže se u kodu, gramatički ispravno; model dodaje
 // najviše jednu rečenicu obrazloženja. null ako nema cijene ili raspona.
@@ -34,7 +36,7 @@ export function prvaRecenicaSazetka(cijena, fer) {
   if (c.polozaj === 'unutar') return `${pocetak} unutar ${raspon}.`;
   const o = omjerCijene(cijena, fer);
   return `${pocetak} ${eurHr(c.razlika_eur)} € (${postoHr(c.posto)} %) ${c.polozaj === 'iznad' ? 'iznad gornje' : 'ispod donje'} granice ${raspon}` +
-    `${o !== null && o !== 1 ? `, što je ${omjerHr(o)}× sredina raspona` : ''}.`;
+    `${o !== null && o !== 1 ? `, što je ${omjerOpis(o)}` : ''}.`;
 }
 
 function ponudaRedak(cilj) {
@@ -55,7 +57,7 @@ export function tekstCinjenicaSazetka(cijena, fer, cijenaZnana) {
   const razlika = c.polozaj === 'unutar' ? 'cijena je unutar raspona, nema razlike (ne navodi postotak ni razliku u eurima)'
     : `${eurHr(c.razlika_eur)} € (${postoHr(c.posto)} % ${c.polozaj === 'iznad' ? 'iznad gornje' : 'ispod donje'} granice raspona)`;
   return `Gotovi brojevi za sažetak (izračunao sustav):\n- Tražena cijena ${eurHr(cijena)} €, fer raspon ${eurHr(fer.min_eur)}–${eurHr(fer.max_eur)} €.\n- Položaj: ${c.polozaj} raspona.\n- Razlika: ${razlika}.\n` +
-    `- Omjer tražene cijene i sredine fer raspona: ${omjerHr(o)}× (ne tvrdi "dvostruko", "triput" ni slično; omjer smiješ navesti samo ovako).\n${ponudaRedak(cilj)}` +
+    `- Omjer tražene cijene i sredine fer raspona: ${omjerOpis(o)} (ne tvrdi "dvostruko", "triput" ni slično; omjer smiješ navesti samo ovako).\n${ponudaRedak(cilj)}` +
     `- Prvu rečenicu sažetka (cijena, raspon, razlika, postotak) slaže sustav i stavlja je ispred tvog teksta: ti napiši SAMO JEDNU rečenicu obrazloženja koja ne ponavlja te brojke.\n${pravilo}`;
 }
 

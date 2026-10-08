@@ -21,6 +21,8 @@ import crypto from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 // Plan (Standard/Pro) se određuje isključivo prema aktivnoj Stripe pretplati za upisani email.
 import stripePlan from '../lib/stripe-plan.js';
+import cjenik from '../lib/cjenik.js';
+import { krediti, potrosiKredit, aktivirajPaket } from '../lib/paket.mjs';
 import {
   TOOL, TOOL_NAME, TOOL_PROCJENA, TOOL_PROCJENA_BEZ_REFERENCE, TOOL_PROCJENA_NAME, FER, parsirajIValidiraj, parsirajIValidirajProcjenu,
   izracunaj, validirajPodatke, mozeAnaliza, vremenskeCinjenice, tekstCinjenicaSazetka,
@@ -40,6 +42,7 @@ const MAX_OGLAS = 15000;
 const MAX_IME = 100;
 const MAX_AGENCIJA = 100;
 const MAX_EMAIL = 254;
+const PLANOVI_URL = 'https://propiq-hr.netlify.app/#cijene';
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const json = (status, body) =>
@@ -69,7 +72,7 @@ Fer vrijednost i najam procijenjeni su zasebno, bez uvida u traženu cijenu, i d
 - Ciljanu ponudu NE vraćaš i ne računaš: izračunava je sustav. Iznos ponude smiješ navesti u adutima ili sažetku samo ako je dan u bloku "Gotovi brojevi za sažetak"; inače ga ne spominji.
 
 Sažetak: postotke, razlike u eurima i omjere NE računaš. Ako poruka sadrži "Gotovi brojevi za sažetak", prvu rečenicu sažetka (cijena, raspon, razlika, postotak, omjer) slaže sustav i stavlja je ispred tvog teksta: ti napiši SAMO JEDNU rečenicu obrazloženja koja ne ponavlja te brojke. Ako razlika nije dana, u sažetku ne navodi postotke ni razlike u eurima prema rasponu (samo opisno). Nikakve druge postotke ni iznose ne izmišljaj — sustav provjerava svaku brojku u sažetku.
-- Omjer cijene i raspona: zabranjeno je pisati "dvostruko", "triput", "N puta veća" i slično. Omjer smiješ navesti samo točno kako je dan u bloku (npr. "1,6×").
+- Omjer cijene i raspona: zabranjeno je pisati "dvostruko", "triput", "N puta veća" i slično. Omjer smiješ navesti samo točno kako je dan u bloku (npr. "1,6 puta više od sredine raspona").
 - Ciljana ponuda je prijedlog cijene za pregovore, a NIKAD vrijednost: ne nazivaj je "realnom", "fer" ni "tržišnom" vrijednošću. Vrijednost je samo fer raspon iz fiksne procjene.
 
 Preporuka i ocjena (moraju biti konzistentne):
@@ -261,6 +264,11 @@ export default async (req, context) => {
   }
 
   const korak = data.korak;
+  // Aktivacija paketa nakon plaćanja (?plan=paket&session_id=...): kupnju potvrđuje Stripe, ne klijent.
+  if (korak === 'paket') {
+    const r = await aktivirajPaket(String(data.session_id || '').trim(), stripeSecretKey, hashEmaila);
+    return json(r.status, r.body);
+  }
   if (korak !== 'procjena' && korak !== 'analiza') {
     return json(400, { error: 'Nepoznat korak analize. Osvježite stranicu i pokušajte ponovo.' });
   }
@@ -314,13 +322,15 @@ export default async (req, context) => {
     console.error('Provjera pretplate na Stripeu nije uspjela:', err.message);
   }
 
-  // Free: max 3 analize ukupno po emailu. Standard: max 10 mjesečno (reset svaki mjesec).
-  // Pro: neograničeno, bez brojača.
-  const jePro = verificiraniPlan === 'pro';
-  const jeStandard = verificiraniPlan === 'standard';
+  // Redoslijed: aktivna Pro → aktivna Standard (10/mj) → kredit iz paketa (prvi koji istječe) → Free (3 ukupno; samo bez aktivne pretplate).
+  // `izvor` je ono što ova analiza troši; null samo za ponovljeni zahtjev (ne troši ništa).
+  const LIM = cjenik.LIMITI;
+  let izvor = verificiraniPlan === 'pro' ? 'pro' : null;
   let store;
   let trenutnoIskoristeno = 0;
   let quotaKey = '';
+  let kreditKey = '';
+  let porukaLimita = null;
 
   // Ponavljanje se prepoznaje po request_id iz forme; ako ga nema, korak B ima ID procjene (isti za ponovni pokušaj).
   const requestId = /^[A-Za-z0-9-]{8,64}$/.test(String(data.request_id || '')) ? String(data.request_id) : (korak === 'analiza' ? procjenaId : '');
@@ -340,31 +350,37 @@ export default async (req, context) => {
     }
   }
 
-  if (jeStandard) {
+  if (!izvor && verificiraniPlan === 'standard') {
     store = getStore('propiq-standard-quota');
-    const mjesec = new Date().toISOString().slice(0, 7); // npr. "2026-09"
-    quotaKey = `${email}:${mjesec}`;
+    quotaKey = `${email}:${new Date().toISOString().slice(0, 7)}`; // npr. "2026-09"
     trenutnoIskoristeno = parseInt((await store.get(quotaKey)) || '0', 10);
-    if (!ponovljeno && trenutnoIskoristeno >= 10) {
-      return json(403, {
-        error: 'Iskoristili ste svih 10 analiza za ovaj mjesec u Standard planu. Nadogradite na Pro za neograničene analize, ili pričekajte sljedeći obračunski ciklus.',
-      });
+    if (trenutnoIskoristeno < LIM.STANDARD_MJESECNO) izvor = 'standard';
+    else porukaLimita = { status: 403, error: `Iskoristili ste svih ${LIM.STANDARD_MJESECNO} analiza za ovaj mjesec u Standard planu. Nadogradite na Pro za neograničene analize, ili pričekajte sljedeći obračunski ciklus.` };
+  }
+  if (!izvor) {
+    const k = await krediti(hashEmaila(email));
+    if (k.aktivni.length) {
+      izvor = 'paket';
+      kreditKey = k.aktivni[0].key;
+    } else if (k.ikadaKupljen && !porukaLimita) {
+      porukaLimita = { status: 403, error: `Vaš paket je istekao ili ste iskoristili sve analize iz njega. Odaberite plan za daljnje analize: ${PLANOVI_URL}` };
     }
-  } else if (!jePro) {
+  }
+  if (!izvor && verificiraniPlan !== 'standard') {
+    // Free: 3 analize ukupno po emailu (ne i za aktivnog Standard pretplatnika s iscrpljenim mjesečnim limitom).
+    // Poruka o isteklom paketu ima prednost pred porukom o besplatnom limitu.
     store = getStore('propiq-free-quota');
     quotaKey = email;
     trenutnoIskoristeno = parseInt((await store.get(quotaKey)) || '0', 10);
-    if (!ponovljeno && trenutnoIskoristeno >= 3) {
-      if (stripeNedostupan) {
-        return json(503, {
-          error: 'Trenutno ne možemo provjeriti vašu pretplatu. Pokušajte ponovo za minutu ili nas kontaktirajte na sime.zubcic23@gmail.com.',
-        });
-      }
-      return json(403, {
-        error: 'Iskoristili ste sve 3 besplatne analize. Ako ste platili Standard ili Pro, upišite email s kojim ste platili. Inače nadogradite plan za daljnje analize.',
-      });
+    if (trenutnoIskoristeno < LIM.FREE_UKUPNO) {
+      izvor = 'free';
+    } else if (!porukaLimita) {
+      porukaLimita = stripeNedostupan
+        ? { status: 503, error: 'Trenutno ne možemo provjeriti vašu pretplatu. Pokušajte ponovo za minutu ili nas kontaktirajte na sime.zubcic23@gmail.com.' }
+        : { status: 403, error: `Iskoristili ste sve ${LIM.FREE_UKUPNO} besplatne analize. Ako ste platili Standard, Pro ili Paket, upišite email s kojim ste platili. Inače odaberite plan za daljnje analize: ${PLANOVI_URL}` };
     }
   }
+  if (!izvor && !ponovljeno) return json(porukaLimita.status, { error: porukaLimita.error });
 
   // Broji analizu u limit i statistiku — poziva se tek kad je korak B uspješno završio.
   async function zabiljeziUspjeh() {
@@ -382,10 +398,12 @@ export default async (req, context) => {
     }
 
     if (izbrojati) {
-      if (!jePro && store) {
+      if (izvor === 'paket') {
+        await potrosiKredit(kreditKey);
+      } else if (izvor === 'standard' || izvor === 'free') {
         await store.set(quotaKey, String(trenutnoIskoristeno + 1));
       }
-      await incrementStats(source, verificiraniPlan || 'free');
+      await incrementStats(source, izvor);
     }
   }
 

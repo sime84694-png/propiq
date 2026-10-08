@@ -11,8 +11,8 @@
   <title>PropIQ — AI Investicijski Savjetnik za Nekretnine</title>
 
   <!-- SEO -->
-  <meta name="description" content="Analizirajte nekretninu iz teksta oglasa — izvještaj stiže za oko pola minute. Fer raspon vrijednosti iz stvarno plaćenih cijena, preporuka, procjena rizika i prinosa najma za hrvatsko tržište.">
-  <meta name="keywords" content="nekretnine, AI analiza, investicija, hrvatska, agencije, njuškalo, ROI, tržišni trendovi">
+  <meta name="description" content="Analizirajte nekretninu iz teksta oglasa — izvještaj obično stiže za oko pola minute. Fer raspon vrijednosti iz stvarno plaćenih cijena, preporuka, procjena rizika i prinosa najma za hrvatsko tržište.">
+  <meta name="keywords" content="nekretnine, AI analiza, investicija, hrvatska, agencije, njuškalo, ROI">
   <meta name="author" content="PropIQ">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://propiq-hr.netlify.app">
@@ -21,7 +21,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://propiq-hr.netlify.app">
   <meta property="og:title" content="PropIQ — AI Investicijski Savjetnik za Nekretnine">
-  <meta property="og:description" content="Analizirajte nekretninu iz teksta oglasa — izvještaj stiže za oko pola minute. Fer raspon vrijednosti iz stvarno plaćenih cijena, preporuka, procjena rizika i prinosa najma za hrvatsko tržište.">
+  <meta property="og:description" content="Analizirajte nekretninu iz teksta oglasa — izvještaj obično stiže za oko pola minute. Fer raspon vrijednosti iz stvarno plaćenih cijena, preporuka, procjena rizika i prinosa najma za hrvatsko tržište.">
   <meta property="og:image" content="https://propiq-hr.netlify.app/assets/hero.jpg">
   <meta property="og:image:width" content="1600">
   <meta property="og:image:height" content="1066">
@@ -31,7 +31,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="PropIQ — AI Investicijski Savjetnik za Nekretnine">
-  <meta name="twitter:description" content="Analizirajte nekretninu iz teksta oglasa — izvještaj stiže za oko pola minute. Fer raspon vrijednosti iz stvarno plaćenih cijena, preporuka, procjena rizika i prinosa najma za hrvatsko tržište.">
+  <meta name="twitter:description" content="Analizirajte nekretninu iz teksta oglasa — izvještaj obično stiže za oko pola minute. Fer raspon vrijednosti iz stvarno plaćenih cijena, preporuka, procjena rizika i prinosa najma za hrvatsko tržište.">
   <meta name="twitter:image" content="https://propiq-hr.netlify.app/assets/hero.jpg">
   <!-- Playfair Display s vlastitog hostinga (bez zahtjeva prema Googleu prije pristanka; licenca SIL OFL) -->
   <link rel="preload" href="assets/fonts/playfair-display-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -441,9 +441,9 @@
     }
 
     .how-num {
-      font-size: 3.5rem;
+      font-size: 3rem;
       font-weight: 800;
-      letter-spacing: -3px;
+      letter-spacing: -2px;
       line-height: 1;
       color: var(--cream-08);
       margin-bottom: 20px;
@@ -805,14 +805,16 @@
 
     .pricing-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 3px;
       margin-top: 48px;
     }
 
+    @media (max-width: 1100px) {
+      .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+    }
     @media (max-width: 768px) {
       .pricing-grid { grid-template-columns: 1fr; }
-      .plan.featured { order: -1; }
     }
 
     .plan {
@@ -1455,6 +1457,9 @@
     .vise-detalja[open] summary::before { content: '− '; }
     .vise-detalja summary:hover { color: var(--cream); }
     .vise-detalja .form-row { margin-top: 10px; }
+    .paket-obavijest { display: none; position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 1000; width: min(560px, calc(100% - 32px)); background: #120f0b; border: 1px solid var(--gold); border-radius: 14px; padding: 18px 22px; color: var(--cream); font-size: 0.9rem; line-height: 1.6; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+    .paket-obavijest.visible { display: block; }
+    .paket-obavijest button { margin-top: 12px; margin-right: 10px; }
     .form-greska { display: none; color: #e0705a; font-size: 0.85rem; margin: 4px 0 8px; }
     .form-greska.visible { display: block; }
 
@@ -1600,6 +1605,12 @@
 </head>
 <body>
 
+  <!-- Paket: obavijest nakon povratka sa Stripea (?plan=paket&session_id=...) -->
+  <div class="paket-obavijest" id="paket-obavijest" role="status">
+    <span id="paket-poruka"></span>
+    <div><button type="button" class="btn-primary" id="paket-pokreni" onclick="document.getElementById('paket-obavijest').classList.remove('visible'); openModal()">Pokreni analizu</button><button type="button" class="btn-outline-sm" onclick="document.getElementById('paket-obavijest').classList.remove('visible')">Zatvori</button></div>
+  </div>
+
   <!-- AMBIENT SPOTLIGHT -->
   <div class="ambient-spotlight" id="ambientSpotlight"></div>
 
@@ -1675,40 +1686,38 @@
     <div class="example-head fade-in">
       <div class="section-label">Primjer</div>
       <h2 class="section-title">Kako izgleda analiza</h2>
-      <p class="example-lead">Ovo je isječak stvarne PropIQ analize, skraćen.</p>
+      <p class="example-lead">Primjer: isječak izvještaja za jedan oglas, skraćen.</p>
     </div>
 
     <div class="report fade-in">
       <div class="report-glow"></div>
       <div class="report-inner">
         <div class="report-topline">
-          <span class="report-eyebrow"><span class="report-dot"></span>AI analiza nekretnine</span>
-          <span class="report-address">Zadar, novogradnja, 63 m², prizemlje</span>
+          <span class="report-eyebrow"><span class="report-dot"></span>Primjer analize</span>
+          <span class="report-address">Zagreb, Središće, 130,45 m²</span>
         </div>
 
         <div class="report-block">
           <h3 class="report-h">Procjena vrijednosti</h3>
           <ul class="report-list">
-            <li>Tražena cijena: <span class="mono">5.100 EUR/m²</span>, ukupno oko <span class="mono">322.000 EUR</span></li>
-            <li>Tržišni raspon za lokaciju: <span class="mono">4.200</span> do <span class="mono">5.500 EUR/m²</span></li>
-            <li>Prizemlje nosi diskont od <span class="mono">5</span> do <span class="mono">10</span> posto u odnosu na više katove</li>
-            <li class="verdict">Ocjena: cijena je na gornjoj granici tržišnog raspona</li>
+            <li>Tražena cijena: <span class="mono">694.896 €</span></li>
+            <li>Fer raspon: <span class="mono">410.000</span> do <span class="mono">470.000 €</span> (<span class="mono">3.142</span> do <span class="mono">3.614 €/m²</span>)</li>
+            <li>Polazište: medijan stvarno plaćenih cijena za k.o. Zaprudski Otok, <span class="mono">3.345 €/m²</span> (MPGI/DZS)</li>
+            <li>Korekcije: <span class="mono">+8 %</span> renovacija, <span class="mono">−7 %</span> veliki stan, <span class="mono">+4 %</span> kat/pogled, <span class="mono">+2 %</span> lift, <span class="mono">−4 %</span> bez parkinga, <span class="mono">−2 %</span> starost zgrade</li>
+            <li class="verdict">Oznaka: OPREZ, ocjena <span class="mono">1/10</span> — tražena cijena je iznad fer raspona</li>
           </ul>
         </div>
 
         <div class="report-block">
-          <h3 class="report-h">Ključni rizici</h3>
+          <h3 class="report-h">Pregovaranje</h3>
           <ul class="report-list">
-            <li>Obračunska površina <span class="mono">63 m²</span> znatno je manja od stvarne <span class="mono">100 m²</span></li>
-            <li>Obvezna kupnja garažnog mjesta povećava ukupni trošak za <span class="mono">15.000</span> do <span class="mono">25.000 EUR</span></li>
-            <li>Prizemlje ograničava potencijal turističkog najma</li>
-            <li>Energetski certifikat nije dostupan</li>
+            <li>Ciljana ponuda: <span class="mono">440.000 €</span> (prijedlog za pregovore, nije procjena vrijednosti)</li>
           </ul>
         </div>
       </div>
 
       <div class="report-cta">
-        <p class="report-note">Puna analiza sadrži tržišni kontekst, procjenu prinosa i konkretne iduće korake.</p>
+        <p class="report-note">Puna analiza sadrži i rizike, procjenu prinosa od najma te pitanja za prodavatelja.</p>
         <button class="btn-primary" onclick="openModal()">Pokreni analizu</button>
       </div>
     </div>
@@ -1731,8 +1740,8 @@
           </svg>
         </div>
         <div class="feature-num">01</div>
-        <div class="feature-title">Izvještaj za pola minute</div>
-        <p class="feature-desc">Cijeli izvještaj stiže za oko pola minute (u našim mjerenjima ~27 s), a tijekom izrade vidite u kojoj je fazi. Unesite tekst oglasa i dobijte kompletnu investicijsku procjenu.</p>
+        <div class="feature-title">Izvještaj za oko pola minute</div>
+        <p class="feature-desc">Cijeli izvještaj obično stiže za oko pola minute, a tijekom izrade vidite u kojoj je fazi. Unesite tekst oglasa i dobijte kompletnu investicijsku procjenu.</p>
       </div>
       <div class="feature-card fade-in" style="transition-delay:0.08s">
         <div class="feature-icon">
@@ -1800,59 +1809,75 @@
         <div class="section-label">Cijene</div>
         <h2 class="section-title">Jednostavno.<br>Transparentno.</h2>
       </div>
-      <p class="section-desc">Bez skrivenih naknada. Otkaži bilo kad. Počni besplatno bez kartice.</p>
+      <p class="section-desc">Bez skrivenih naknada. Pretplate možete otkazati bilo kad. Počnite besplatno, bez kartice.</p>
     </div>
     <div class="pricing-grid">
       <div class="plan fade-in">
         <div class="plan-tier">Free</div>
         <div class="plan-price-wrap">
-          <div class="plan-price"><sup>€</sup>0</div>
+          <div class="plan-price">0<sup>€</sup></div>
           <div class="plan-period">bez kartice</div>
         </div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li>3 analize besplatno (ukupno)</li>
-          <li>Bez kreditne kartice</li>
-          <li>Osnovna tržišna izvješća</li>
-          <li>Email podrška</li>
+          <li>3 analize ukupno</li>
+          <li>Puni izvještaj</li>
+          <li>Spremi kao PDF (ispis)</li>
         </ul>
         <div class="plan-btn-wrap">
           <button class="btn-outline-sm" onclick="openModal()">Počni besplatno</button>
         </div>
       </div>
       <div class="plan fade-in" style="transition-delay:0.1s">
+        <div class="plan-tier">Paket</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price">12<sup>€</sup></div>
+          <div class="plan-period">jednokratno</div>
+        </div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li>5 analiza</li>
+          <li>Vrijedi 90 dana od kupnje</li>
+          <li>Bez pretplate</li>
+          <li>Puni izvještaj</li>
+          <li>Spremi kao PDF (ispis)</li>
+          <li>Za kupce koji traže jedan stan</li>
+        </ul>
+        <div class="plan-btn-wrap">
+          <a href="https://buy.stripe.com/6oU6oI5WtgLFf9aaQqbwk02" class="btn-outline-sm">Kupi Paket</a>
+        </div>
+      </div>
+      <div class="plan fade-in" style="transition-delay:0.2s">
         <div class="plan-tier">Standard</div>
         <div class="plan-price-wrap">
-          <div class="plan-price"><sup>€</sup>24</div>
+          <div class="plan-price">24,99<sup>€</sup></div>
           <div class="plan-period">po mjesecu</div>
         </div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
           <li>10 analiza mjesečno</li>
-          <li>Puna dubina analize</li>
-          <li>Web izvješće</li>
-          <li>Email podrška</li>
+          <li>Puni izvještaj</li>
+          <li>Spremi kao PDF (ispis)</li>
         </ul>
         <div class="plan-btn-wrap">
-          <a href="https://buy.stripe.com/9B69AU4Sp3YT2moaQqbwk00" class="btn-outline-sm">Odaberi Standard</a>
+          <a href="https://buy.stripe.com/8x27sMfx38f9f9a2jUbwk03" class="btn-outline-sm">Odaberi Standard</a>
         </div>
       </div>
-      <div class="plan featured fade-in" style="transition-delay:0.2s">
-        <div class="plan-badge">Najpopularnije</div>
+      <div class="plan featured fade-in" style="transition-delay:0.3s">
         <div class="plan-tier">Pro</div>
         <div class="plan-price-wrap">
-          <div class="plan-price"><sup>€</sup>49</div>
+          <div class="plan-price">49,99<sup>€</sup></div>
           <div class="plan-period">po mjesecu</div>
         </div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li>Neograničene analize</li>
-          <li>Puna dubina analize</li>
-          <li>PDF export izvješća</li>
-          <li>Prioritetna podrška</li>
+          <li>Neograničeno uz razumnu uporabu</li>
+          <li>Puni izvještaj</li>
+          <li>Spremi kao PDF (ispis)</li>
+          <li>Prioritetna podrška: odgovaram osobno, brže</li>
         </ul>
         <div class="plan-btn-wrap">
-          <a href="https://buy.stripe.com/7sY3cw2Kh671e56gaKbwk01" class="btn-dark">Odaberi Pro</a>
+          <a href="https://buy.stripe.com/fZueVe0C9gLFf9af6Gbwk04" class="btn-dark">Odaberi Pro</a>
         </div>
       </div>
     </div>
@@ -1907,7 +1932,7 @@
           </span>
         </button>
         <div class="faq-answer">
-          <p>Cijeli izvještaj stiže za oko pola minute (u našim mjerenjima oko 27 sekundi). Dok čekate, vidite u kojoj je fazi analiza: prvo se procjenjuje fer vrijednost, zatim rizici i strategija pregovaranja. Gotov izvještaj možete spremiti kao PDF.</p>
+          <p>Cijeli izvještaj obično stiže za oko pola minute. Dok čekate, vidite u kojoj je fazi analiza: prvo se procjenjuje fer vrijednost, zatim rizici i strategija pregovaranja. Gotov izvještaj možete spremiti kao PDF.</p>
         </div>
       </div>
 
@@ -2286,18 +2311,6 @@
       if (e.key === 'Escape') closeModal();
     });
 
-    // ── Form submit ──
-    function detectRecommendation(text) {
-      const t = text.toUpperCase();
-      if (/KUPI|KUPITI|PREPORUČAMO KUPNJU|IZVRSNA INVESTICIJA|IZVRSNA PRILIKA/.test(t))
-        return { cls: 'buy', label: '✓ Preporuka: Kupi' };
-      if (/PREGOVARAJ|PREGOVOR|RAZMOTRITI|UVJETNO|MOGUĆE/.test(t))
-        return { cls: 'negotiate', label: '◎ Preporuka: Pregovaraj' };
-      if (/PRESKOČI|PRESKOČITI|IZBJEGNI|IZBJEGAVATI|NIJE PREPORUČLJIVO|LOŠA INVESTICIJA/.test(t))
-        return { cls: 'skip', label: '✕ Preporuka: Preskoči' };
-      return null;
-    }
-
     // ── FAQ accordion ──
     document.querySelectorAll('.faq-question').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2377,6 +2390,34 @@
 
       window.location.href = 'rezultat.html';
     });
+
+    // ── Paket: aktivacija nakon plaćanja (?plan=paket&session_id=cs_…) ──
+    // Kupnju potvrđuje poslužitelj (Stripe sesija mora biti plaćena i za Paket); kredit se veže uz email s plaćanja.
+    (async function aktivirajPaket() {
+      const q = new URLSearchParams(window.location.search);
+      const sessionId = q.get('session_id') || '';
+      if (q.get('plan') !== 'paket' || !/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) return;
+      const okvir = document.getElementById('paket-obavijest');
+      const poruka = (tekst) => { document.getElementById('paket-poruka').textContent = tekst; okvir.classList.add('visible'); };
+      try {
+        const res = await fetch('/.netlify/functions/analiza', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ korak: 'paket', session_id: sessionId }),
+        });
+        const p = await res.json().catch(() => ({}));
+        if (res.ok) {
+          const istek = new Date(p.istek).toLocaleDateString('hr-HR');
+          document.getElementById('email').value = p.email || '';
+          poruka(`Paket je aktiviran: ${p.preostalo} analiza, vrijedi do ${istek}. Pri analizi upišite isti email (${p.email}).`);
+        } else if (res.status === 409) {
+          poruka(`Ovaj paket je već aktiviran. Za analizu upišite email s kojim ste platili${p.email_maskiran ? ` (${p.email_maskiran})` : ''}.`);
+        } else {
+          poruka((p.error || 'Paket nismo mogli aktivirati.') + ' Ako ste platili, javite nam se na kontakt email.');
+        }
+      } catch {
+        poruka('Paket nismo mogli aktivirati zbog greške veze. Osvježite stranicu; ako ste platili, javite nam se na kontakt email.');
+      }
+    })();
 
     // ── Kupnja: povratak sa Stripea (?plan=…&session_id=cs_…) ──
     // Broji se samo jednom po plaćanju: session_id se pamti u localStorageu (refresh ne broji ponovo),
