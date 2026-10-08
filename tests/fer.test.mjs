@@ -65,6 +65,10 @@ test('pojedina korekcija je ograničena na −15…+15, cijela i s najviše 6 st
   assert.deepEqual(o.map((k) => k.postotak), [15, -15, 5, 0, 1, 2]);
   assert.ok(o.every((k) => Number.isInteger(k.postotak) && Math.abs(k.postotak) <= 15 && !Object.is(k.postotak, -0)));
   assert.equal(ocistiKorekcije([{ razlog: 'x'.repeat(200), postotak: 1 }])[0].razlog.length, FER.MAX_RAZLOG);
+  // razlog se reže na granici riječi, bez viseće interpunkcije
+  assert.equal(ocistiKorekcije([{ razlog: 'renovirano 2015., vrhunski materijali, energetski razred A', postotak: 1 }])[0].razlog,
+    'renovirano 2015., vrhunski materijali');
+  assert.equal(ocistiKorekcije([{ razlog: 'bez lifta', postotak: -3 }])[0].razlog, 'bez lifta');
   // nevaljan oblik
   for (const lose of [null, 'tekst', [{ razlog: '', postotak: 1 }], [{ razlog: 'a', postotak: '5' }], [{ razlog: 'a', postotak: NaN }], [{ postotak: 3 }], [7]]) {
     assert.equal(ocistiKorekcije(lose), null, JSON.stringify(lose));

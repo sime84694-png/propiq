@@ -118,6 +118,17 @@
   // Očisti popis korekcija koji je predložio model: najviše MAX_STAVKI, postotak zaokružen na cijeli broj i
   // ograničen na ±MAX_KOREKCIJA, razlog skraćen. Vraća null ako oblik nije valjan (nije popis, stavka bez
   // razloga ili bez konačnog broja). Isti ulaz uvijek daje isti izlaz (idempotentno).
+  // Skrati razlog na najviše `max` znakova na granici riječi, bez viseće interpunkcije na kraju. Ako nema
+  // razmaka u dosegu (jedna dulja riječ), reže tvrdo.
+  function skratiRazlog(tekst, max) {
+    let t = tekst.trim();
+    if (t.length > max) {
+      const razmak = t.lastIndexOf(' ', max);
+      t = t.slice(0, razmak > 0 ? razmak : max);
+    }
+    return t.replace(/[\s,;:\-–—(/]+$/, '');
+  }
+
   function ocistiKorekcije(sirove) {
     if (!Array.isArray(sirove)) return null;
     const izlaz = [];
@@ -125,7 +136,7 @@
       if (!k || typeof k !== 'object' || typeof k.razlog !== 'string' || !k.razlog.trim()) return null;
       if (typeof k.postotak !== 'number' || !Number.isFinite(k.postotak)) return null;
       izlaz.push({
-        razlog: k.razlog.trim().slice(0, FER.MAX_RAZLOG).trim(),
+        razlog: skratiRazlog(k.razlog, FER.MAX_RAZLOG),
         postotak: stezi(Math.round(k.postotak), -FER.MAX_KOREKCIJA, FER.MAX_KOREKCIJA) || 0,
       });
     }

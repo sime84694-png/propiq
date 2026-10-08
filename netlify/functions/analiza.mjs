@@ -537,8 +537,6 @@ export default async (req, context) => {
         trajanja.analizaOd = Date.now();
         const v = await izvrsi('analiza', null, () => pozivAnalize(procjena.procjena), (tekst) => parsirajIValidiraj(tekst, podaci, procjena.procjena), MIN_ZA_ANALIZU_MS);
         if (v) rezultat = { analiza: v.analiza, izracuni: izracunaj(v.analiza), uneseno: podaci, referenca: referencaZaKlijenta(referenca) };
-        console.log(`[dijagnostika] gotovo: poziv 2 završen za ${Date.now() - pocetak} ms, rezultat ${rezultat ? 'da' : 'ne'}`);
-        posalji({ faza: 'gotovo' });
       }
       if (!rezultat) {
         posalji({ greska: 'Analiza nije uspjela složiti izvještaj. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
@@ -550,12 +548,9 @@ export default async (req, context) => {
       } catch (err) {
         console.error('Bilježenje uspješne analize nije uspjelo:', err);
       }
-      console.log(`[dijagnostika] zapisano: ${Date.now() - pocetak} ms`);
-      posalji({ faza: 'zapisano' });
       const krajJson = JSON.stringify({ kraj: true, rezultat });
       const bajtova = Buffer.byteLength(krajJson, 'utf8');
       console.log(`[dijagnostika] saljem kraj: ${bajtova} B, ${Date.now() - pocetak} ms, preglednikOtisao=${preglednikOtisao}`);
-      posalji({ faza: 'saljem', bajtova });
       try {
         if (!preglednikOtisao) ctrl.enqueue(encoder.encode(`data: ${krajJson}\n\n`));
         console.log(`[dijagnostika] kraj enqueue-an: ${Date.now() - pocetak} ms`);
