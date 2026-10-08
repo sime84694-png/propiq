@@ -644,7 +644,9 @@
   <script>
     const loadingEl = document.getElementById('loading');
     // Stvarne faze: server javlja koji je poziv u tijeku (bez postotaka, trajanje nije predvidivo).
+    // Faze prate zahtjeve: A (procjena) pa B (analiza).
     const FAZE = { procjena: 'Procjenjujem fer vrijednost…', analiza: 'Analiziram rizike i pregovore…' };
+    const loadingTekstEl = document.getElementById('loading-tekst');
     const analizaEl = document.getElementById('analiza');
     const errorEl = document.getElementById('error');
     const errorMsgEl = document.getElementById('error-msg');
@@ -686,21 +688,30 @@
       } catch {}
     });
 
-    // Čita SSE odgovor funkcije (data: {...}\n\n) i svaki događaj predaje naDogadjaj.
-    async function procitajDogadjaje(body, naDogadjaj) {
-      const reader = body.pipeThrough(new TextDecoderStream()).getReader();
-      let buf = '';
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) return;
-        buf += value;
-        let i;
-        while ((i = buf.indexOf('\n\n')) !== -1) {
-          const red = buf.slice(0, i);
-          buf = buf.slice(i + 2);
-          if (red.startsWith('data:')) naDogadjaj(JSON.parse(red.slice(5)));
+    // Jedan korak analize (zahtjev A ili B): običan JSON. Ako veza pukne, odgovor nije JSON ili je status 5xx,
+    // korak se automatski ponavlja JEDNOM (isti zahtjev, isti procjena_id); 4xx (limit, podaci, istekla
+    // procjena) se ne ponavlja. Vraća { ok, status, payload }.
+    const PONOVNO_TEKST = 'Veza je zapela, pokušavam ponovo…';
+    async function izvrsiKorak(tijelo) {
+      let ishod = { ok: false, status: 0, payload: {} };
+      for (let pokusaj = 1; pokusaj <= 2; pokusaj++) {
+        let ponovljivo = true;
+        try {
+          const res = await fetch('/.netlify/functions/analiza', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(tijelo),
+          });
+          const payload = await res.json().catch(() => null);
+          ishod = { ok: res.ok && !!payload, status: res.status, payload: payload || {} };
+          ponovljivo = res.status >= 500 || (res.ok && !payload);
+        } catch {
+          ishod = { ok: false, status: 0, payload: {} };
         }
+        if (ishod.ok || !ponovljivo) return ishod;
+        if (pokusaj === 1) loadingTekstEl.textContent = PONOVNO_TEKST;
       }
+      return ishod;
     }
 
     // ─── Prikaz izvještaja ───
@@ -1016,6 +1027,7 @@
         new Date().toLocaleDateString('hr-HR', { day: 'numeric', month: 'long', year: 'numeric' });
     }
 
+    const GRESKA_VEZE = 'Došlo je do greške pri dohvaćanju analize. Provjerite vezu i pokušajte ponovo.';
     const jeRezultat = (r) => !!r && typeof r === 'object' && !!r.analiza && typeof r.analiza === 'object' &&
       !!r.izracuni && typeof r.izracuni === 'object';
 
@@ -1065,41 +1077,20 @@
       }
 
       try {
-        const res = await fetch('/.netlify/functions/analiza', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-
-        // Greške prije početka analize (limit, podaci, nedostupno) stižu kao JSON { error }.
-        if (!res.ok || !(res.headers.get('Content-Type') || '').includes('text/event-stream')) {
-          const payload = await res.json().catch(() => ({}));
-          showError(payload.error || 'Analiza trenutno nije dostupna. Pokušajte ponovo.', res.status === 403);
+        // Zahtjev A: slijepa procjena. Poslužitelj je sprema i vraća ID.
+        loadingTekstEl.textContent = FAZE.procjena;
+        const a = await izvrsiKorak({ ...data, korak: 'procjena' });
+        if (!a.ok || !a.payload.procjena_id) {
+          showError(a.payload.error || (a.status ? 'Analiza trenutno nije dostupna. Pokušajte ponovo.' : GRESKA_VEZE), a.status === 403);
           return;
         }
 
-        // Rezultat stiže kao SSE: tek događaj "kraj" s izvještajem znači da je analiza
-        // uspjela (i da je izbrojana u limit).
-        let analiza = null;
-        let kraj = null;
-        let greska = null;
-        try {
-          await procitajDogadjaje(res.body, (d) => {
-            if (d.kraj) {
-              kraj = d;
-              analiza = d.rezultat;
-            } else if (d.greska) {
-              greska = d.greska;
-            } else if (FAZE[d.faza]) {
-              document.getElementById('loading-tekst').textContent = FAZE[d.faza];
-            }
-          });
-        } catch {
-          kraj = null;
-        }
-
-        if (greska || !kraj || !jeRezultat(analiza)) {
-          showError(greska || 'Veza je prekinuta prije kraja analize. Pokušajte ponovo — ova analiza vam se ne broji u limit.');
+        // Zahtjev B: analiza na temelju spremljene procjene. Limit se troši tek kad B uspije.
+        loadingTekstEl.textContent = FAZE.analiza;
+        const b = await izvrsiKorak({ ...data, korak: 'analiza', procjena_id: a.payload.procjena_id });
+        const analiza = b.payload.rezultat;
+        if (!b.ok || !jeRezultat(analiza)) {
+          showError(b.payload.error || (b.status ? 'Veza je prekinuta prije kraja analize. Pokušajte ponovo — ova analiza vam se ne broji u limit.' : GRESKA_VEZE), b.status === 403);
           return;
         }
 
@@ -1128,7 +1119,7 @@
           });
         } catch {}
       } catch {
-        showError('Došlo je do greške pri dohvaćanju analize. Provjerite vezu i pokušajte ponovo.');
+        showError(GRESKA_VEZE);
       }
     }
 

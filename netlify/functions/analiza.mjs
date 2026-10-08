@@ -1,13 +1,14 @@
 // PropIQ — proxy prema Claude API za analizu nekretnina (Netlify Functions API v2).
-// Poziva se s POST-om iz rezultat.html. Greške prije početka analize (podaci, limit, Anthropic
-// nedostupan) vraća kao JSON { error } s HTTP statusom. Sam rezultat šalje kao SSE
-// (text/event-stream), jedan JSON po događaju:
-//   data: {"kraj":true,"rezultat":{"analiza":{...},"izracuni":{...},"uneseno":{...},"referenca":{...}|null}}
-//                                         — uspješan kraj; limit i statistika su tada zapisani
-//   data: {"greska":"..."}                — neuspjeh usred analize; limit se ne troši
-//   data: {"faza":"procjena"|"analiza"}   — napredak: koji je poziv u tijeku (bez postotaka)
-//   : otkucaj                            — SSE komentar svakih 5 s da veza ne ostane bez prometa
-// Dva sekvencijalna poziva (anti-"anchoring"), oba unutar istih 55 s:
+// Poziva se s POST-om iz rezultat.html, u DVA zasebna zahtjeva (svaki unutar Netlify limita sinkrone
+// funkcije od 60 s, a oba vraćaju običan JSON — bez streama, pa prekid veze usred analize ne može
+// "odrezati" izvještaj; klijent svaki korak može jednom ponoviti):
+//   A) { korak: "procjena", ... }                   → { procjena_id, procjena } — poziv 1; procjena se sprema
+//      u Netlify Blobs pod nasumičnim ID-jem (vrijedi 1 h) i veže uz hash emaila i teksta oglasa.
+//   B) { korak: "analiza", procjena_id, ... }       → { rezultat: { analiza, izracuni, uneseno, referenca } }
+//      — poziv 2; procjenu čita iz Blobsa (klijentu se ne vjeruje; nepoznat/tuđi ID → 404, istekao → 410).
+// Greške su JSON { error } s HTTP statusom (5xx klijent jednom ponavlja). Limit i statistika bilježe se
+// tek nakon uspješnog B (ponavljanje istog zahtjeva se ne broji dvaput — vidi request_id niže).
+// Dva sekvencijalna poziva (anti-"anchoring"):
 //   1) slijepa procjena fer vrijednosti i najma — oglas BEZ ikakvih cijena (netlify/lib/redakcija.mjs);
 //   2) analiza s punim tekstom i cijenom; rezultat poziva 1 dobiva kao FIKSAN podatak, a fer vrijednost
 //      i najam nisu u njegovoj shemi. Preporuku (povoljno/pregovaraj/oprez) određuje kod iz odnosa
@@ -152,6 +153,9 @@ async function incrementStats(source, plan) {
 const PONAVLJANJE_PROZOR_MS = 10 * 60 * 1000;
 const PONAVLJANJE_MAX = 2;
 const ZAHTJEVI_CUVANJE_MS = 24 * 60 * 60 * 1000;
+// Procjena iz koraka A: zapis {e: hash emaila, h: hash teksta, p: procjena}, ključ {id}:{vrijeme}.
+const PROCJENE_CUVANJE_MS = 60 * 60 * 1000;
+const PROCJENA_ID_FORMAT = /^[0-9a-f]{32}$/;
 
 // Sol: ZAHTJEVI_SALT, a bez nje ANTHROPIC_API_KEY (funkcija bez njega ionako ne radi).
 function hashEmaila(email) {
@@ -172,16 +176,19 @@ async function procitajZahtjev(store, prefix) {
   }
 }
 
-async function zapisiZahtjev(store, key, zapis) {
-  await store.set(key, JSON.stringify({ h: zapis.h, d: zapis.d }));
+// Zapis s vremenom u ključu; zapisi stariji od cuvanjeMs brišu se pri svakom upisu u isti store.
+async function zapisiBlob(store, key, vrijednost, cuvanjeMs) {
+  await store.set(key, JSON.stringify(vrijednost));
   try {
-    const granica = Date.now() - ZAHTJEVI_CUVANJE_MS;
+    const granica = Date.now() - cuvanjeMs;
     const { blobs } = await store.list();
     await Promise.all(blobs.filter((b) => vrijemeKljuca(b.key) < granica).map((b) => store.delete(b.key)));
   } catch (err) {
-    console.error('Brisanje starih zapisa zahtjeva nije uspjelo:', err);
+    console.error('Brisanje starih zapisa nije uspjelo:', err);
   }
 }
+
+const zapisiZahtjev = (store, key, zapis) => zapisiBlob(store, key, { h: zapis.h, d: zapis.d }, ZAHTJEVI_CUVANJE_MS);
 
 function jePonavljanje(zapis, tekstHash) {
   return !!zapis && zapis.h === tekstHash &&
@@ -249,6 +256,15 @@ export default async (req, context) => {
     return json(400, { error: 'Neispravan JSON u zahtjevu.' });
   }
 
+  const korak = data.korak;
+  if (korak !== 'procjena' && korak !== 'analiza') {
+    return json(400, { error: 'Nepoznat korak analize. Osvježite stranicu i pokušajte ponovo.' });
+  }
+  const procjenaId = String(data.procjena_id || '');
+  if (korak === 'analiza' && !PROCJENA_ID_FORMAT.test(procjenaId)) {
+    return json(404, { error: 'Procjena nije pronađena. Pokrenite analizu ponovo.' });
+  }
+
   const ime = (data.ime || '').toString().trim();
   const agencija = (data.agencija || '').toString().trim();
   const oglasTekst = (data.oglas_tekst || '').toString().trim();
@@ -302,19 +318,21 @@ export default async (req, context) => {
   let trenutnoIskoristeno = 0;
   let quotaKey = '';
 
-  const requestId = String(data.request_id || '');
+  // Ponavljanje se prepoznaje po request_id iz forme; ako ga nema, korak B ima ID procjene (isti za ponovni pokušaj).
+  const requestId = /^[A-Za-z0-9-]{8,64}$/.test(String(data.request_id || '')) ? String(data.request_id) : (korak === 'analiza' ? procjenaId : '');
   const imaPodataka = Object.keys(podaci).length > 0;
   const tekstHash = crypto.createHash('sha256').update(imaPodataka ? `${oglasTekst}\n${JSON.stringify(podaci)}` : oglasTekst).digest('hex');
   let zahtjevi = null;
   let zahtjevPrefix = '';
   let ponovljeno = false;
-  if (/^[A-Za-z0-9-]{8,64}$/.test(requestId)) {
+  if (requestId) {
     zahtjevi = getStore('propiq-zahtjevi');
     zahtjevPrefix = `${hashEmaila(email)}:${requestId}:`;
     const zapis = await procitajZahtjev(zahtjevi, zahtjevPrefix);
     if (jePonavljanje(zapis, tekstHash)) {
       ponovljeno = true;
-      await zapisiZahtjev(zahtjevi, zapis.key, { h: zapis.h, d: (zapis.d || 0) + 1 });
+      // Ponavljanja troši samo korak B (A i B istog zahtjeva ne smiju dvaput potrošiti isto ponavljanje).
+      if (korak === 'analiza') await zapisiZahtjev(zahtjevi, zapis.key, { h: zapis.h, d: (zapis.d || 0) + 1 });
     }
   }
 
@@ -344,7 +362,7 @@ export default async (req, context) => {
     }
   }
 
-  // Broji analizu u limit i statistiku — poziva se tek kad je stream uspješno završio.
+  // Broji analizu u limit i statistiku — poziva se tek kad je korak B uspješno završio.
   async function zabiljeziUspjeh() {
     // Paralelni poziv istog zahtjeva (F5 dok je prvi još trajao) koji je već izbrojan
     // također se ne broji ponovo.
@@ -406,16 +424,17 @@ export default async (req, context) => {
     `\n\n${procjenaTekst(procjena)}` +
     `\n\n${tekstCinjenicaSazetka(podaci.cijena_eur ?? null, procjena.fer_vrijednost, 'cijena_eur' in podaci)}`;
 
-  // Prekini pozive prema Anthropicu (zajedno sa streamom) na 55 s da funkcija stigne
-  // javiti jasnu poruku unutar Netlify 60 s limita, umjesto da bude "ubijena". Ograničenje vrijedi
-  // za oba poziva zajedno (isti AbortController) — počinje prije poziva 1.
+  // Prekini pozive prema Anthropicu (zajedno sa čitanjem streama) na 55 s da funkcija stigne
+  // javiti jasnu poruku unutar Netlify 60 s limita, umjesto da bude "ubijena". Svaki korak
+  // (procjena / analiza) je zaseban zahtjev i ima vlastitih 55 s.
   const UKUPNO_MS = 55000;
   const pocetak = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), UKUPNO_MS);
 
   class VrijemeIsteklo extends Error {}
-  // Novi poziv (ili ponovni pokušaj) ne počinje ako ne ostaje dovoljno vremena da završi.
+  class AnthropicNedostupan extends Error {}
+  // Ponovni pokušaj poziva ne počinje ako ne ostaje dovoljno vremena da završi.
   const MIN_ZA_ANALIZU_MS = 20000;
   const MIN_ZA_PONOVNU_PROCJENU_MS = MIN_ZA_ANALIZU_MS + 10000;
   const provjeriVrijeme = (minPreostalo) => {
@@ -452,74 +471,52 @@ export default async (req, context) => {
     system: SYSTEM_PROMPT, tool: TOOL, poruka: porukaAnaliza(procjena), maxTokens: 2400, temperature: 0.3,
   });
 
-  // Prvi poziv (procjena) kreće prije slanja odgovora, pa greške prije streama (timeout, Anthropic
-  // nedostupan) i dalje stižu kao JSON s HTTP statusom.
-  let res;
-  const pocetakProcjene = Date.now();
-  try {
-    res = await pozivProcjene();
-  } catch (err) {
-    clearTimeout(timeout);
-    if (err && err.name === 'AbortError') {
-      console.error('Anthropic API timeout (55 s).');
-      return json(504, { error: 'Analiza traje predugo. Pokušajte ponovo s kraćim tekstom oglasa.' });
+  const trajanja = {}; // izlazni tokeni poziva (za log)
+  // Svaki poziv ima najviše dva pokušaja: ako JSON ne prođe validaciju (odrezan, krivi tipovi,
+  // ocjena nekonzistentna s preporukom...), isti zahtjev se ponovi jednom — unutar istih 55 s.
+  const izvrsi = async (naziv, pozovi, obradi, minZaPonovni) => {
+    for (let pokusaj = 1; pokusaj <= 2; pokusaj++) {
+      if (pokusaj === 2) provjeriVrijeme(minZaPonovni);
+      const odgovor = await pozovi();
+      if (!odgovor.ok) {
+        console.error(`Anthropic API greška (${naziv}, pokušaj ${pokusaj}):`, odgovor.status, await odgovor.text().catch(() => ''));
+        throw new AnthropicNedostupan(`Anthropic ${odgovor.status}`);
+      }
+      const { tekst, stopReason, izlazniTokeni } = await procitajClaudeStream(odgovor.body);
+      trajanja[`${naziv}Tokeni`] = izlazniTokeni;
+      const v = stopReason === 'max_tokens'
+        ? { ok: false, razlog: 'odgovor odrezan (max_tokens)' }
+        : obradi(tekst);
+      if (v.ok) return v;
+      console.error(`Odgovor (${naziv}) ne prolazi validaciju (pokušaj ${pokusaj}):`, v.razlog,
+        ...('sirovo' in v ? [`| sirova fer_vrijednost (${typeof v.sirovo}): ${(JSON.stringify(v.sirovo) ?? 'undefined').slice(0, 800)}`] : []),
+        `| stop_reason=${stopReason}, ${tekst.length} znakova`);
     }
-    console.error('Neočekivana greška pri pozivu Anthropic API-ja:', err);
-    return json(500, { error: 'Došlo je do greške pri dohvaćanju analize. Pokušajte ponovo.' });
-  }
+    return null;
+  };
 
-  if (!res.ok) {
-    clearTimeout(timeout);
-    const detail = await res.text().catch(() => '');
-    console.error('Anthropic API greška:', res.status, detail);
-    return json(502, { error: 'Analiza trenutno nije dostupna. Pokušajte ponovo za koji trenutak.' });
-  }
+  // Greške korak-zahtjeva: 5xx (klijent ih jednom ponavlja); limit se nikad ne troši prije uspjelog koraka B.
+  const greskaKoraka = (naziv, err) => {
+    if (err instanceof AnthropicNedostupan) {
+      return json(502, { error: 'Analiza trenutno nije dostupna. Pokušajte ponovo za koji trenutak.' });
+    }
+    if ((err && err.name === 'AbortError') || err instanceof VrijemeIsteklo) {
+      console.error(`Anthropic API timeout (${naziv}: 55 s ili premalo preostalog vremena).`);
+      return json(504, { error: 'Analiza traje predugo. Pokušajte ponovo s kraćim tekstom oglasa — ova analiza vam se ne broji u limit.' });
+    }
+    console.error(`Korak ${naziv} je prekinut:`, err);
+    return json(502, { error: 'Veza je prekinuta prije kraja analize. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
+  };
+  const logTrajanje = (naziv) => console.log(`Trajanje poziva: ${naziv} ${Date.now() - pocetak} ms; izlazni tokeni: ${trajanja[`${naziv}Tokeni`] ?? '-'}.`);
 
-  const encoder = new TextEncoder();
-  let preglednikOtisao = false;
+  const procjene = getStore('propiq-procjene');
 
-  const trajanja = {}; // ms: procjena, analiza (puni se kako pozivi završavaju)
-  async function prenesi(ctrl) {
-    const posalji = (dogadjaj) => {
-      if (!preglednikOtisao) ctrl.enqueue(encoder.encode(`data: ${JSON.stringify(dogadjaj)}\n\n`));
-    };
-    // Netlify prekida stream bez prometa ~20 s (izmjereno na previewu; poziv 2 traje ~20 s bez ijednog
-    // bajta). SSE komentar svakih 5 s održava vezu; klijent ga preskače (ne počinje s "data:").
-    const otkucaj = setInterval(() => {
-      if (!preglednikOtisao) { try { ctrl.enqueue(encoder.encode(': otkucaj\n\n')); } catch {} }
-    }, 5000);
+  // ── Korak A: slijepa procjena (poziv 1). Rezultat se sprema na poslužitelju pod nasumičnim ID-jem ──
+  if (korak === 'procjena') {
     try {
-      posalji({ faza: 'procjena' });
-      // Svaki poziv ima najviše dva pokušaja: ako JSON ne prođe validaciju (odrezan, krivi tipovi,
-      // ocjena nekonzistentna s preporukom...), isti zahtjev se ponovi jednom — unutar istih 55 s.
-      const izvrsi = async (naziv, prviOdgovor, pozovi, obradi, minZaPonovni) => {
-        for (let pokusaj = 1; pokusaj <= 2; pokusaj++) {
-          let odgovor = pokusaj === 1 ? prviOdgovor : null;
-          if (!odgovor) {
-            if (pokusaj === 2) provjeriVrijeme(minZaPonovni);
-            odgovor = await pozovi();
-            if (!odgovor.ok) {
-              console.error(`Anthropic API greška (${naziv}, pokušaj ${pokusaj}):`, odgovor.status);
-              return null;
-            }
-          }
-          const { tekst, stopReason, izlazniTokeni } = await procitajClaudeStream(odgovor.body);
-          trajanja[`${naziv}Tokeni`] = izlazniTokeni;
-          const v = stopReason === 'max_tokens'
-            ? { ok: false, razlog: 'odgovor odrezan (max_tokens)' }
-            : obradi(tekst);
-          if (v.ok) return v;
-          console.error(`Odgovor (${naziv}) ne prolazi validaciju (pokušaj ${pokusaj}):`, v.razlog,
-            ...('sirovo' in v ? [`| sirova fer_vrijednost (${typeof v.sirovo}): ${(JSON.stringify(v.sirovo) ?? 'undefined').slice(0, 800)}`] : []),
-            `| stop_reason=${stopReason}, ${tekst.length} znakova`);
-        }
-        return null;
-      };
-
-      let rezultat = null;
       // Pouzdanost ograničava kod prema referenci (kvart → visoka, grad → srednja, ništa → niska), što god model vratio.
       // Najam nema referentnog izvora pa mu kod uvijek postavlja pouzdanost (najviše srednja).
-      const procjena = await izvrsi('procjena', res, pozivProcjene, (t) => {
+      const procjena = await izvrsi('procjena', pozivProcjene, (t) => {
         const v = parsirajIValidirajProcjenu(t, {
           medijan_eur_m2: medijan, povrsina_m2: podaci.povrsina_m2 ?? null,
           najvisaPouzdanost: granicaPouzdanosti(referenca), naziv: nazivPolazista(referenca),
@@ -530,65 +527,54 @@ export default async (req, context) => {
         if (v.ok && v.odbaceno) console.log('Odbačene korekcije lokacije (polazište je medijan k.o.):', JSON.stringify(v.odbaceno));
         return v.ok ? { ...v, procjena: ogranicitiNajam(ogranicitiPouzdanost(v.procjena, referenca)) } : v;
       }, MIN_ZA_PONOVNU_PROCJENU_MS);
-      trajanja.procjena = Date.now() - pocetakProcjene;
-      if (procjena) {
-        provjeriVrijeme(MIN_ZA_ANALIZU_MS);
-        posalji({ faza: 'analiza' });
-        trajanja.analizaOd = Date.now();
-        const v = await izvrsi('analiza', null, () => pozivAnalize(procjena.procjena), (tekst) => parsirajIValidiraj(tekst, podaci, procjena.procjena), MIN_ZA_ANALIZU_MS);
-        if (v) rezultat = { analiza: v.analiza, izracuni: izracunaj(v.analiza), uneseno: podaci, referenca: referencaZaKlijenta(referenca) };
+      logTrajanje('procjena');
+      if (!procjena) {
+        return json(502, { error: 'Procjena nije uspjela. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
       }
-      if (!rezultat) {
-        posalji({ greska: 'Analiza nije uspjela složiti izvještaj. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
-        return;
-      }
-      // Greška pri bilježenju (npr. Blobs) ne smije poništiti analizu koju je korisnik već vidio.
+      const id = crypto.randomBytes(16).toString('hex');
       try {
-        await zabiljeziUspjeh();
+        await zapisiBlob(procjene, `${id}:${Date.now()}`, { e: hashEmaila(email), h: tekstHash, p: procjena.procjena }, PROCJENE_CUVANJE_MS);
       } catch (err) {
-        console.error('Bilježenje uspješne analize nije uspjelo:', err);
+        console.error('Procjena nije spremljena:', err);
+        return json(500, { error: 'Došlo je do greške pri spremanju procjene. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
       }
-      const krajJson = JSON.stringify({ kraj: true, rezultat });
-      const bajtova = Buffer.byteLength(krajJson, 'utf8');
-      console.log(`[dijagnostika] saljem kraj: ${bajtova} B, ${Date.now() - pocetak} ms, preglednikOtisao=${preglednikOtisao}`);
-      try {
-        if (!preglednikOtisao) ctrl.enqueue(encoder.encode(`data: ${krajJson}\n\n`));
-        console.log(`[dijagnostika] kraj enqueue-an: ${Date.now() - pocetak} ms`);
-      } catch (err) {
-        console.error('[dijagnostika] enqueue kraj nije uspio:', err);
-      }
+      return json(200, { procjena_id: id, procjena: procjena.procjena });
     } catch (err) {
-      if (preglednikOtisao) return; // preglednik je zatvorio vezu (npr. F5) — ništa se ne broji
-      const isteklo = (err && err.name === 'AbortError') || err instanceof VrijemeIsteklo;
-      console.error(isteklo ? 'Anthropic API timeout (55 s ili premalo preostalog vremena).' : 'Stream analize je prekinut:', isteklo ? '' : err);
-      posalji({
-        greska: isteklo
-          ? 'Analiza traje predugo. Pokušajte ponovo s kraćim tekstom oglasa — ova analiza vam se ne broji u limit.'
-          : 'Veza je prekinuta prije kraja analize. Pokušajte ponovo — ova analiza vam se ne broji u limit.',
-      });
+      return greskaKoraka('procjena', err);
     } finally {
-      const sada = Date.now();
-      console.log(`Trajanje poziva: procjena ${trajanja.procjena ?? '-'} ms, analiza ${trajanja.analizaOd ? sada - trajanja.analizaOd : '-'} ms, ukupno ${sada - pocetak} ms; izlazni tokeni: procjena ${trajanja.procjenaTokeni ?? '-'}, analiza ${trajanja.analizaTokeni ?? '-'}.`);
       clearTimeout(timeout);
-      clearInterval(otkucaj);
-      try { ctrl.close(); console.log(`[dijagnostika] ctrl.close() ok: ${Date.now() - pocetak} ms`); } catch (err) { console.error('[dijagnostika] ctrl.close() nije uspio:', err); }
     }
   }
 
-  const body = new ReadableStream({
-    start(ctrl) {
-      // Response se vraća odmah, a događaji teku kako stižu; waitUntil javi Netlifyju da posao traje i nakon povrata.
-      const posao = prenesi(ctrl);
-      if (context && typeof context.waitUntil === 'function') context.waitUntil(posao);
-    },
-    cancel() {
-      preglednikOtisao = true;
-      controller.abort();
-    },
-  });
-
-  return new Response(body, {
-    status: 200,
-    headers: { ...CORS, 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache' },
-  });
+  // ── Korak B: analiza (poziv 2). Procjenu čita iz Blobsa — klijentu se ne vjeruje ──
+  // Nepoznat i tuđi ID daju isti odgovor (404), da se ID-jevi ne mogu provjeravati.
+  try {
+    const zapis = await procitajZahtjev(procjene, `${procjenaId}:`);
+    if (!zapis || zapis.e !== hashEmaila(email)) {
+      return json(404, { error: 'Procjena nije pronađena. Pokrenite analizu ponovo.' });
+    }
+    if (Date.now() - zapis.t >= PROCJENE_CUVANJE_MS) {
+      return json(410, { error: 'Procjena je istekla. Pokrenite analizu ponovo.' });
+    }
+    if (zapis.h !== tekstHash) {
+      return json(400, { error: 'Procjena ne pripada ovom oglasu. Pokrenite analizu ponovo.' });
+    }
+    const v = await izvrsi('analiza', () => pozivAnalize(zapis.p), (tekst) => parsirajIValidiraj(tekst, podaci, zapis.p), MIN_ZA_ANALIZU_MS);
+    logTrajanje('analiza');
+    if (!v) {
+      return json(502, { error: 'Analiza nije uspjela složiti izvještaj. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
+    }
+    const rezultat = { analiza: v.analiza, izracuni: izracunaj(v.analiza), uneseno: podaci, referenca: referencaZaKlijenta(referenca) };
+    // Greška pri bilježenju (npr. Blobs) ne smije poništiti analizu koju je korisnik već dobio.
+    try {
+      await zabiljeziUspjeh();
+    } catch (err) {
+      console.error('Bilježenje uspješne analize nije uspjelo:', err);
+    }
+    return json(200, { rezultat });
+  } catch (err) {
+    return greskaKoraka('analiza', err);
+  } finally {
+    clearTimeout(timeout);
+  }
 };

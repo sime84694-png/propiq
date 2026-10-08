@@ -233,3 +233,61 @@ test('najam: napomena da je AI procjena bez referentnog izvora, uz pouzdanost ko
   assert.ok(!kartica({ dugorocni_mj_eur: null, turisticki_godisnje_eur: null }).textContent.includes('Procjena najma je AI procjena'), 'bez ikakve procjene nema napomene');
   assert.ok(!kartica({ dugorocni_mj_eur: 750, turisticki_godisnje_eur: null }).textContent.includes('Referenca najma'));
 });
+
+// ── izvrsiKorak: jedan automatski ponovni pokušaj koraka A/B (običan JSON, bez streama) ──
+const izvuciIzvrsiKorak = (lazniFetch, loadingTekstEl) => {
+  const kod = skripta.match(/const PONOVNO_TEKST[\s\S]*?\n    }\n/)[0];
+  return new Function('fetch', 'loadingTekstEl', `${kod}; return { izvrsiKorak, PONOVNO_TEKST };`)(lazniFetch, loadingTekstEl);
+};
+const jsonOdgovor = (status, tijelo) => ({ ok: status >= 200 && status < 300, status, json: async () => { if (tijelo === undefined) throw new SyntaxError('nije JSON'); return tijelo; } });
+
+test('izvrsiKorak: uspjeh iz prvog pokušaja, bez poruke o ponavljanju', async () => {
+  const tekst = { textContent: 'x' };
+  let poziva = 0;
+  const { izvrsiKorak } = izvuciIzvrsiKorak(async () => { poziva++; return jsonOdgovor(200, { procjena_id: 'a' }); }, tekst);
+  assert.deepEqual(await izvrsiKorak({}), { ok: true, status: 200, payload: { procjena_id: 'a' } });
+  assert.equal(poziva, 1);
+  assert.equal(tekst.textContent, 'x');
+});
+
+test('izvrsiKorak: prekid veze, 5xx i ne-JSON odgovor ponavljaju se JEDNOM, s porukom', async () => {
+  for (const prvi of [() => { throw new TypeError('network'); }, () => jsonOdgovor(502, { error: 'x' }), () => jsonOdgovor(504, undefined), () => jsonOdgovor(200, undefined)]) {
+    const tekst = { textContent: '' };
+    const tijela = [];
+    let poziva = 0;
+    const { izvrsiKorak, PONOVNO_TEKST } = izvuciIzvrsiKorak(async (url, opts) => { tijela.push(opts.body); return ++poziva === 1 ? prvi() : jsonOdgovor(200, { rezultat: 1 }); }, tekst);
+    const r = await izvrsiKorak({ korak: 'analiza', procjena_id: 'id1' });
+    assert.equal(r.ok, true);
+    assert.equal(poziva, 2);
+    assert.equal(tijela[0], tijela[1], 'isti zahtjev i isti ID');
+    assert.equal(tekst.textContent, PONOVNO_TEKST);
+    assert.equal(PONOVNO_TEKST, 'Veza je zapela, pokušavam ponovo…');
+  }
+});
+
+test('izvrsiKorak: nakon drugog pada greška, nikad treći pokušaj', async () => {
+  let poziva = 0;
+  const { izvrsiKorak } = izvuciIzvrsiKorak(async () => { poziva++; return jsonOdgovor(502, { error: 'pala' }); }, { textContent: '' });
+  const r = await izvrsiKorak({});
+  assert.equal(poziva, 2);
+  assert.deepEqual([r.ok, r.status, r.payload.error], [false, 502, 'pala']);
+  poziva = 0;
+  const m = izvuciIzvrsiKorak(async () => { poziva++; throw new TypeError('network'); }, { textContent: '' });
+  assert.equal((await m.izvrsiKorak({})).status, 0);
+  assert.equal(poziva, 2);
+});
+
+test('izvrsiKorak: 4xx (limit, istekla procjena) se ne ponavlja', async () => {
+  for (const status of [400, 403, 404, 410]) {
+    let poziva = 0;
+    const { izvrsiKorak } = izvuciIzvrsiKorak(async () => { poziva++; return jsonOdgovor(status, { error: 'e' }); }, { textContent: '' });
+    const r = await izvrsiKorak({});
+    assert.equal(poziva, 1, String(status));
+    assert.deepEqual([r.ok, r.status], [false, status]);
+  }
+});
+
+test('rezultat.html: faza A pa B, ID iz A ide u B, nema više SSE čitanja', () => {
+  assert.ok(!/text\/event-stream|procitajDogadjaje/.test(skripta));
+  assert.match(skripta, /korak: 'procjena'[\s\S]*FAZE\.analiza[\s\S]*korak: 'analiza', procjena_id: a\.payload\.procjena_id/);
+});
