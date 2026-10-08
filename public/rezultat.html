@@ -40,6 +40,7 @@
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     html { scroll-behavior: smooth; }
     body {
+      font-variant-numeric: tabular-nums;
       font-family: 'Helvetica Neue', Arial, sans-serif;
       background: var(--bg);
       color: var(--cream);
@@ -728,13 +729,15 @@
     const NF = new Intl.NumberFormat('hr-HR', { maximumFractionDigits: 0 });
     const NF1 = new Intl.NumberFormat('hr-HR', { maximumFractionDigits: 1 });
     const jeBroj = (v) => typeof v === 'number' && Number.isFinite(v);
-    const eur = (v) => (jeBroj(v) ? `${NF.format(v)} €` : null);
-    const posto = (v) => (jeBroj(v) ? `${NF1.format(v)} %` : null);
+    // Broj i jedinica (€, €/m², %, m²) nikad se ne lome u dva retka: običan razmak postaje neprelomiv.
+    const nb = (t) => (typeof t === 'string' ? t.replace(/(\d) (€\/m²|€|%|m²)/g, '$1\u00A0$2') : t);
+    const eur = (v) => (jeBroj(v) ? `${NF.format(v)}\u00A0€` : null);
+    const posto = (v) => (jeBroj(v) ? `${NF1.format(v)}\u00A0%` : null);
 
     function el(tag, cls, tekst) {
       const e = document.createElement(tag);
       if (cls) e.className = cls;
-      if (tekst !== undefined && tekst !== null) e.textContent = tekst;
+      if (tekst !== undefined && tekst !== null) e.textContent = nb(tekst);
       return e;
     }
     // Tri vrste null vrijednosti (null se nikad ne prikazuje kao 0):
@@ -748,7 +751,7 @@
     function vrijednost(v, cls, vrsta, razlog) {
       const e = el('span', cls);
       if (v === null || v === undefined) { e.className = (cls ? cls + ' ' : '') + 'nd'; e.textContent = nullTekst(vrsta, razlog); }
-      else e.textContent = v;
+      else e.textContent = nb(v);
       return e;
     }
     const oznakaUpisali = () => el('span', 'upisali', 'tvoj unos');

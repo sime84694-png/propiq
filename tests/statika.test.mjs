@@ -154,7 +154,11 @@ test('index.html: planovi se razlikuju samo po broju analiza (+ prioritetna podr
 
 test('index.html: primjer analize je označen kao primjer i odgovara izračunu (Središće, 130,45 m²)', async () => {
   const html = fs.readFileSync(javno('index.html'), 'utf8');
-  const primjer = html.slice(html.indexOf('id="primjer"'), html.indexOf('id="analiza"'));
+  const sirovo = html.slice(html.indexOf('id="primjer"'), html.indexOf('id="analiza"'));
+  // Broj i jedinica (€, %, m²) povezani su neprelomivim razmakom; za usporedbu teksta svodimo ga na običan razmak.
+  assert.ok(!/\d (€|%|m²)/.test(sirovo.replace(/<[^>]+>/g, '')), 'razmak između broja i jedinice mora biti neprelomiv');
+  assert.ok(!/monospace|class="mono"/.test(sirovo), 'brojke nisu u monospace fontu');
+  const primjer = sirovo.replace(/&nbsp;|[\u00A0\u202F]/g, ' ');
   assert.match(primjer, /Primjer analize/);
   for (const t of ['Zagreb, Središće, 130,45 m²', '694.896 €', '410.000', '470.000 €', '3.142', '3.614 €/m²', 'OPREZ', '1/10', 'Zaprudski Otok', '3.345 €/m²', 'MPGI/DZS', '440.000 €']) assert.ok(primjer.includes(t), t);
   for (const k of ['+8 %', '−7 %', '+4 %', '+2 %', '−4 %', '−2 %']) assert.ok(primjer.includes(k), k);

@@ -67,6 +67,7 @@
     html { scroll-behavior: smooth; }
 
     body {
+      font-variant-numeric: tabular-nums;
       font-family: 'Helvetica Neue', Arial, sans-serif;
       background: var(--bg);
       color: var(--cream);
@@ -548,29 +549,58 @@
       display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
       padding-bottom: 20px; margin-bottom: 24px; border-bottom: 1px solid var(--cream-08);
     }
-    .report-eyebrow {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 0.64rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-40);
+    .report-pill {
+      display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 100px;
+      background: var(--cream-08); border: 1px solid var(--cream-15);
+      font-size: 0.82rem; font-weight: 600; color: var(--cream-70);
     }
-    .report-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); }
-    .report-address { font-weight: 700; color: var(--cream); font-size: 0.95rem; }
+    .report-address { font-weight: 600; color: var(--cream); font-size: 0.95rem; }
 
-    .report-block { margin-bottom: 22px; }
-    .report-h { font-family: var(--font-serif); font-size: 1.15rem; color: var(--gold); margin-bottom: 14px; }
-    .report-list { list-style: none; display: flex; flex-direction: column; gap: 11px; }
-    .report-list li {
-      position: relative; padding-left: 18px;
-      font-size: 0.9rem; color: var(--cream-70); line-height: 1.55;
+    .fer-label { font-size: 0.85rem; color: rgba(240,236,228,0.6); margin-bottom: 8px; }
+    .fer-raspon {
+      font-family: var(--font-serif); font-weight: 700; color: var(--cream);
+      font-size: clamp(1.65rem, 7.4vw, 2.5rem); line-height: 1.1; letter-spacing: -0.01em; white-space: nowrap;
+      font-variant-numeric: lining-nums tabular-nums;
     }
-    .report-list li::before {
-      content: ''; position: absolute; left: 2px; top: 0.6em;
-      width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: 0.65;
+    .fer-m2 { margin-top: 8px; font-size: 1rem; color: var(--cream-70); }
+
+    .oznaka-red { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 20px 0 30px; }
+    .oznaka {
+      padding: 6px 14px; border-radius: 100px; font-size: 0.82rem; font-weight: 700;
+      background: rgba(240,134,111,0.12); border: 1px solid rgba(240,134,111,0.28); color: #f4a08e;
     }
-    .report-list li.verdict { color: var(--cream); font-weight: 600; }
-    .mono {
-      font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
-      font-variant-numeric: tabular-nums;
-      color: var(--cream);
+    .ocjena { font-size: 0.95rem; font-weight: 600; color: var(--cream); }
+    .oznaka-opis { flex-basis: 100%; font-size: 0.88rem; color: rgba(240,236,228,0.6); }
+
+    /* Vodoravna traka: fer raspon (zlatni segment) i tražena cijena izvan njega */
+    .traka { position: relative; padding-top: 30px; padding-bottom: 28px; margin-bottom: 26px; }
+    .traka-trazena { position: absolute; top: 0; right: 0; font-size: 0.85rem; font-weight: 600; color: #f4a08e; white-space: nowrap; }
+    .traka-os { position: relative; height: 10px; border-radius: 100px; background: var(--cream-08); }
+    .traka-fer { position: absolute; top: 0; bottom: 0; border-radius: 100px; background: var(--gold); transform-origin: left; }
+    .traka-marker {
+      position: absolute; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
+      background: #f4a08e; border: 3px solid #120f0b; box-shadow: 0 0 0 1px rgba(244,160,142,0.5);
+    }
+    .traka-fer-oznaka { position: absolute; bottom: 0; font-size: 0.8rem; font-weight: 600; color: var(--gold); white-space: nowrap; }
+    .traka.van .traka-fer { transform: scaleX(0); }
+    .traka.van.ulazi .traka-fer { transform: none; transition: transform 0.7s cubic-bezier(.2,.7,.2,1) 0.1s; }
+
+    .report-mali-h { font-size: 0.85rem; color: rgba(240,236,228,0.6); margin-bottom: 10px; }
+    .korekcije { display: flex; flex-wrap: wrap; gap: 8px; }
+    .kor { padding: 6px 12px; border-radius: 100px; font-size: 0.84rem; font-weight: 500; white-space: nowrap; }
+    .kor-pl { background: rgba(212,175,55,0.14); color: #e3c25c; }
+    .kor-mi { background: var(--cream-08); color: rgba(240,236,228,0.66); }
+    .polaziste { margin: 16px 0 22px; font-size: 0.8rem; line-height: 1.55; color: rgba(240,236,228,0.58); }
+
+    .teaser {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 16px 18px; margin-bottom: 26px; border-radius: 18px; background: var(--cream-04); border: 1px solid var(--cream-08);
+    }
+    .teaser-l { font-size: 0.95rem; font-weight: 600; color: var(--cream); }
+    .teaser-s { margin-top: 4px; font-size: 0.8rem; line-height: 1.45; color: rgba(240,236,228,0.58); }
+    .teaser-v {
+      flex: none; font-family: var(--font-serif); font-weight: 700; font-size: 1.25rem; color: var(--cream);
+      filter: blur(7px); user-select: none; pointer-events: none; white-space: nowrap;
     }
 
     .report-cta {
@@ -589,6 +619,7 @@
       .report-inner { padding: 24px 20px 4px; }
       .report-cta { padding: 18px 20px 30px; }
       .report-address { font-size: 0.88rem; }
+      .report-inner { padding-bottom: 8px; }
     }
 
     /* ─── TESTIMONIALS ─── */
@@ -1361,7 +1392,7 @@
 
     .modal-close {
       display: flex; align-items: center; justify-content: center;
-      width: 44px; height: 44px; margin-right: -4px; padding: 0;
+      width: 48px; height: 48px; margin-right: -6px; padding: 0;
       background: var(--cream-08); border: 0; border-radius: 50%; cursor: pointer;
       color: var(--cream);
       font-size: 0; /* tekst "Zatvori" ostaje u aria-labelu */
@@ -1375,24 +1406,10 @@
     .modal-poruka h3 {
       font-family: var(--font-serif); font-weight: 700;
       font-size: clamp(1.9rem, 6.4vw, 2.3rem); line-height: 1.12; letter-spacing: -0.01em;
-      margin: 0; padding-right: 76px;
+      margin: 0;
     }
     .modal-poruka h3 em { font-style: normal; color: var(--m-gold); }
     .modal-subtitle { margin: 14px 0 0; padding-right: 40px; max-width: 34ch; font-size: 1rem; line-height: 1.55; color: var(--m-c78); }
-
-    /* Tlocrt slova P: sitan i suptilan */
-    .tlocrt { position: absolute; top: 10px; right: var(--m-pad); width: 54px; opacity: 0.5; pointer-events: none; }
-    .tlocrt svg { width: 100%; height: auto; display: block; overflow: visible; }
-    .tlocrt .ln { fill: none; stroke: var(--m-gold); stroke-width: 1.1; vector-effect: non-scaling-stroke; }
-    .tlocrt .th { stroke-width: 1.4; }
-    .tlocrt .fn { stroke: var(--m-gold); stroke-opacity: 0.55; stroke-width: 0.8; fill: none; vector-effect: non-scaling-stroke; }
-    .tlocrt .wall { fill: rgba(212,175,55,0.13); fill-rule: evenodd; }
-    .tlocrt .cut { fill: var(--m-bg); }
-    .tlocrt text { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10px; fill: var(--m-gold); fill-opacity: 0.8; }
-    .draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: tlocrtDraw 2.4s var(--m-ease) 0.2s forwards; }
-    .draw.d2 { animation-delay: 0.5s; animation-duration: 2s; }
-    .fade-late { opacity: 0; animation: modalFade 1.2s ease 1.4s forwards; }
-    @keyframes tlocrtDraw { to { stroke-dashoffset: 0; } }
 
     .modal > * { flex-shrink: 0; }
     .modal-forma { flex: 1 0 auto; display: flex; flex-direction: column; padding: 0 var(--m-pad); }
@@ -1488,13 +1505,57 @@
     .form-submit.loading .btn-arrow { display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+
+    /* ─── Modal u dva koraka ─── */
+    .modal [hidden] { display: none !important; }
+    .korak-traka { display: flex; align-items: center; gap: 4px; min-height: 48px; padding: 0 calc(var(--m-pad) - 8px) 0; }
+    .korak-natrag {
+      display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; padding: 0;
+      background: none; border: 0; border-radius: 50%; cursor: pointer; color: var(--cream); transition: background 0.25s;
+    }
+    .korak-natrag:hover { background: var(--cream-08); }
+    .korak-natrag svg { width: 20px; height: 12px; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .korak-tekst { padding-left: 8px; font-size: 0.85rem; font-weight: 500; color: var(--m-c60); font-variant-numeric: tabular-nums; }
+    .korak-traka:has(.korak-natrag[hidden]) .korak-tekst { padding-left: 8px; }
+    .modal[data-korak="2"] .modal-subtitle { display: none; }
+    .korak { flex: 1 0 auto; display: flex; flex-direction: column; }
+    .korak.izlaz { animation: korakOut 0.12s ease-in forwards; }
+    .korak.ulaz { animation: korakIn 0.12s ease-out both; }
+    @keyframes korakOut { to { opacity: 0; transform: translateX(calc(var(--smjer, 1) * -14px)); } }
+    @keyframes korakIn { from { opacity: 0; transform: translateX(calc(var(--smjer, 1) * 14px)); } to { opacity: 1; transform: none; } }
+    .korak-naslov { margin: 0 4px 18px; font-family: var(--font-serif); font-weight: 700; font-size: 1.35rem; line-height: 1.25; color: var(--cream); }
+    #korak-2 .form-group { margin-bottom: 8px; }
+    #korak-2 .form-note { margin: 8px 4px 0; text-align: left; }
+    .form-group textarea { min-height: 148px; overflow-y: hidden; }
+    .form-group input, .form-group select { min-height: 48px; }
+    .form-greska { margin-top: 0; }
+
+    .pill-btn {
+      display: inline-flex; align-items: center; gap: 10px; align-self: flex-start;
+      min-height: 48px; padding: 0 20px; margin: 4px 0 8px;
+      background: transparent; border: 1.5px solid rgba(240,236,228,0.22); border-radius: 100px; cursor: pointer;
+      font-size: 0.95rem; font-weight: 500; color: var(--cream);
+      transition: border-color 0.3s, background 0.3s, transform 0.3s var(--m-ease);
+    }
+    .pill-btn:hover { border-color: rgba(212,175,55,0.7); background: rgba(212,175,55,0.06); }
+    .pill-btn svg { width: 18px; height: 18px; stroke: var(--m-gold); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+    /* "+ Dodaj cijenu, površinu ili kvart" kao link; polja se otvaraju u mekanoj kartici */
+    .kljucni-podaci { margin: 4px 0 8px; background: none; border: 0; border-radius: 0; }
+    .kljucni-podaci > summary { min-height: 48px; padding: 6px 4px; border-radius: 14px; color: var(--m-gold); font-size: 0.95rem; font-weight: 500; }
+    .kljucni-podaci > summary:hover { background: none; color: var(--cream); }
+    .kp-body { margin-top: 4px; padding: 18px 14px 8px; background: #100d0a; border: 1px solid var(--m-line); border-radius: 22px; }
+    .vise-detalja > summary { min-height: 48px; }
+    .form-akcija { margin-top: auto; }
+    .form-akcija { padding-top: 24px; }
+    .modal .korak > .form-note, .modal .korak > .pill-btn { flex: none; }
+
     .modal :focus-visible { outline: 2px solid var(--m-gold); outline-offset: 3px; }
     .modal .form-group input:focus-visible, .modal .form-group textarea:focus-visible, .modal .form-group select:focus-visible { outline: 0; }
     .modal .form-submit:focus-visible { outline-color: var(--cream); outline-offset: 4px; }
     .modal .form-success { margin: 8px 0 0; padding: 24px 0 calc(32px + env(safe-area-inset-bottom)); }
 
     @media (min-width: 641px) {
-      .tlocrt { width: 64px; }
       .modal-poruka h3 { font-size: 2.3rem; }
       .form-row { grid-template-columns: 1fr 1fr; gap: 0 12px; }
     }
@@ -1512,9 +1573,9 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+      .korak.izlaz, .korak.ulaz { animation: none; }
+      .pill-btn, .korak-natrag { transition: none; }
       .modal-overlay.open, .modal, .modal .fade, .kp-body { animation: none; opacity: 1; transform: none; }
-      .draw { animation: none; stroke-dashoffset: 0; }
-      .fade-late { animation: none; opacity: 1; }
       .form-group, .form-group label, .plus::before, .plus::after, .form-submit, .form-submit .btn-arrow, .modal-close, .kljucni-podaci > summary { transition: none; }
       .kljucni-podaci::details-content, .vise-detalja::details-content { transition: none; }
       .form-submit:hover:not(:disabled), .modal-close:hover { transform: none; }
@@ -1707,33 +1768,55 @@
     <div class="example-head fade-in">
       <div class="section-label">Primjer</div>
       <h2 class="section-title">Kako izgleda analiza</h2>
-      <p class="example-lead">Primjer: isječak izvještaja za jedan oglas, skraćen.</p>
+      <p class="example-lead">Primjer analize: isječak izvještaja za jedan oglas, skraćen.</p>
     </div>
 
-    <div class="report fade-in">
+    <div class="report fade-in" id="primjer-kartica">
       <div class="report-glow"></div>
       <div class="report-inner">
         <div class="report-topline">
-          <span class="report-eyebrow"><span class="report-dot"></span>Primjer analize</span>
-          <span class="report-address">Zagreb, Središće, 130,45 m²</span>
+          <span class="report-pill">Primjer</span>
+          <span class="report-address">Zagreb, Središće, 130,45&nbsp;m²</span>
         </div>
 
-        <div class="report-block">
-          <h3 class="report-h">Procjena vrijednosti</h3>
-          <ul class="report-list">
-            <li>Tražena cijena: <span class="mono">694.896 €</span></li>
-            <li>Fer raspon: <span class="mono">410.000</span> do <span class="mono">470.000 €</span> (<span class="mono">3.142</span> do <span class="mono">3.614 €/m²</span>)</li>
-            <li>Polazište: medijan stvarno plaćenih cijena za k.o. Zaprudski Otok, <span class="mono">3.345 €/m²</span> (MPGI/DZS)</li>
-            <li>Korekcije: <span class="mono">+8 %</span> renovacija, <span class="mono">−7 %</span> veliki stan, <span class="mono">+4 %</span> kat/pogled, <span class="mono">+2 %</span> lift, <span class="mono">−4 %</span> bez parkinga, <span class="mono">−2 %</span> starost zgrade</li>
-            <li class="verdict">Oznaka: OPREZ, ocjena <span class="mono">1/10</span> — tražena cijena je iznad fer raspona</li>
-          </ul>
+        <div class="fer">
+          <div class="fer-label">Fer raspon vrijednosti</div>
+          <div class="fer-raspon"><span data-do="410000">410.000</span> – <span data-do="470000">470.000</span>&nbsp;€</div>
+          <div class="fer-m2">3.142 – 3.614&nbsp;€/m²</div>
         </div>
 
-        <div class="report-block">
-          <h3 class="report-h">Pregovaranje</h3>
-          <ul class="report-list">
-            <li>Ciljana ponuda: <span class="mono">440.000 €</span> (prijedlog za pregovore, nije procjena vrijednosti)</li>
-          </ul>
+        <div class="oznaka-red">
+          <span class="oznaka">OPREZ</span>
+          <span class="ocjena">Ocjena 1/10</span>
+          <span class="oznaka-opis">Tražena cijena je iznad fer raspona.</span>
+        </div>
+
+        <div class="traka" role="img" aria-label="Tražena cijena 694.896&nbsp;€ je iznad fer raspona 410.000 – 470.000&nbsp;€">
+          <div class="traka-trazena">Tražena 694.896&nbsp;€</div>
+          <div class="traka-os">
+            <span class="traka-fer" style="left:26.19%;width:14.29%"></span>
+            <span class="traka-marker" style="left:94.03%"></span>
+          </div>
+          <div class="traka-fer-oznaka" style="left:26.19%">Fer raspon</div>
+        </div>
+
+        <div class="report-mali-h">Korekcije polazišta</div>
+        <div class="korekcije">
+          <span class="kor kor-pl">+8&nbsp;% renovacija</span>
+          <span class="kor kor-mi">−7&nbsp;% veliki stan</span>
+          <span class="kor kor-pl">+4&nbsp;% kat/pogled</span>
+          <span class="kor kor-pl">+2&nbsp;% lift</span>
+          <span class="kor kor-mi">−4&nbsp;% bez parkinga</span>
+          <span class="kor kor-mi">−2&nbsp;% starost zgrade</span>
+        </div>
+        <p class="polaziste">Polazište: medijan stvarno plaćenih cijena, k.o. Zaprudski Otok, 3.345&nbsp;€/m² (MPGI/DZS)</p>
+
+        <div class="teaser">
+          <div class="teaser-tekst">
+            <div class="teaser-l">Ciljana ponuda</div>
+            <div class="teaser-s">Prijedlog za pregovore, nije procjena vrijednosti. Otkriva se u punoj analizi.</div>
+          </div>
+          <div class="teaser-v" aria-hidden="true">440.000&nbsp;€</div>
         </div>
       </div>
 
@@ -2032,50 +2115,32 @@
         </button>
       </header>
 
+      <div class="korak-traka" id="korak-traka">
+        <button type="button" class="korak-natrag" id="korak-natrag" aria-label="Natrag na tekst oglasa" hidden>
+          <svg viewBox="0 0 20 12" aria-hidden="true"><path d="M19 6H2M6 1L1 6l5 5"/></svg>
+        </button>
+        <span class="korak-tekst" id="korak-tekst" aria-live="polite">1 od 2</span>
+      </div>
+
       <section class="modal-poruka">
-        <!-- Tlocrt slova P (suptilan ukras; bez kota s brojkama jer mjere nisu stvarne) -->
-        <div class="tlocrt" aria-hidden="true">
-          <svg viewBox="0 0 400 560">
-            <path class="fn" d="M120 8V548" stroke-dasharray="10 4 2 4"/>
-            <path class="wall fade-late" d="M40 40H360V300H200V520H40Z M52 52V508H188V288H348V52Z"/>
-            <path class="wall fade-late" d="M112 112H280V230H112Z M124 124V218H268V124Z"/>
-            <path class="ln th draw" pathLength="1" d="M40 40H360V300H200V520H40Z"/>
-            <path class="ln draw d2" pathLength="1" d="M52 52H348V288H188V508H52Z"/>
-            <path class="ln draw d2" pathLength="1" d="M112 112H280V230H112Z"/>
-            <path class="ln draw d2" pathLength="1" d="M124 124H268V218H124Z"/>
-            <rect class="cut" x="80" y="505" width="62" height="18"/>
-            <path class="ln" d="M80 508V520M142 508V520"/>
-            <path class="fn" d="M80 508V446M80 446A62 62 0 0 1 142 508"/>
-            <rect class="cut" x="345" y="118" width="18" height="108"/>
-            <path class="ln" d="M348 118H360M348 226H360"/>
-            <path class="fn" d="M350 118V226M354 118V226M358 118V226"/>
-            <rect class="cut" x="37" y="330" width="18" height="96"/>
-            <path class="ln" d="M40 330H52M40 426H52"/>
-            <path class="fn" d="M42 330V426M46 330V426M50 330V426"/>
-            <g class="fade-late">
-              <path class="fn" d="M40 22H360M40 15V29M360 15V29"/>
-              <path class="fn" d="M18 40V520M11 40H25M11 520H25"/>
-              <circle cx="120" cy="546" r="9" class="fn"/><text x="120" y="550" text-anchor="middle">A</text>
-              <circle cx="120" cy="8" r="9" class="fn"/><text x="120" y="12" text-anchor="middle">A</text>
-            </g>
-          </svg>
-        </div>
         <h3 id="modal-naslov" class="fade" style="--i:1">Koliko oglas <em>stvarno vrijedi?</em></h3>
         <p class="modal-subtitle fade" style="--i:2">Zalijepi oglas, za oko pola minute znaš je li cijena fer.</p>
       </section>
 
       <section class="modal-forma">
-      <form id="zahtjev-form">
-        <div class="form-group fade" style="--i:2">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" placeholder="ime.prezime@primjer.hr" maxlength="254" autocomplete="email" required>
-        </div>
-        <div class="form-group fade" style="--i:3">
-          <label for="oglas_tekst">Tekst oglasa</label>
-          <textarea id="oglas_tekst" name="oglas_tekst" rows="4" placeholder="Zalijepi naslov, cijenu, opis i karakteristike nekretnine s bilo kojeg oglasnika…" maxlength="15000"></textarea>
-        </div>
-        <details class="kljucni-podaci fade" style="--i:4" id="kp_blok">
-          <summary><span class="plus" aria-hidden="true"></span>Dodaj cijenu, površinu ili kvart <small>neobavezno</small></summary>
+      <form id="zahtjev-form" novalidate>
+        <div class="korak" id="korak-1">
+          <div class="form-group fade" style="--i:2">
+            <label for="oglas_tekst">Tekst oglasa</label>
+            <textarea id="oglas_tekst" name="oglas_tekst" rows="5" placeholder="Zalijepi naslov, cijenu, opis i karakteristike nekretnine s bilo kojeg oglasnika…" maxlength="15000"></textarea>
+          </div>
+          <div class="form-greska" id="form-greska" role="alert"></div>
+          <button type="button" class="pill-btn fade" style="--i:3" id="zalijepi-btn" hidden>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="4" width="10" height="13" rx="2"/><path d="M8 4V3h4v1"/></svg>
+            Zalijepi iz međuspremnika
+          </button>
+        <details class="kljucni-podaci fade" style="--i:3" id="kp_blok">
+          <summary><span class="plus" aria-hidden="true"></span>Dodaj cijenu, površinu ili kvart</summary>
           <div class="kp-body" role="group" aria-label="Ključni podaci (neobavezno — ako ih oglas nema ili ih želiš ispraviti)">
           <h4>Ključni podaci <small>Ako ih oglas nema ili ih želiš ispraviti.</small></h4>
           <div class="form-row">
@@ -2123,14 +2188,30 @@
           </details>
           </div>
         </details>
-        <div class="form-greska" id="form-greska" role="alert"></div>
-        <p class="form-note">Prve 3 analize besplatno · bez kartice · polazište su stvarno plaćene cijene (MPGI/DZS)</p>
-        <div class="form-akcija">
-          <button type="submit" class="form-submit" id="form-submit-btn">
-            <div class="spinner"></div>
-            <span class="btn-text">Pokreni analizu</span>
-            <svg class="btn-arrow" viewBox="0 0 22 10" aria-hidden="true"><path d="M1 5H20M16 1l4 4-4 4"/></svg>
-          </button>
+          <div class="form-akcija">
+            <button type="button" class="form-submit" id="dalje-btn">
+              <div class="spinner"></div>
+              <span class="btn-text">Dalje</span>
+              <svg class="btn-arrow" viewBox="0 0 22 10" aria-hidden="true"><path d="M1 5H20M16 1l4 4-4 4"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="korak" id="korak-2" hidden>
+          <h4 class="korak-naslov" id="korak-2-naslov">Gdje ti pošaljemo izvještaj?</h4>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="ime.prezime@primjer.hr" maxlength="254" inputmode="email" autocomplete="email" required>
+          </div>
+          <div class="form-greska" id="email-greska" role="alert"></div>
+          <p class="form-note">Prve 3 analize besplatno · bez kartice</p>
+          <div class="form-akcija">
+            <button type="submit" class="form-submit" id="form-submit-btn">
+              <div class="spinner"></div>
+              <span class="btn-text">Pokreni moju analizu</span>
+              <svg class="btn-arrow" viewBox="0 0 22 10" aria-hidden="true"><path d="M1 5H20M16 1l4 4-4 4"/></svg>
+            </button>
+          </div>
         </div>
       </form>
       <div class="form-success" id="form-success">
@@ -2335,25 +2416,75 @@
     const modalOtvoren = () => modalEl().classList.contains('open');
     const manjePokreta = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    let korak = 1;
+    const $ = (id) => document.getElementById(id);
+    const emailZnan = () => { const e = $('email'); return !!e.value.trim() && e.validity.valid; };
+
+    function osvjeziKorake() {
+      const ukupno = emailZnan() ? 1 : 2;
+      $('korak-tekst').textContent = `${korak} od ${ukupno}`;
+      $('korak-traka').hidden = ukupno === 1;
+      $('korak-natrag').hidden = korak === 1;
+      $('dalje-btn').querySelector('.btn-text').textContent = ukupno === 1 ? 'Pokreni moju analizu' : 'Dalje';
+      modalEl().querySelector('.modal').dataset.korak = String(korak);
+    }
+
+    // Glatki prijelaz (2 × 120 ms): stari korak izblijedi i pomakne se, novi uđe s druge strane.
+    function idiNaKorak(n) {
+      if (n === korak) return;
+      const stari = $('korak-' + korak), novi = $('korak-' + n);
+      const smjer = n > korak ? 1 : -1;
+      korak = n;
+      osvjeziKorake();
+      const gotovo = () => {
+        stari.hidden = true; stari.classList.remove('izlaz');
+        novi.hidden = false;
+        if (!manjePokreta()) {
+          novi.style.setProperty('--smjer', smjer);
+          novi.classList.add('ulaz');
+          novi.addEventListener('animationend', () => novi.classList.remove('ulaz'), { once: true });
+        }
+        modalEl().querySelector('.modal').scrollTo({ top: 0 });
+        (n === 2 ? $('email') : $('oglas_tekst')).focus({ preventScroll: true });
+      };
+      if (manjePokreta()) return gotovo();
+      stari.style.setProperty('--smjer', smjer);
+      stari.classList.add('izlaz');
+      setTimeout(gotovo, 120);
+    }
+
+    function autoRast() {
+      const ta = $('oglas_tekst');
+      ta.style.height = 'auto';
+      const max = Math.round(window.innerHeight * 0.5);
+      ta.style.height = Math.min(ta.scrollHeight, max) + 'px';
+      ta.style.overflowY = ta.scrollHeight > max ? 'auto' : 'hidden';
+    }
+
     function openModal() {
       modalZadnjiFokus = document.activeElement;
       modalEl().classList.add('open');
       document.body.style.overflow = 'hidden';
+      osvjeziKorake();
+      autoRast();
       // Fokus na sam dijalog (čitač zaslona ga najavi); tipkovnica nastavlja od prvog polja, bez skakanja zaslona na mobitelu.
       modalEl().querySelector('.modal').focus({ preventScroll: true });
     }
 
     function resetForm() {
-      document.getElementById('zahtjev-form').reset();
-      document.getElementById('kp_vise').open = false;
-      document.getElementById('kp_blok').open = false;
-      document.getElementById('form-greska').classList.remove('visible');
-      const btn = document.getElementById('form-submit-btn');
-      btn.disabled = false;
-      btn.classList.remove('loading');
-      document.getElementById('form-success').classList.remove('visible');
-      document.getElementById('recommendation-badge').innerHTML = '';
-      document.getElementById('form-result').innerHTML = '';
+      $('zahtjev-form').reset();
+      $('kp_vise').open = false;
+      $('kp_blok').open = false;
+      ['form-greska', 'email-greska'].forEach(id => { $(id).classList.remove('visible'); $(id).textContent = ''; });
+      ['form-submit-btn', 'dalje-btn'].forEach(id => { const b = $(id); b.disabled = false; b.classList.remove('loading'); });
+      korak = 1;
+      $('korak-1').hidden = false; $('korak-2').hidden = true;
+      ['korak-1', 'korak-2'].forEach(id => $(id).classList.remove('ulaz', 'izlaz'));
+      osvjeziKorake();
+      autoRast();
+      $('form-success').classList.remove('visible');
+      $('recommendation-badge').innerHTML = '';
+      $('form-result').innerHTML = '';
     }
 
     function closeModal() {
@@ -2406,6 +2537,31 @@
       });
     });
 
+    // ── Primjer analize: brojke raspona kratko "nabroje" kad kartica uđe u ekran (600 ms) ──
+    (function () {
+      const kartica = document.getElementById('primjer-kartica');
+      if (!kartica || !('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const brojevi = [...kartica.querySelectorAll('[data-do]')];
+      const traka = kartica.querySelector('.traka');
+      const hr = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      // Brojke se skrivaju tek ako je kartica ispod ruba ekrana; inače ostaju konačne (bez treptanja).
+      if (kartica.getBoundingClientRect().top < window.innerHeight) return;
+      brojevi.forEach(b => { b.textContent = hr(0); });
+      traka.classList.add('van');
+      new IntersectionObserver((unosi, ob) => {
+        if (!unosi.some(u => u.isIntersecting)) return;
+        ob.disconnect();
+        traka.classList.add('ulazi');
+        const t0 = performance.now(), TRAJANJE = 600;
+        const korak = (t) => {
+          const p = Math.min(1, (t - t0) / TRAJANJE), k = 1 - Math.pow(1 - p, 3);
+          brojevi.forEach(b => { b.textContent = hr(Number(b.dataset.do) * k); });
+          if (p < 1) requestAnimationFrame(korak);
+        };
+        requestAnimationFrame(korak);
+      }, { threshold: 0.35 }).observe(kartica);
+    })();
+
     // ── FAQ accordion ──
     document.querySelectorAll('.faq-question').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2416,24 +2572,82 @@
       });
     });
 
-    document.getElementById('zahtjev-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const greskaEl = document.getElementById('form-greska');
-      greskaEl.classList.remove('visible');
+    function prikaziGresku(poruka) {
+      const g = $('form-greska');
+      g.textContent = poruka; g.classList.add('visible'); g.scrollIntoView({ block: 'nearest' });
+    }
+    function prikaziGreskuEmaila(poruka) {
+      const g = $('email-greska');
+      g.textContent = poruka; g.classList.add('visible');
+      $('email').focus({ preventScroll: true });
+    }
+    ['oglas_tekst', 'kp_cijena', 'kp_povrsina', 'kp_grad', 'kp_kvart', 'kp_kat', 'kp_godina', 'kp_lift', 'kp_parking']
+      .forEach(id => $(id).addEventListener('input', () => $('form-greska').classList.remove('visible')));
+    $('email').addEventListener('input', () => { $('email-greska').classList.remove('visible'); osvjeziKorake(); });
+    $('oglas_tekst').addEventListener('input', autoRast);
+    window.addEventListener('resize', autoRast);
+    $('korak-natrag').addEventListener('click', () => idiNaKorak(1));
 
-      // Neobavezna strukturirana polja: ista validacija kao na poslužitelju (assets/js/izracuni.js).
-      const polje = (id) => document.getElementById(id).value;
+    // Zalijepi iz međuspremnika: samo na HTTPS-u i gdje preglednik dopušta čitanje.
+    (function () {
+      const gumb = $('zalijepi-btn');
+      if (!(window.isSecureContext && location.protocol === 'https:' && navigator.clipboard && typeof navigator.clipboard.readText === 'function')) return;
+      gumb.hidden = false;
+      gumb.addEventListener('click', async () => {
+        try {
+          const tekst = (await navigator.clipboard.readText()).trim();
+          if (!tekst) return prikaziGresku('Međuspremnik je prazan. Kopiraj tekst oglasa pa pokušaj ponovno.');
+          $('oglas_tekst').value = tekst.slice(0, 15000);
+          $('form-greska').classList.remove('visible');
+          autoRast();
+        } catch {
+          prikaziGresku('Ne možemo pročitati međuspremnik. Pritisni i zadrži u polju pa odaberi Zalijepi.');
+        }
+      });
+    })();
+
+    // Korak 1: ista validacija kao na poslužitelju (assets/js/izracuni.js). Vraća provjerene podatke ili null.
+    function provjeriKorak1() {
+      $('form-greska').classList.remove('visible');
+      const polje = (id) => $(id).value;
       const pv = PropIQIzracuni.validirajPodatke({
         cijena_eur: polje('kp_cijena'), povrsina_m2: polje('kp_povrsina'), grad: polje('kp_grad'), kvart: polje('kp_kvart'),
         kat: polje('kp_kat'), godina_gradnje: polje('kp_godina'), lift: polje('kp_lift'), parking: polje('kp_parking'),
       });
-      const prikaziGresku = (poruka) => { greskaEl.textContent = poruka; greskaEl.classList.add('visible'); greskaEl.scrollIntoView({ block: 'nearest' }); };
-      if (!pv.ok) { document.getElementById('kp_blok').open = true; return prikaziGresku(pv.razlog); }
+      if (!pv.ok) { $('kp_blok').open = true; prikaziGresku(pv.razlog); return null; }
       if (!PropIQIzracuni.mozeAnaliza(polje('oglas_tekst'), pv.podaci)) {
-        return prikaziGresku('Zalijepi tekst oglasa ili upiši barem cijenu, površinu i grad.');
+        prikaziGresku('Zalijepi tekst oglasa ili, ako ga nemaš, upiši cijenu, površinu i grad.');
+        return null;
       }
+      return pv;
+    }
+    function provjeriEmail() {
+      const e = $('email');
+      $('email-greska').classList.remove('visible');
+      if (!e.value.trim()) { prikaziGreskuEmaila('Upiši email na koji ti šaljemo izvještaj.'); return false; }
+      if (!e.validity.valid) { prikaziGreskuEmaila('Ovaj email ne izgleda ispravno. Provjeri ga, npr. ime.prezime@primjer.hr.'); return false; }
+      return true;
+    }
+    function daljeKlik() {
+      const pv = provjeriKorak1();
+      if (!pv) return;
+      // Email već poznat (npr. iz aktivacije paketa): preskoči drugi korak.
+      if (emailZnan()) return posalji(pv, $('dalje-btn'));
+      idiNaKorak(2);
+    }
+    $('dalje-btn').addEventListener('click', daljeKlik);
 
-      const btn = document.getElementById('form-submit-btn');
+    $('zahtjev-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      // Enter u polju prvog koraka ponaša se kao "Dalje".
+      if (korak === 1) return daljeKlik();
+      const pv = provjeriKorak1();
+      if (!pv) return idiNaKorak(1);
+      if (!provjeriEmail()) return;
+      posalji(pv, $('form-submit-btn'));
+    });
+
+    async function posalji(pv, btn) {
       btn.disabled = true;
       btn.classList.add('loading');
 
@@ -2480,7 +2694,7 @@
       try { window.propiqTrack && window.propiqTrack.defer('form_submit', { form_id: 'zahtjev-form', plan: data.plan || 'free' }); } catch {}
 
       window.location.href = 'rezultat.html';
-    });
+    }
 
     // ── Paket: aktivacija nakon plaćanja (?plan=paket&session_id=cs_…) ──
     // Kupnju potvrđuje poslužitelj (Stripe sesija mora biti plaćena i za Paket); kredit se veže uz email s plaćanja.

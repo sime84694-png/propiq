@@ -205,7 +205,7 @@ test('napomena o referenci pod fer vrijednošću: realizirani medijan usklađen 
   const a = validirajAnalizu(puno).analiza;
   const iz = izracunaj(a);
   const t = ctx.izgradi(a, iz, undefined, undefined, refZagreb).textContent;
-  const ocekivano = /Referenca: medijan stvarno plaćenih cijena stanova za Zagreb 2025\. \(7[.\s ]?616 prodaja\), usklađen DZS indeksom na II\. tromjesečje 2026\. \(privremeni podaci\): 3[.\s ]?312 €\/m²\. Izvori: Ministarstvo prostornoga uređenja, graditeljstva i državne imovine \(Pregled tržišta nekretnina 2025\.\); Državni zavod za statistiku\./;
+  const ocekivano = /Referenca: medijan stvarno plaćenih cijena stanova za Zagreb 2025\. \(7[.\s ]?616 prodaja\), usklađen DZS indeksom na II\. tromjesečje 2026\. \(privremeni podaci\): 3[.\s ]?312\s€\/m²\. Izvori: Ministarstvo prostornoga uređenja, graditeljstva i državne imovine \(Pregled tržišta nekretnina 2025\.\); Državni zavod za statistiku\./;
   assert.ok(ocekivano.test(t), t);
   assert.ok(!t.includes('statistika.'), 'ispravan padež: "Državni zavod za statistiku"');
   const konacno = ctx.izgradi(a, iz, undefined, undefined, { ...refZagreb, realizirana: { ...realizirana, privremeno: false, indeks_razdoblje: 'I. tromjesečje 2026.' } }).textContent;
