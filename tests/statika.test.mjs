@@ -120,3 +120,13 @@ test('index.html: polja forme imaju maxlength jednak ograničenjima na poslužit
   assert.equal(maxlength('email'), lim('MAX_EMAIL'));
   assert.equal(maxlength('oglas_tekst'), lim('MAX_OGLAS'));
 });
+
+// ── tvrdnje na stranici moraju odgovarati proizvodu ──
+test('index.html: nema tvrdnji koje proizvod ne ispunjava (par sekundi, instant, integracija, brendiranje, trendovi)', () => {
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  for (const zabranjeno of [/par sekundi/i, /instant/i, /Njuškalo integracija/, /poznaje hrvatsko tržište/i, /znanja AI modela/i, /[Bb]rendiran/, /tržišn\w+ prosjek/, /kupi, pregovaraj ili preskoči/, /ROI kalkulator/]) {
+    assert.ok(!zabranjeno.test(html), `index.html ne smije sadržavati ${zabranjeno}`);
+  }
+  assert.match(html, /oko pola minute/);
+  assert.match(html, /stvarno plaćenih cijena/);
+});

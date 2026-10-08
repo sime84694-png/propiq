@@ -1011,7 +1011,15 @@ test('poziv 2 dobiva gotove brojeve sažetka (cijena iz forme); sažetak s izmi�
   const ocekivano = `${String(iznad).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} € (${(Math.round(iznad / fer.max_eur * 1000) / 10).toString().replace('.', ',')} % iznad gornje granice raspona)`;
   for (const p of analize) assert.ok(p.poruke.includes(ocekivano), `${ocekivano} u: ${p.poruke}`);
   assert.match(analize[0].sustav, /Gotovi brojevi za sažetak/);
-  assert.equal(r.body.rezultat.analiza.sazetak, 'Cijena je iznad raspona; vidi izračun.');
+  assert.match(analize[0].sustav, /"HOA" → "pričuva"/, 'pojmovnik u promptu poziva 2');
+  assert.match(analize[0].sustav, /zabranjeno je pisati "dvostruko", "triput"/);
+  assert.match(analize[0].sustav, /NIKAD vrijednost: ne nazivaj je "realnom"/);
+  assert.match(analize[0].poruke, /Omjer tražene cijene i sredine fer raspona: \d,\d×/);
+  const procjene = pozivi.filter((p) => p.alat === 'procjena');
+  assert.ok(procjene.length > 0 && procjene.every((p) => /"HOA" → "pričuva"/.test(p.sustav)), 'pojmovnik u promptu poziva 1');
+  assert.ok(procjene.every((p) => /najviše 35 znakova/.test(p.sustav)), 'razlog korekcije: ~35 znakova u promptu');
+  // prvu rečenicu slaže kod (cijena, raspon, razlika, %, omjer), model dodaje jednu rečenicu obrazloženja
+  assert.equal(r.body.rezultat.analiza.sazetak, `Tražena cijena od 400.000 € nalazi se ${ocekivano.split(' (')[0]} (${ocekivano.match(/\(([\d,]+ %)/)[1]}) iznad gornje granice fer raspona od ${String(fer.min_eur).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} do ${String(fer.max_eur).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} €, što je ${(Math.round(400000 / ((fer.min_eur + fer.max_eur) / 2) * 10) / 10).toFixed(1).replace('.', ',')}× sredina raspona. Cijena je iznad raspona; vidi izračun.`);
 });
 
 test('cijena samo u tekstu oglasa: poziv 2 ne dobiva brojke razlike i traži opisni sažetak', async () => {

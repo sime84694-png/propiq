@@ -26,6 +26,7 @@ import {
   izracunaj, validirajPodatke, mozeAnaliza, vremenskeCinjenice, tekstCinjenicaSazetka,
 } from '../lib/izvjestaj.mjs';
 import { ukloniCijene } from '../lib/redakcija.mjs';
+import { POJMOVNIK_TEKST } from '../lib/jezik.mjs';
 import { odrediReferencu, tekstReference, ogranicitiPouzdanost, granicaPouzdanosti, ogranicitiNajam, referencaZaKlijenta, nazivPolazista, napomenaKvarta, imenaZaKo } from '../lib/trziste.mjs';
 
 const CORS = {
@@ -67,7 +68,9 @@ Fer vrijednost i najam procijenjeni su zasebno, bez uvida u traženu cijenu, i d
 - Rizike i prednosti temelji na ODNOSU tražene cijene i tog fiksnog fer raspona (koliko je cijena ispod, unutar ili iznad raspona) te na oglasu. Ako je raspon nepoznat (null) ili je pouzdanost niska, to uzmi u obzir i ne izmišljaj vlastiti raspon.
 - Ciljanu ponudu NE vraćaš i ne računaš: izračunava je sustav. Iznos ponude smiješ navesti u adutima ili sažetku samo ako je dan u bloku "Gotovi brojevi za sažetak"; inače ga ne spominji.
 
-Sažetak: postotke i razlike u eurima NE računaš. Ako poruka sadrži "Gotovi brojevi za sažetak", prepiši ih točno kako su dani; ako razlika nije dana, u sažetku ne navodi postotke ni razlike u eurima prema rasponu (samo opisno). Nikakve druge postotke ni iznose ne izmišljaj — sustav provjerava svaku brojku u sažetku.
+Sažetak: postotke, razlike u eurima i omjere NE računaš. Ako poruka sadrži "Gotovi brojevi za sažetak", prvu rečenicu sažetka (cijena, raspon, razlika, postotak, omjer) slaže sustav i stavlja je ispred tvog teksta: ti napiši SAMO JEDNU rečenicu obrazloženja koja ne ponavlja te brojke. Ako razlika nije dana, u sažetku ne navodi postotke ni razlike u eurima prema rasponu (samo opisno). Nikakve druge postotke ni iznose ne izmišljaj — sustav provjerava svaku brojku u sažetku.
+- Omjer cijene i raspona: zabranjeno je pisati "dvostruko", "triput", "N puta veća" i slično. Omjer smiješ navesti samo točno kako je dan u bloku (npr. "1,6×").
+- Ciljana ponuda je prijedlog cijene za pregovore, a NIKAD vrijednost: ne nazivaj je "realnom", "fer" ni "tržišnom" vrijednošću. Vrijednost je samo fer raspon iz fiksne procjene.
 
 Preporuka i ocjena (moraju biti konzistentne):
 - Ako "cijena_eur" nedostaje u oglasu, "preporuka" i "ocjena" MORAJU biti null: bez tražene cijene nema investicijske ocjene. Nedostatak cijene sam po sebi NIKAD ne snižava ocjenu niti preporuku — null je ispravan odgovor, ne "oprez". Rizike svejedno procijeni. Ako cijena POSTOJI, "preporuka" i "ocjena" su obavezni (nikad null) i ocjenjuju samo nekretninu i odnos cijene prema fiksnom fer rasponu.
@@ -77,9 +80,10 @@ Preporuka i ocjena (moraju biti konzistentne):
 - "oprez": ocjena 1–3 (cijena iznad fer raspona ili ozbiljni rizici/nepoznanice)
 
 Stil:
-- Piši na standardnom hrvatskom jeziku (ne srpski): "tisuća", "svibanj", "kat", "ugovor", "zemljišnoknjižni", "nekretnina", ijekavica.
+- Piši na standardnom hrvatskom jeziku (ne srpski): "tisuća", "svibanj", "kat", "ugovor", "zemljišnoknjižni", "nekretnina", ijekavica. Samo latinica, nikad ćirilica. Ne ponavljaj riječi ("li li").
+- Bez stranih pojmova, pojmovnik: ${POJMOVNIK_TEKST}.
 - Sve mora biti specifično za OVAJ oglas — navedi konkretne detalje iz njega. Bez generičkih fraza ("lokacija je ključna", "uvijek provjerite dokumentaciju") koje bi stajale uz bilo koji oglas.
-- Vrlo kratko (odgovor se plaća po riječi): sažetak najviše 2 rečenice; prednosti do 4 stavke (kratke fraze); rizici do 4 (naslov do ~6 riječi, opis najviše 2 kratke rečenice); aduti do 3 (jedna rečenica); pitanja prodavatelju do 4 (kratka); nedostajući podaci do 5 (kratke fraze). Bez uvoda, ponavljanja i općih napomena.
+- Vrlo kratko (odgovor se plaća po riječi): sažetak jedna rečenica obrazloženja kad prvu slaže sustav (inače najviše 2 rečenice); prednosti do 4 stavke (kratke fraze); rizici do 4 (naslov do ~6 riječi, opis najviše 2 kratke rečenice); aduti do 3 (jedna rečenica); pitanja prodavatelju do 4 (kratka); nedostajući podaci do 5 (kratke fraze). Bez uvoda, ponavljanja i općih napomena.
 - "pregovaranje.aduti" su argumenti kupca za spuštanje cijene, utemeljeni u oglasu ili fiksnoj procjeni.`;
 
 const SYSTEM_PROMPT_PROCJENA_OSNOVA = `Ti si PropIQ — procjenitelj tržišne vrijednosti nekretnina na hrvatskom tržištu.
@@ -100,12 +104,12 @@ Lokacija: odredi je iz CIJELOG teksta (mnoga mjesta dijele isto ime — Blato u 
 
 @@IZLAZ@@
 - "najam.dugorocni_mj_eur": procjena mjesečne najamnine za dugoročni najam; "turisticki_godisnje_eur": procjena godišnjeg prihoda od turističkog najma (null ako lokacija nije turistička ili ne možeš procijeniti).
-- Piši na standardnom hrvatskom jeziku (ne srpski), ijekavica.`;
+- Piši na standardnom hrvatskom jeziku (ne srpski), ijekavica, samo latinica. Bez stranih pojmova, pojmovnik: ${POJMOVNIK_TEKST}.`;
 
 // Poziv 1 s usklađenim medijanom: model daje samo korekcije u postocima; raspon i obrazloženje računa kod.
 const PROCJENA_S_MEDIJANOM = {
   korekcije: `- Kreni od usklađenog medijana i predloži KOREKCIJE za ovu nekretninu: kvart i mikrolokaciju (medijan cijelog grada ne razlikuje kvartove), stanje i opremljenost, kat, lift, parking, starost/godinu gradnje i veličinu (veliki stanovi često imaju niži €/m², mali viši). Novogradnja i obnovljeni stanovi obično su iznad medijana, stari neobnovljeni ispod. Medijan nije gotova procjena.
-- "korekcije": najviše ${FER.MAX_STAVKI} stavki {razlog, postotak}; razlog je kratak (do ${FER.MAX_RAZLOG} znakova), postotak cijeli broj između −${FER.MAX_KOREKCIJA} i +${FER.MAX_KOREKCIJA}. Svaki čimbenik je jedna stavka i ne broji se dvaput. NE računaj zbroj, €/m², raspon ni ukupne iznose — to radi sustav iz medijana i tvojih postotaka. Ne vraćaj min_eur/max_eur ni obrazloženje.
+- "korekcije": najviše ${FER.MAX_STAVKI} stavki {razlog, postotak}; razlog je kratak, najviše ${FER.CILJ_RAZLOG} znakova (dulje se siječe na ${FER.MAX_RAZLOG}), npr. "starost zgrade ~46 god., energetski"; postotak cijeli broj između −${FER.MAX_KOREKCIJA} i +${FER.MAX_KOREKCIJA}. Svaki čimbenik je jedna stavka i ne broji se dvaput. NE računaj zbroj, €/m², raspon ni ukupne iznose — to radi sustav iz medijana i tvojih postotaka. Ne vraćaj min_eur/max_eur ni obrazloženje.
 - "povrsina_m2": površina iz podataka/oglasa (prepiši, ne računaj); null ako nije navedena.`,
   nedostaje: `Ako ti nedostaje ključni podatak (površina, lokacija, stanje), smanji pouzdanost umjesto da pogađaš; sustav širinu raspona određuje po pouzdanosti.`,
   izlaz: `- "pouzdanost": iskrena (niska/srednja/visoka); sustav iz nje određuje širinu raspona oko središnje vrijednosti.`,
@@ -507,6 +511,8 @@ export default async (req, context) => {
     console.error(`Korak ${naziv} je prekinut:`, err);
     return json(502, { error: 'Veza je prekinuta prije kraja analize. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
   };
+  // Jezična obrada (ćirilica → latinica, ponovljene riječi, strani pojmovi) bilježi se u log, nikad klijentu.
+  const logObrade = (naziv, v) => { if (v.ok && v.obrada && v.obrada.length) console.log(`Jezična obrada (${naziv}):`, JSON.stringify(v.obrada)); };
   const logTrajanje = (naziv) => console.log(`Trajanje poziva: ${naziv} ${Date.now() - pocetak} ms; izlazni tokeni: ${trajanja[`${naziv}Tokeni`] ?? '-'}.`);
 
   const procjene = getStore('propiq-procjene');
@@ -524,6 +530,7 @@ export default async (req, context) => {
           bezLokacije: !!referenca.ko, napomena: napomenaKvarta(referenca),
           lokacijaRijeci: referenca.ko ? [referenca.kvartUnos, referenca.ko, referenca.grad, ...imenaZaKo(referenca.grad, referenca.ko)] : [],
         });
+        logObrade('procjena', v);
         if (v.ok && v.odbaceno) console.log('Odbačene korekcije lokacije (polazište je medijan k.o.):', JSON.stringify(v.odbaceno));
         return v.ok ? { ...v, procjena: ogranicitiNajam(ogranicitiPouzdanost(v.procjena, referenca)) } : v;
       }, MIN_ZA_PONOVNU_PROCJENU_MS);
@@ -559,7 +566,7 @@ export default async (req, context) => {
     if (zapis.h !== tekstHash) {
       return json(400, { error: 'Procjena ne pripada ovom oglasu. Pokrenite analizu ponovo.' });
     }
-    const v = await izvrsi('analiza', () => pozivAnalize(zapis.p), (tekst) => parsirajIValidiraj(tekst, podaci, zapis.p), MIN_ZA_ANALIZU_MS);
+    const v = await izvrsi('analiza', () => pozivAnalize(zapis.p), (tekst) => { const v = parsirajIValidiraj(tekst, podaci, zapis.p); logObrade('analiza', v); return v; }, MIN_ZA_ANALIZU_MS);
     logTrajanje('analiza');
     if (!v) {
       return json(502, { error: 'Analiza nije uspjela složiti izvještaj. Pokušajte ponovo — ova analiza vam se ne broji u limit.' });
