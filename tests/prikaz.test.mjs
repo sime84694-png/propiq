@@ -291,3 +291,56 @@ test('rezultat.html: faza A pa B, ID iz A ide u B, nema više SSE čitanja', () 
   assert.ok(!/text\/event-stream|procitajDogadjaje/.test(skripta));
   assert.match(skripta, /korak: 'procjena'[\s\S]*FAZE\.analiza[\s\S]*korak: 'analiza', procjena_id: a\.payload\.procjena_id/);
 });
+
+// ── Tok iz forme u 2 koraka → rezultat.html (loadAnaliza): podaci iz sessionStoragea i mapiranje grešaka ──
+const pokreniLoadAnaliza = async (spremljeno, odgovori) => {
+  const poruke = [], zahtjevi = [];
+  const el = () => ({ style: {}, classList: { add() {}, remove() {}, toggle() {} }, textContent: '' });
+  const elementi = {};
+  const lazniDoc = { getElementById: (id) => (elementi[id] ??= el()) };
+  const lazniFetch = async (url, opts) => { zahtjevi.push(JSON.parse(opts.body)); return odgovori.shift(); };
+  const kod = skripta.match(/const FAZE = .*\n/)[0] + skripta.match(/const PONOVNO_TEKST[\s\S]*?\n    }\n/)[0]
+    + skripta.match(/const GRESKA_VEZE[\s\S]*?function procitajSpremljeniRezultat/)[0].replace(/function procitajSpremljeniRezultat$/, '')
+    + skripta.slice(skripta.indexOf('async function loadAnaliza'), skripta.indexOf('loadAnaliza();\n'));
+  const f = new Function('fetch', 'document', 'sessionStorage', 'loadingTekstEl', 'showError', 'procitajSpremljeniRezultat', 'prikaziAnalizu', 'hide', 'loadingEl', 'analizaEl',
+    `${kod}; return loadAnaliza;`);
+  const loadAnaliza = f(lazniFetch, lazniDoc, { getItem: () => JSON.stringify(spremljeno), setItem() {}, removeItem() {} }, { textContent: '' },
+    (m) => poruke.push(m), () => null, () => {}, () => {}, {}, {});
+  await loadAnaliza();
+  return { poruke, zahtjevi };
+};
+const spremljenoIzForme = {
+  email: 'sime@primjer.hr', oglas_tekst: 'Stan 130,45 m2, Središće', podaci: { cijena_eur: 694896, grad: 'Zagreb', kvart: 'Središće' },
+  plan: '', session_id: '', source: 'direct', request_id: 'r-1',
+};
+
+test('tok forme u 2 koraka: A i B dobivaju email, ključne podatke i request_id; nema ime/agencija/undefined', async () => {
+  const { zahtjevi, poruke } = await pokreniLoadAnaliza(spremljenoIzForme, [
+    jsonOdgovor(200, { procjena_id: 'p1', procjena: {} }),
+    jsonOdgovor(504, undefined),
+    jsonOdgovor(504, undefined),
+  ]);
+  assert.equal(zahtjevi[0].korak, 'procjena');
+  assert.equal(zahtjevi[1].korak, 'analiza');
+  assert.equal(zahtjevi[1].procjena_id, 'p1');
+  for (const z of zahtjevi) {
+    assert.equal(z.email, 'sime@primjer.hr');
+    assert.deepEqual(z.podaci, { cijena_eur: 694896, grad: 'Zagreb', kvart: 'Središće' });
+    assert.equal(z.request_id, 'r-1');
+    assert.ok(!('ime' in z) && !('agencija' in z), 'polja ime i agencija više ne postoje');
+    assert.ok(!JSON.stringify(z).includes('undefined'));
+  }
+  assert.equal(zahtjevi.length, 3, 'B se ponavlja jednom');
+  assert.equal(poruke.length, 1);
+  assert.ok(/HTTP 504/.test(poruke[0]) && !/Veza je prekinuta/.test(poruke[0]), poruke[0]);
+});
+
+test('porukaGreskeKoraka: poslužiteljeva poruka, prekid veze, 5xx bez JSON-a, 4xx i nepotpun odgovor', () => {
+  const kod = skripta.match(/const GRESKA_VEZE[\s\S]*?function procitajSpremljeniRezultat/)[0].replace(/function procitajSpremljeniRezultat$/, '');
+  const { porukaGreskeKoraka } = new Function(`${kod}; return { porukaGreskeKoraka };`)();
+  assert.equal(porukaGreskeKoraka({ ok: false, status: 502, payload: { error: 'Tekst poslužitelja.' } }), 'Tekst poslužitelja.');
+  assert.ok(porukaGreskeKoraka({ ok: false, status: 0, payload: {} }).includes('Provjeri vezu'));
+  assert.ok(/HTTP 504/.test(porukaGreskeKoraka({ ok: false, status: 504, payload: {} })));
+  assert.ok(/HTTP 404/.test(porukaGreskeKoraka({ ok: false, status: 404, payload: {} })));
+  assert.ok(/nije potpun/.test(porukaGreskeKoraka({ ok: true, status: 200, payload: { rezultat: {} } })));
+});

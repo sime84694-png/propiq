@@ -1036,6 +1036,17 @@
     }
 
     const GRESKA_VEZE = 'Došlo je do greške pri dohvaćanju analize. Provjeri vezu i pokušaj ponovo.';
+    // Poruka za neuspjeli korak A/B. Poslužiteljeva poruka ima prednost; bez nje se razlikuje stvarni prekid veze
+    // (status 0), pogreška poslužitelja/pristupnika (5xx, često HTML bez JSON-a) i nepotpun odgovor — da se
+    // npr. 504 ne prikaže kao "veza je prekinuta".
+    function porukaGreskeKoraka(ishod) {
+      const p = (ishod && ishod.payload) || {};
+      if (p.error) return p.error;
+      if (!ishod || !ishod.status) return GRESKA_VEZE;
+      if (ishod.ok) return 'Odgovor poslužitelja nije potpun. Pokušaj ponovo — ova analiza se ne broji u limit.';
+      if (ishod.status >= 500) return `Poslužitelj nije stigao dovršiti analizu (HTTP ${ishod.status}). Pokušaj ponovo — ova analiza se ne broji u limit.`;
+      return `Zahtjev za analizu nije prihvaćen (HTTP ${ishod.status}). Pokušaj ponovo s početne stranice.`;
+    }
     const jeRezultat = (r) => !!r && typeof r === 'object' && !!r.analiza && typeof r.analiza === 'object' &&
       !!r.izracuni && typeof r.izracuni === 'object';
 
@@ -1089,7 +1100,8 @@
         loadingTekstEl.textContent = FAZE.procjena;
         const a = await izvrsiKorak({ ...data, korak: 'procjena' });
         if (!a.ok || !a.payload.procjena_id) {
-          showError(a.payload.error || (a.status ? 'Analiza trenutno nije dostupna. Pokušaj ponovo.' : GRESKA_VEZE), a.status === 403);
+          console.error('Korak A nije uspio:', a.status, Object.keys(a.payload));
+          showError(porukaGreskeKoraka(a), a.status === 403);
           return;
         }
 
@@ -1098,7 +1110,8 @@
         const b = await izvrsiKorak({ ...data, korak: 'analiza', procjena_id: a.payload.procjena_id });
         const analiza = b.payload.rezultat;
         if (!b.ok || !jeRezultat(analiza)) {
-          showError(b.payload.error || (b.status ? 'Veza je prekinuta prije kraja analize. Pokušaj ponovo — ova analiza se ne broji u limit.' : GRESKA_VEZE), b.status === 403);
+          console.error('Korak B nije uspio:', b.status, Object.keys(b.payload));
+          showError(porukaGreskeKoraka(b), b.status === 403);
           return;
         }
 
