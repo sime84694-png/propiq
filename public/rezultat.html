@@ -3,12 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 
   <!-- Pristanak + mjerenje: MORA biti prije svih tagova (Consent Mode v2 default "denied") -->
   <script src="assets/js/tracking-config.js"></script>
   <script src="assets/js/consent.js"></script>
   <script src="assets/js/izracuni.js"></script>
-  <title>Vaša analiza — PropIQ</title>
+  <title>Tvoja analiza — PropIQ</title>
   <meta name="robots" content="noindex, nofollow">
   <!-- Playfair Display s vlastitog hostinga (bez zahtjeva prema Googleu prije pristanka; licenca SIL OFL) -->
   <link rel="preload" href="assets/fonts/playfair-display-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -35,6 +40,7 @@
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     html { scroll-behavior: smooth; }
     body {
+      font-variant-numeric: tabular-nums;
       font-family: 'Helvetica Neue', Arial, sans-serif;
       background: var(--bg);
       color: var(--cream);
@@ -585,7 +591,7 @@
     <!-- Zaglavlje samo za ispis (PDF) -->
     <div class="print-header" id="print-header">
       <div class="print-logo">Prop<span>IQ</span></div>
-      <h2 class="print-title" id="print-title">Vaša analiza</h2>
+      <h2 class="print-title" id="print-title">Tvoja analiza</h2>
       <div class="print-date" id="print-date"></div>
     </div>
 
@@ -595,8 +601,8 @@
     </div>
 
     <div class="eyebrow"><span class="eyebrow-dot"></span>AI analiza nekretnine</div>
-    <h1 id="greeting">Vaša analiza</h1>
-    <p class="subtitle">Generirano na temelju oglasa koji ste poslali.</p>
+    <h1 id="greeting">Tvoja analiza</h1>
+    <p class="subtitle">Generirano na temelju oglasa koji je poslan.</p>
 
     <!-- Loading -->
     <div class="loading" id="loading">
@@ -674,7 +680,7 @@
       if (msg) errorMsgEl.textContent = msg;
       errorEl.classList.toggle('upgrade', !!isQuota);
       errorEyebrowEl.textContent = isQuota ? 'Nadogradnja' : 'Greška';
-      errorTitleEl.textContent = isQuota ? 'Iskoristili ste dostupne analize' : 'Nešto nije u redu';
+      errorTitleEl.textContent = isQuota ? 'Dostupne analize su iskorištene' : 'Nešto nije u redu';
       errorUpgradeBtn.style.display = isQuota ? 'inline-block' : 'none';
       reveal(errorEl);
     }
@@ -723,13 +729,15 @@
     const NF = new Intl.NumberFormat('hr-HR', { maximumFractionDigits: 0 });
     const NF1 = new Intl.NumberFormat('hr-HR', { maximumFractionDigits: 1 });
     const jeBroj = (v) => typeof v === 'number' && Number.isFinite(v);
-    const eur = (v) => (jeBroj(v) ? `${NF.format(v)} €` : null);
-    const posto = (v) => (jeBroj(v) ? `${NF1.format(v)} %` : null);
+    // Broj i jedinica (€, €/m², %, m²) nikad se ne lome u dva retka: običan razmak postaje neprelomiv.
+    const nb = (t) => (typeof t === 'string' ? t.replace(/(\d) (€\/m²|€|%|m²)/g, '$1\u00A0$2') : t);
+    const eur = (v) => (jeBroj(v) ? `${NF.format(v)}\u00A0€` : null);
+    const posto = (v) => (jeBroj(v) ? `${NF1.format(v)}\u00A0%` : null);
 
     function el(tag, cls, tekst) {
       const e = document.createElement(tag);
       if (cls) e.className = cls;
-      if (tekst !== undefined && tekst !== null) e.textContent = tekst;
+      if (tekst !== undefined && tekst !== null) e.textContent = nb(tekst);
       return e;
     }
     // Tri vrste null vrijednosti (null se nikad ne prikazuje kao 0):
@@ -743,10 +751,10 @@
     function vrijednost(v, cls, vrsta, razlog) {
       const e = el('span', cls);
       if (v === null || v === undefined) { e.className = (cls ? cls + ' ' : '') + 'nd'; e.textContent = nullTekst(vrsta, razlog); }
-      else e.textContent = v;
+      else e.textContent = nb(v);
       return e;
     }
-    const oznakaUpisali = () => el('span', 'upisali', 'upisali ste');
+    const oznakaUpisali = () => el('span', 'upisali', 'tvoj unos');
     function metrika(label, v, vrsta, razlog, mala, upisao) {
       const m = el('div', 'metrika');
       const lab = el('div', 'metrika-label', label);
@@ -783,7 +791,7 @@
     function preracunajSCijenom(a, tekst, greskaEl, uneseno, referenca) {
       const cijena = PropIQIzracuni.parsirajCijenu(tekst);
       if (cijena === null) {
-        greskaEl.textContent = 'Upišite valjanu cijenu u eurima (npr. 185000).';
+        greskaEl.textContent = 'Upiši valjanu cijenu u eurima (npr. 185000).';
         return;
       }
       const iz = PropIQIzracuni.izracunaj({ ...a, cijena_eur: cijena });
@@ -817,7 +825,7 @@
       const un = uneseno || {};
       const nemaCijene = !jeBroj(a.cijena_eur);
       const cijena = nemaCijene && jeBroj(rucnaCijena) ? rucnaCijena : a.cijena_eur;
-      const rucnaNapomena = () => el('p', 'rucno-napomena', `Na temelju cijene koju ste upisali (${eur(rucnaCijena)}).`);
+      const rucnaNapomena = () => el('p', 'rucno-napomena', `Na temelju cijene iz tvog unosa (${eur(rucnaCijena)}).`);
 
       // a) zaglavlje
       const z = kartica('zaglavlje');
@@ -880,8 +888,8 @@
         red.appendChild(el('span', 'znacka nedovoljno', 'Nedovoljno podataka'));
         p.appendChild(red);
         p.appendChild(el('p', 'nedovoljno-tekst', jeBroj(rucnaCijena)
-          ? 'Brojke ispod preračunate su na temelju cijene koju ste upisali, ali ocjena i preporuka nisu izdane. Za njih ponovno pokrenite analizu s cijenom u oglasu.'
-          : 'Oglas ne navodi traženu cijenu, a bez nje nema investicijske ocjene ni preporuke (povoljno / pregovaraj / oprez). Upišite cijenu u zaglavlju za preračun brojki ili ponovno pokrenite analizu s cijenom.'));
+          ? 'Brojke ispod preračunate su na temelju cijene iz tvog unosa, ali ocjena i preporuka nisu izdane. Za njih ponovno pokreni analizu s cijenom u oglasu.'
+          : 'Oglas ne navodi traženu cijenu, a bez nje nema investicijske ocjene ni preporuke (povoljno / pregovaraj / oprez). Upiši cijenu u zaglavlju za preračun brojki ili ponovno pokreni analizu s cijenom.'));
       } else {
         red.appendChild(el('span', 'znacka ' + a.preporuka, ZNACKE[a.preporuka]));
         const oc = el('div', 'ocjena', String(a.ocjena));
@@ -995,7 +1003,7 @@
       }
       n.appendChild(pRed);
       if (nemaCijene && jeBroj(rucnaCijena) && jeBroj(iz.ciljana_ponuda_eur)) n.appendChild(rucnaNapomena());
-      if (pn.aduti.length) { n.appendChild(el('h3', null, 'Vaši aduti')); n.appendChild(lista(pn.aduti)); }
+      if (pn.aduti.length) { n.appendChild(el('h3', null, 'Tvoji aduti')); n.appendChild(lista(pn.aduti)); }
       if (pn.pitanja_prodavatelju.length) { n.appendChild(el('h3', null, 'Pitanja za prodavatelja')); n.appendChild(lista(pn.pitanja_prodavatelju)); }
       frag.appendChild(n);
 
@@ -1027,7 +1035,18 @@
         new Date().toLocaleDateString('hr-HR', { day: 'numeric', month: 'long', year: 'numeric' });
     }
 
-    const GRESKA_VEZE = 'Došlo je do greške pri dohvaćanju analize. Provjerite vezu i pokušajte ponovo.';
+    const GRESKA_VEZE = 'Došlo je do greške pri dohvaćanju analize. Provjeri vezu i pokušaj ponovo.';
+    // Poruka za neuspjeli korak A/B. Poslužiteljeva poruka ima prednost; bez nje se razlikuje stvarni prekid veze
+    // (status 0), pogreška poslužitelja/pristupnika (5xx, često HTML bez JSON-a) i nepotpun odgovor — da se
+    // npr. 504 ne prikaže kao "veza je prekinuta".
+    function porukaGreskeKoraka(ishod) {
+      const p = (ishod && ishod.payload) || {};
+      if (p.error) return p.error;
+      if (!ishod || !ishod.status) return GRESKA_VEZE;
+      if (ishod.ok) return 'Odgovor poslužitelja nije potpun. Pokušaj ponovo — ova analiza se ne broji u limit.';
+      if (ishod.status >= 500) return `Poslužitelj nije stigao dovršiti analizu (HTTP ${ishod.status}). Pokušaj ponovo — ova analiza se ne broji u limit.`;
+      return `Zahtjev za analizu nije prihvaćen (HTTP ${ishod.status}). Pokušaj ponovo s početne stranice.`;
+    }
     const jeRezultat = (r) => !!r && typeof r === 'object' && !!r.analiza && typeof r.analiza === 'object' &&
       !!r.izracuni && typeof r.izracuni === 'object';
 
@@ -1050,7 +1069,7 @@
       }
 
       if (!raw) {
-        showError('Nema podataka za analizu. Vratite se na početnu i ispunite formu.');
+        showError('Nema podataka za analizu. Vrati se na početnu i ispuni formu.');
         return;
       }
 
@@ -1058,7 +1077,7 @@
       try {
         data = JSON.parse(raw);
       } catch {
-        showError('Podaci za analizu su neispravni. Pokušajte ponovo s početne stranice.');
+        showError('Podaci za analizu su neispravni. Pokušaj ponovo s početne stranice.');
         return;
       }
 
@@ -1081,7 +1100,8 @@
         loadingTekstEl.textContent = FAZE.procjena;
         const a = await izvrsiKorak({ ...data, korak: 'procjena' });
         if (!a.ok || !a.payload.procjena_id) {
-          showError(a.payload.error || (a.status ? 'Analiza trenutno nije dostupna. Pokušajte ponovo.' : GRESKA_VEZE), a.status === 403);
+          console.error('Korak A nije uspio:', a.status, Object.keys(a.payload));
+          showError(porukaGreskeKoraka(a), a.status === 403);
           return;
         }
 
@@ -1090,7 +1110,8 @@
         const b = await izvrsiKorak({ ...data, korak: 'analiza', procjena_id: a.payload.procjena_id });
         const analiza = b.payload.rezultat;
         if (!b.ok || !jeRezultat(analiza)) {
-          showError(b.payload.error || (b.status ? 'Veza je prekinuta prije kraja analize. Pokušajte ponovo — ova analiza vam se ne broji u limit.' : GRESKA_VEZE), b.status === 403);
+          console.error('Korak B nije uspio:', b.status, Object.keys(b.payload));
+          showError(porukaGreskeKoraka(b), b.status === 403);
           return;
         }
 
@@ -1098,7 +1119,7 @@
           prikaziAnalizu(analiza);
         } catch (err) {
           console.error('Prikaz izvještaja nije uspio:', err);
-          showError('Izvještaj se nije mogao prikazati. Pokušajte ponovo.');
+          showError('Izvještaj se nije mogao prikazati. Pokušaj ponovo.');
           return;
         }
 

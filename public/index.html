@@ -3,16 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 
   <!-- Pristanak + mjerenje: MORA biti prije svih tagova (Consent Mode v2 default "denied") -->
   <script src="assets/js/tracking-config.js"></script>
   <script src="assets/js/consent.js"></script>
   <script src="assets/js/izracuni.js"></script>
-  <title>PropIQ — AI Investicijski Savjetnik za Nekretnine</title>
+  <title>PropIQ — AI analiza oglasa nekretnina</title>
 
   <!-- SEO -->
-  <meta name="description" content="Analizirajte svaku nekretninu s AI-jem — prvi rezultati za par sekundi. Investicijska preporuka, tržišna usporedba i procjena rizika za hrvatsko tržište nekretnina.">
-  <meta name="keywords" content="nekretnine, AI analiza, investicija, hrvatska, agencije, njuškalo, ROI, tržišni trendovi">
+  <meta name="description" content="Analiziraj nekretninu iz teksta oglasa — izvještaj obično stiže za oko pola minute. Fer raspon vrijednosti iz stvarno plaćenih cijena, preporuka, procjena rizika i prinosa najma za hrvatsko tržište.">
+  <meta name="keywords" content="nekretnine, AI analiza, investicija, hrvatska, agencije, njuškalo, ROI">
   <meta name="author" content="PropIQ">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://propiq-hr.netlify.app">
@@ -20,8 +25,8 @@
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://propiq-hr.netlify.app">
-  <meta property="og:title" content="PropIQ — AI Investicijski Savjetnik za Nekretnine">
-  <meta property="og:description" content="Analizirajte svaku nekretninu s AI-jem — prvi rezultati za par sekundi. Investicijska preporuka, tržišna usporedba i procjena rizika za hrvatsko tržište nekretnina.">
+  <meta property="og:title" content="PropIQ — AI analiza oglasa nekretnina">
+  <meta property="og:description" content="Analiziraj nekretninu iz teksta oglasa — izvještaj obično stiže za oko pola minute. Fer raspon vrijednosti iz stvarno plaćenih cijena, preporuka, procjena rizika i prinosa najma za hrvatsko tržište.">
   <meta property="og:image" content="https://propiq-hr.netlify.app/assets/hero.jpg">
   <meta property="og:image:width" content="1600">
   <meta property="og:image:height" content="1066">
@@ -30,15 +35,15 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="PropIQ — AI Investicijski Savjetnik za Nekretnine">
-  <meta name="twitter:description" content="Analizirajte svaku nekretninu s AI-jem — prvi rezultati za par sekundi. Investicijska preporuka, tržišna usporedba i procjena rizika za hrvatsko tržište nekretnina.">
+  <meta name="twitter:title" content="PropIQ — AI analiza oglasa nekretnina">
+  <meta name="twitter:description" content="Analiziraj nekretninu iz teksta oglasa — izvještaj obično stiže za oko pola minute. Fer raspon vrijednosti iz stvarno plaćenih cijena, preporuka, procjena rizika i prinosa najma za hrvatsko tržište.">
   <meta name="twitter:image" content="https://propiq-hr.netlify.app/assets/hero.jpg">
   <!-- Playfair Display s vlastitog hostinga (bez zahtjeva prema Googleu prije pristanka; licenca SIL OFL) -->
   <link rel="preload" href="assets/fonts/playfair-display-latin.woff2" as="font" type="font/woff2" crossorigin>
   <style>
-    @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 800; font-display: swap;
+    @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 400 900; font-display: swap;
       src: url(assets/fonts/playfair-display-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-    @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 800; font-display: swap;
+    @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 400 900; font-display: swap;
       src: url(assets/fonts/playfair-display-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
   </style>
   <style>
@@ -62,6 +67,7 @@
     html { scroll-behavior: smooth; }
 
     body {
+      font-variant-numeric: tabular-nums;
       font-family: 'Helvetica Neue', Arial, sans-serif;
       background: var(--bg);
       color: var(--cream);
@@ -441,9 +447,9 @@
     }
 
     .how-num {
-      font-size: 3.5rem;
+      font-size: 3rem;
       font-weight: 800;
-      letter-spacing: -3px;
+      letter-spacing: -2px;
       line-height: 1;
       color: var(--cream-08);
       margin-bottom: 20px;
@@ -543,29 +549,58 @@
       display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
       padding-bottom: 20px; margin-bottom: 24px; border-bottom: 1px solid var(--cream-08);
     }
-    .report-eyebrow {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 0.64rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-40);
+    .report-pill {
+      display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 100px;
+      background: var(--cream-08); border: 1px solid var(--cream-15);
+      font-size: 0.82rem; font-weight: 600; color: var(--cream-70);
     }
-    .report-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); }
-    .report-address { font-weight: 700; color: var(--cream); font-size: 0.95rem; }
+    .report-address { font-weight: 600; color: var(--cream); font-size: 0.95rem; }
 
-    .report-block { margin-bottom: 22px; }
-    .report-h { font-family: var(--font-serif); font-size: 1.15rem; color: var(--gold); margin-bottom: 14px; }
-    .report-list { list-style: none; display: flex; flex-direction: column; gap: 11px; }
-    .report-list li {
-      position: relative; padding-left: 18px;
-      font-size: 0.9rem; color: var(--cream-70); line-height: 1.55;
+    .fer-label { font-size: 0.85rem; color: rgba(240,236,228,0.6); margin-bottom: 8px; }
+    .fer-raspon {
+      font-family: var(--font-serif); font-weight: 700; color: var(--cream);
+      font-size: clamp(1.65rem, 7.4vw, 2.5rem); line-height: 1.1; letter-spacing: -0.01em; white-space: nowrap;
+      font-variant-numeric: lining-nums tabular-nums;
     }
-    .report-list li::before {
-      content: ''; position: absolute; left: 2px; top: 0.6em;
-      width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: 0.65;
+    .fer-m2 { margin-top: 8px; font-size: 1rem; color: var(--cream-70); }
+
+    .oznaka-red { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 20px 0 30px; }
+    .oznaka {
+      padding: 6px 14px; border-radius: 100px; font-size: 0.82rem; font-weight: 700;
+      background: rgba(240,134,111,0.12); border: 1px solid rgba(240,134,111,0.28); color: #f4a08e;
     }
-    .report-list li.verdict { color: var(--cream); font-weight: 600; }
-    .mono {
-      font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
-      font-variant-numeric: tabular-nums;
-      color: var(--cream);
+    .ocjena { font-size: 0.95rem; font-weight: 600; color: var(--cream); }
+    .oznaka-opis { flex-basis: 100%; font-size: 0.88rem; color: rgba(240,236,228,0.6); }
+
+    /* Vodoravna traka: fer raspon (zlatni segment) i tražena cijena izvan njega */
+    .traka { position: relative; padding-top: 30px; padding-bottom: 28px; margin-bottom: 26px; }
+    .traka-trazena { position: absolute; top: 0; right: 0; font-size: 0.85rem; font-weight: 600; color: #f4a08e; white-space: nowrap; }
+    .traka-os { position: relative; height: 10px; border-radius: 100px; background: var(--cream-08); }
+    .traka-fer { position: absolute; top: 0; bottom: 0; border-radius: 100px; background: var(--gold); transform-origin: left; }
+    .traka-marker {
+      position: absolute; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
+      background: #f4a08e; border: 3px solid #120f0b; box-shadow: 0 0 0 1px rgba(244,160,142,0.5);
+    }
+    .traka-fer-oznaka { position: absolute; bottom: 0; font-size: 0.8rem; font-weight: 600; color: var(--gold); white-space: nowrap; }
+    .traka.van .traka-fer { transform: scaleX(0); }
+    .traka.van.ulazi .traka-fer { transform: none; transition: transform 0.7s cubic-bezier(.2,.7,.2,1) 0.1s; }
+
+    .report-mali-h { font-size: 0.85rem; color: rgba(240,236,228,0.6); margin-bottom: 10px; }
+    .korekcije { display: flex; flex-wrap: wrap; gap: 8px; }
+    .kor { padding: 6px 12px; border-radius: 100px; font-size: 0.84rem; font-weight: 500; white-space: nowrap; }
+    .kor-pl { background: rgba(212,175,55,0.14); color: #e3c25c; }
+    .kor-mi { background: var(--cream-08); color: rgba(240,236,228,0.66); }
+    .polaziste { margin: 16px 0 22px; font-size: 0.8rem; line-height: 1.55; color: rgba(240,236,228,0.58); }
+
+    .teaser {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 16px 18px; margin-bottom: 26px; border-radius: 18px; background: var(--cream-04); border: 1px solid var(--cream-08);
+    }
+    .teaser-l { font-size: 0.95rem; font-weight: 600; color: var(--cream); }
+    .teaser-s { margin-top: 4px; font-size: 0.8rem; line-height: 1.45; color: rgba(240,236,228,0.58); }
+    .teaser-v {
+      flex: none; font-family: var(--font-serif); font-weight: 700; font-size: 1.25rem; color: var(--cream);
+      filter: blur(7px); user-select: none; pointer-events: none; white-space: nowrap;
     }
 
     .report-cta {
@@ -584,6 +619,7 @@
       .report-inner { padding: 24px 20px 4px; }
       .report-cta { padding: 18px 20px 30px; }
       .report-address { font-size: 0.88rem; }
+      .report-inner { padding-bottom: 8px; }
     }
 
     /* ─── TESTIMONIALS ─── */
@@ -805,14 +841,16 @@
 
     .pricing-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 3px;
       margin-top: 48px;
     }
 
+    @media (max-width: 1100px) {
+      .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+    }
     @media (max-width: 768px) {
       .pricing-grid { grid-template-columns: 1fr; }
-      .plan.featured { order: -1; }
     }
 
     .plan {
@@ -1297,202 +1335,252 @@
     /* ─── SCROLL OFFSET ─── */
     [id] { scroll-margin-top: 80px; }
 
-    /* ─── MODAL ─── */
+    /* ─── MODAL (mekano, zaobljeno: jedan stupac, kartice, pill gumb) ─── */
     .modal-overlay {
+      --m-bg: #0a0806; --m-card: #15120e; --m-card-in: #1b1712; --m-gold: #d4af37;
+      --m-c78: rgba(240,236,228,0.78); --m-c60: rgba(240,236,228,0.62); --m-line: rgba(240,236,228,0.08);
+      --m-ease: cubic-bezier(.2,.7,.2,1);
+      --m-pad: 24px;
+      interpolate-size: allow-keywords;
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(10,8,6,0.88);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      padding: 24px;
+      align-items: center; justify-content: center;
+      background: rgba(10,8,6,0.82);
+      -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+      z-index: 9500; /* iznad bannera za kolačiće (9000) */
     }
-
-    .modal-overlay.open { display: flex; }
+    .modal-overlay.open { display: flex; animation: modalFade 0.25s ease both; }
+    .modal-overlay *, .modal-overlay *::before, .modal-overlay *::after { box-sizing: border-box; }
 
     .modal {
-      background: #13110e;
-      border: 1px solid var(--cream-15);
-      border-radius: 24px;
-      padding: 44px;
-      width: 100%;
-      max-width: 560px;
-      max-height: 92vh;
-      overflow-y: auto;
+      --m-pad: 40px;
       position: relative;
-      box-shadow: 0 48px 120px rgba(0,0,0,0.8);
-      scrollbar-width: thin;
-      scrollbar-color: var(--cream-15) transparent;
-      animation: modalIn 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+      width: 100%; max-width: 580px;
+      max-height: min(92vh, 880px); max-height: min(92dvh, 880px);
+      overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+      scroll-padding: 84px 0 150px;
+      background: var(--m-bg);
+      border: 1px solid var(--m-line);
+      border-radius: 28px;
+      box-shadow: 0 40px 120px rgba(0,0,0,0.7);
+      color: var(--cream);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      outline: 0;
+      display: flex; flex-direction: column;
+      scrollbar-width: thin; scrollbar-color: var(--cream-15) transparent;
+      animation: modalIn 0.45s var(--m-ease) both;
     }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
 
-    @keyframes modalIn {
-      from { opacity: 0; transform: translateY(24px) scale(0.96); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
+    :where(.modal) :is(button, input, textarea, select) { font: inherit; color: inherit; }
+
+    /* Zaglavlje: neprozirna podloga, ostaje na vrhu i ne prekriva sadržaj */
+    .modal-bar {
+      position: sticky; top: 0; z-index: 5;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 16px var(--m-pad) 8px;
+      background: var(--m-bg);
     }
-
-    @media (max-width: 580px) { .modal { padding: 32px 24px; border-radius: 20px; } }
+    .modal-marka { display: flex; align-items: center; gap: 12px; }
+    .modal-marka svg { width: 26px; height: 26px; display: block; }
+    .modal-marka b { font-family: var(--font-serif); font-weight: 800; font-size: 1.05rem; letter-spacing: 0.01em; }
+    .modal-marka i { display: none; }
 
     .modal-close {
-      position: absolute;
-      top: 18px; right: 18px;
-      background: var(--cream-08);
-      border: 1px solid var(--cream-08);
-      border-radius: 50%;
-      width: 36px; height: 36px;
-      cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      color: var(--cream-40);
-      transition: background 0.2s, color 0.2s;
-    }
-
-    .modal-close:hover { background: var(--cream-15); color: var(--cream); }
-    .modal-close svg { width: 14px; height: 14px; }
-
-    .modal-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--cream-08);
-      border: 1px solid var(--cream-15);
-      color: var(--cream-70);
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      padding: 5px 12px;
-      border-radius: 100px;
-      margin-bottom: 16px;
-    }
-
-    .modal h3 {
-      font-size: 1.7rem;
-      font-weight: 800;
-      letter-spacing: -0.8px;
-      margin-bottom: 6px;
-      line-height: 1.1;
-      padding-right: 36px;
-    }
-
-    .modal-subtitle {
-      font-size: 0.87rem;
-      color: var(--cream-40);
-      line-height: 1.6;
-      margin-bottom: 32px;
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
-
-    .form-group { margin-bottom: 14px; }
-
-    .form-group label {
-      display: block;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--cream-40);
-      margin-bottom: 7px;
-    }
-
-    .form-group input,
-    .form-group textarea {
-      width: 100%;
-      background: var(--cream-04);
-      border: 1.5px solid var(--cream-08);
-      border-radius: 10px;
-      padding: 13px 16px;
+      width: 48px; height: 48px; margin-right: -6px; padding: 0;
+      background: var(--cream-08); border: 0; border-radius: 50%; cursor: pointer;
       color: var(--cream);
-      font-size: 0.93rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-      line-height: 1.6;
+      font-size: 0; /* tekst "Zatvori" ostaje u aria-labelu */
+      transition: background 0.25s, transform 0.25s var(--m-ease);
+    }
+    .modal-close:hover { background: var(--cream-15); transform: scale(1.05); }
+    .modal-close svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; fill: none; }
+
+    /* Uvod */
+    .modal-poruka { position: relative; padding: 12px var(--m-pad) 8px; }
+    .modal-poruka h3 {
+      font-family: var(--font-serif); font-weight: 700;
+      font-size: clamp(1.9rem, 6.4vw, 2.3rem); line-height: 1.12; letter-spacing: -0.01em;
+      margin: 0;
+    }
+    .modal-poruka h3 em { font-style: normal; color: var(--m-gold); }
+    .modal-subtitle { margin: 14px 0 0; padding-right: 40px; max-width: 34ch; font-size: 1rem; line-height: 1.55; color: var(--m-c78); }
+
+    .modal > * { flex-shrink: 0; }
+    .modal-forma { flex: 1 0 auto; display: flex; flex-direction: column; padding: 0 var(--m-pad); }
+    .modal .fade { opacity: 0; transform: translateY(10px); animation: modalUp 0.6s var(--m-ease) forwards; animation-delay: calc(var(--i, 0) * 70ms + 120ms); }
+    @keyframes modalUp { to { opacity: 1; transform: none; } }
+    .modal-forma > form { flex: 1; display: flex; flex-direction: column; padding-top: 24px; }
+
+    /* Polja kao mekane kartice */
+    .form-group {
+      position: relative; margin-bottom: 12px; padding: 12px 18px 6px;
+      background: var(--m-card); border-radius: 16px;
+      box-shadow: 0 0 0 1px transparent;
+      transition: box-shadow 0.3s, background 0.3s;
+    }
+    .form-group:hover { background: #191510; }
+    .form-group:focus-within { box-shadow: 0 0 0 1.5px rgba(212,175,55,0.6); background: #191510; }
+    .form-group label { display: block; margin-bottom: 2px; font-size: 0.82rem; font-weight: 500; color: var(--m-c60); transition: color 0.3s; }
+    .form-group:focus-within label { color: var(--m-gold); }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; display: block; background: none; border: 0; outline: 0; border-radius: 0;
+      padding: 4px 0 10px; font-size: 1.06rem; line-height: 1.45; color: var(--cream);
+      appearance: none; -webkit-appearance: none;
+    }
+    .form-group textarea { resize: none; min-height: 124px; }
+    .form-group ::placeholder { color: var(--m-c60); opacity: 1; }
+    .form-group.sel::before {
+      content: ""; position: absolute; right: 20px; top: 50%; width: 8px; height: 8px; margin-top: -2px;
+      border-right: 1.5px solid var(--m-c60); border-bottom: 1.5px solid var(--m-c60); transform: rotate(45deg); pointer-events: none;
+    }
+    .form-group select option { background: #14110d; color: var(--cream); }
+    .form-row { display: grid; grid-template-columns: 1fr; gap: 0; }
+
+    /* Ključni podaci: mekana kartica koja se glatko otvara */
+    .kljucni-podaci { margin: 4px 0 12px; background: #100d0a; border: 1px solid var(--m-line); border-radius: 22px; }
+    .kljucni-podaci > summary, .vise-detalja > summary { list-style: none; cursor: pointer; user-select: none; }
+    .kljucni-podaci > summary::-webkit-details-marker, .vise-detalja > summary::-webkit-details-marker { display: none; }
+    .kljucni-podaci > summary {
+      display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 22px;
+      font-size: 1rem; font-weight: 500; line-height: 1.3; color: var(--cream); transition: background 0.3s;
+    }
+    .kljucni-podaci > summary:hover { background: rgba(240,236,228,0.03); }
+    .kljucni-podaci > summary small { display: block; margin-top: 2px; font-size: 0.82rem; font-weight: 400; color: var(--m-c60); }
+    .plus { position: relative; width: 30px; height: 30px; flex: none; border-radius: 50%; background: rgba(212,175,55,0.15); }
+    .plus::before, .plus::after { content: ""; position: absolute; background: var(--m-gold); border-radius: 1px; transition: transform 0.4s var(--m-ease); }
+    .plus::before { left: 9px; right: 9px; top: 14.25px; height: 1.5px; }
+    .plus::after { top: 9px; bottom: 9px; left: 14.25px; width: 1.5px; }
+    details[open] > summary .plus::after { transform: scaleY(0); }
+    .kp-body { padding: 4px 14px 16px; animation: modalUp 0.5s var(--m-ease) both; }
+    .kljucni-podaci h4 { margin: 0 4px 14px; font-size: 0.95rem; font-weight: 600; color: var(--cream); }
+    .kljucni-podaci h4 small { display: block; margin-top: 2px; font-size: 0.85rem; font-weight: 400; line-height: 1.4; color: var(--m-c60); }
+    .kljucni-podaci .form-group { background: var(--m-card-in); }
+    .kljucni-podaci .form-group:hover, .kljucni-podaci .form-group:focus-within { background: #201b15; }
+    .vise-detalja > summary { display: inline-flex; align-items: center; gap: 10px; padding: 6px 4px 14px; font-size: 0.92rem; font-weight: 500; color: var(--m-c78); transition: color 0.3s; }
+    .vise-detalja > summary:hover { color: var(--m-gold); }
+    .vise-detalja .plus { width: 24px; height: 24px; }
+    .vise-detalja .plus::before { left: 7px; right: 7px; top: 11.25px; }
+    .vise-detalja .plus::after { top: 7px; bottom: 7px; left: 11.25px; }
+    @supports selector(::details-content) {
+      .kljucni-podaci::details-content, .vise-detalja::details-content {
+        block-size: 0; overflow: clip;
+        transition: block-size 0.45s var(--m-ease), content-visibility 0.45s allow-discrete;
+      }
+      .kljucni-podaci[open]::details-content, .vise-detalja[open]::details-content { block-size: auto; }
     }
 
-    .form-group input::placeholder,
-    .form-group textarea::placeholder { color: var(--cream-15); }
-
-    .form-group input:hover,
-    .form-group textarea:hover { border-color: var(--cream-15); }
-
-    .form-group input:focus,
-    .form-group textarea:focus {
-      border-color: var(--cream-40);
-      background: var(--cream-08);
-      box-shadow: 0 0 0 3px rgba(240,236,228,0.06);
-    }
-
-    .form-group textarea { resize: vertical; min-height: 110px; }
-
-    /* Ključni podaci (neobavezno) */
-    .kljucni-podaci { margin: 4px 0 14px; padding: 16px; border: 1px solid var(--cream-08); border-radius: 14px; background: var(--cream-04); }
-    .kljucni-podaci h4 { font-size: 0.78rem; font-weight: 700; line-height: 1.5; color: var(--cream-70); margin-bottom: 14px; }
-    .kljucni-podaci .form-group { margin-bottom: 12px; }
-    .kljucni-podaci .form-group input, .kljucni-podaci .form-group select { padding: 11px 14px; }
-    .form-group select {
-      width: 100%; background: var(--cream-04); border: 1.5px solid var(--cream-08); border-radius: 10px;
-      padding: 13px 16px; color: var(--cream); font-size: 0.93rem; font-family: inherit; outline: none;
-    }
-    .form-group select:focus { border-color: var(--cream-40); background: var(--cream-08); }
-    .form-group select option { background: #111; color: var(--cream); }
-    .vise-detalja { margin-top: 2px; }
-    .vise-detalja summary {
-      cursor: pointer; list-style: none; font-size: 0.8rem; font-weight: 700; color: var(--cream-40);
-      padding: 6px 0; user-select: none;
-    }
-    .vise-detalja summary::-webkit-details-marker { display: none; }
-    .vise-detalja summary::before { content: '+ '; }
-    .vise-detalja[open] summary::before { content: '− '; }
-    .vise-detalja summary:hover { color: var(--cream); }
-    .vise-detalja .form-row { margin-top: 10px; }
-    .form-greska { display: none; color: #e0705a; font-size: 0.85rem; margin: 4px 0 8px; }
+    .paket-obavijest { display: none; position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 9600; width: min(560px, calc(100% - 32px)); background: #120f0b; border: 1px solid var(--gold); border-radius: 20px; padding: 18px 22px; color: var(--cream); font-size: 0.9rem; line-height: 1.6; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+    .paket-obavijest.visible { display: block; }
+    .paket-obavijest button { margin-top: 12px; margin-right: 10px; }
+    .form-greska { display: none; margin: 4px 0 12px; padding: 12px 16px; border-radius: 14px; background: rgba(240,134,111,0.1); color: #f6a695; font-size: 0.93rem; line-height: 1.45; }
     .form-greska.visible { display: block; }
 
+    .form-note { margin: 16px 4px 0; text-align: center; font-size: 0.85rem; line-height: 1.5; color: var(--m-c60); }
+
+    /* Gumb: pill, krem kao u hero sekciji, zlato samo kao akcent. Na dnu ekrana, s blagim gradijentom */
+    .form-akcija {
+      position: sticky; bottom: 0; z-index: 4;
+      margin: auto calc(var(--m-pad) * -1) 0; padding: 28px var(--m-pad) calc(16px + env(safe-area-inset-bottom));
+      background: linear-gradient(to top, var(--m-bg) 58%, rgba(10,8,6,0));
+    }
     .form-submit {
-      width: 100%;
-      margin-top: 8px;
-      padding: 16px;
-      background: var(--cream);
-      color: var(--bg);
-      font-size: 0.95rem;
-      font-weight: 700;
-      font-family: inherit;
-      border: none;
-      border-radius: 100px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      gap: 10px;
-      transition: opacity 0.2s, transform 0.15s;
+      width: 100%; height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px;
+      background: var(--cream); color: var(--m-bg); border: 0; border-radius: 100px; cursor: pointer;
+      font-size: 1rem; font-weight: 600; letter-spacing: 0;
+      transition: transform 0.35s var(--m-ease), box-shadow 0.35s var(--m-ease), opacity 0.3s;
     }
-
-    .form-submit:hover { opacity: 0.88; transform: translateY(-1px); }
-    .form-submit:active { transform: translateY(0); }
-    .form-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-    .spinner {
-      display: none;
-      width: 17px; height: 17px;
-      border: 2px solid rgba(10,8,6,0.25);
-      border-top-color: var(--bg);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
-    }
-
+    .form-submit .btn-arrow { width: 22px; height: 10px; stroke: #a6821a; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; fill: none; flex: none; transition: transform 0.35s var(--m-ease); }
+    .form-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(212,175,55,0.22); }
+    .form-submit:hover:not(:disabled) .btn-arrow { transform: translateX(4px); }
+    .form-submit:active:not(:disabled) { transform: translateY(0); }
+    .form-submit:disabled { opacity: 0.65; cursor: not-allowed; }
+    .spinner { display: none; width: 18px; height: 18px; flex-shrink: 0; border: 2px solid rgba(10,8,6,0.22); border-top-color: var(--m-bg); border-radius: 50%; animation: spin 0.7s linear infinite; }
     .form-submit.loading .spinner { display: block; }
-    .form-submit.loading .btn-text { opacity: 0.8; }
-
+    .form-submit.loading .btn-arrow { display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+
+    /* ─── Modal u dva koraka ─── */
+    .modal [hidden] { display: none !important; }
+    .korak-traka { display: flex; align-items: center; gap: 4px; min-height: 48px; padding: 0 calc(var(--m-pad) - 8px) 0; }
+    .korak-natrag {
+      display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; padding: 0;
+      background: none; border: 0; border-radius: 50%; cursor: pointer; color: var(--cream); transition: background 0.25s;
+    }
+    .korak-natrag:hover { background: var(--cream-08); }
+    .korak-natrag svg { width: 20px; height: 12px; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .korak-tekst { padding-left: 8px; font-size: 0.85rem; font-weight: 500; color: var(--m-c60); font-variant-numeric: tabular-nums; }
+    .korak-traka:has(.korak-natrag[hidden]) .korak-tekst { padding-left: 8px; }
+    .modal[data-korak="2"] .modal-subtitle { display: none; }
+    .korak { flex: 1 0 auto; display: flex; flex-direction: column; }
+    .korak.izlaz { animation: korakOut 0.12s ease-in forwards; }
+    .korak.ulaz { animation: korakIn 0.12s ease-out both; }
+    @keyframes korakOut { to { opacity: 0; transform: translateX(calc(var(--smjer, 1) * -14px)); } }
+    @keyframes korakIn { from { opacity: 0; transform: translateX(calc(var(--smjer, 1) * 14px)); } to { opacity: 1; transform: none; } }
+    .korak-naslov { margin: 0 4px 18px; font-family: var(--font-serif); font-weight: 700; font-size: 1.35rem; line-height: 1.25; color: var(--cream); }
+    #korak-2 .form-group { margin-bottom: 8px; }
+    #korak-2 .form-note { margin: 8px 4px 0; text-align: left; }
+    .form-group textarea { min-height: 148px; overflow-y: hidden; }
+    .form-group input, .form-group select { min-height: 48px; }
+    .form-greska { margin-top: 0; }
+
+    .pill-btn {
+      display: inline-flex; align-items: center; gap: 10px; align-self: flex-start;
+      min-height: 48px; padding: 0 20px; margin: 4px 0 8px;
+      background: transparent; border: 1.5px solid rgba(240,236,228,0.22); border-radius: 100px; cursor: pointer;
+      font-size: 0.95rem; font-weight: 500; color: var(--cream);
+      transition: border-color 0.3s, background 0.3s, transform 0.3s var(--m-ease);
+    }
+    .pill-btn:hover { border-color: rgba(212,175,55,0.7); background: rgba(212,175,55,0.06); }
+    .pill-btn svg { width: 18px; height: 18px; stroke: var(--m-gold); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+    /* "+ Dodaj cijenu, površinu ili kvart" kao link; polja se otvaraju u mekanoj kartici */
+    .kljucni-podaci { margin: 4px 0 8px; background: none; border: 0; border-radius: 0; }
+    .kljucni-podaci > summary { min-height: 48px; padding: 6px 4px; border-radius: 14px; color: var(--m-gold); font-size: 0.95rem; font-weight: 500; }
+    .kljucni-podaci > summary:hover { background: none; color: var(--cream); }
+    .kp-body { margin-top: 4px; padding: 18px 14px 8px; background: #100d0a; border: 1px solid var(--m-line); border-radius: 22px; }
+    .vise-detalja > summary { min-height: 48px; }
+    .form-akcija { margin-top: auto; }
+    .form-akcija { padding-top: 24px; }
+    .modal .korak > .form-note, .modal .korak > .pill-btn { flex: none; }
+
+    .modal :focus-visible { outline: 2px solid var(--m-gold); outline-offset: 3px; }
+    .modal .form-group input:focus-visible, .modal .form-group textarea:focus-visible, .modal .form-group select:focus-visible { outline: 0; }
+    .modal .form-submit:focus-visible { outline-color: var(--cream); outline-offset: 4px; }
+    .modal .form-success { margin: 8px 0 0; padding: 24px 0 calc(32px + env(safe-area-inset-bottom)); }
+
+    @media (min-width: 641px) {
+      .modal-poruka h3 { font-size: 2.3rem; }
+      .form-row { grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    }
+    /* Mobitel: cijeli zaslon, zaglavlje i gumb pripijeni, uz safe area */
+    @media (max-width: 640px) {
+      .modal-overlay { padding: 0; align-items: stretch; background: var(--m-bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+      .modal {
+        --m-pad: 20px;
+        max-width: none; max-height: none; height: 100vh; height: 100dvh;
+        border: 0; border-radius: 0; box-shadow: none;
+        padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
+      }
+      .modal-bar { padding-top: calc(12px + env(safe-area-inset-top)); }
+      .modal-subtitle { padding-right: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .korak.izlaz, .korak.ulaz { animation: none; }
+      .pill-btn, .korak-natrag { transition: none; }
+      .modal-overlay.open, .modal, .modal .fade, .kp-body { animation: none; opacity: 1; transform: none; }
+      .form-group, .form-group label, .plus::before, .plus::after, .form-submit, .form-submit .btn-arrow, .modal-close, .kljucni-podaci > summary { transition: none; }
+      .kljucni-podaci::details-content, .vise-detalja::details-content { transition: none; }
+      .form-submit:hover:not(:disabled), .modal-close:hover { transform: none; }
+      .spinner { animation-duration: 1.6s; }
+    }
 
     .form-success {
       display: none;
@@ -1600,18 +1688,23 @@
 </head>
 <body>
 
+  <!-- Paket: obavijest nakon povratka sa Stripea (?plan=paket&session_id=...) -->
+  <div class="paket-obavijest" id="paket-obavijest" role="status">
+    <span id="paket-poruka"></span>
+    <div><button type="button" class="btn-primary" id="paket-pokreni" onclick="document.getElementById('paket-obavijest').classList.remove('visible'); openModal()">Pokreni analizu</button><button type="button" class="btn-outline-sm" onclick="document.getElementById('paket-obavijest').classList.remove('visible')">Zatvori</button></div>
+  </div>
+
   <!-- AMBIENT SPOTLIGHT -->
   <div class="ambient-spotlight" id="ambientSpotlight"></div>
 
   <!-- NAV -->
   <nav id="navbar">
     <a href="#" class="nav-logo">
-      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="0.75" y="0.75" width="24.5" height="24.5" rx="4.25" stroke="#f0ece4" stroke-width="1.5"/>
-        <rect x="4" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
-        <rect x="14" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
-        <rect x="4" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
-        <rect x="14" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="4" y="4" width="8" height="24" rx="1" fill="#f0ece4"/>
+        <path d="M15 4H27Q28 4 28 5V21Q28 22 27 22H23Q22 22 22 21V10H15Q14 10 14 9V5Q14 4 15 4Z" fill="#f0ece4"/>
+        <rect x="14" y="12" width="6" height="8" rx="1" fill="#d4af37"/>
+        <rect x="14" y="22" width="6" height="6" rx="1" fill="#f0ece4"/>
       </svg>
       <span class="nav-logo-text">Prop<span>IQ</span></span>
     </a>
@@ -1660,13 +1753,13 @@
     <div class="how-step fade-in" style="transition-delay:0.12s">
       <div class="how-num">02</div>
       <div class="how-title">AI analizira</div>
-      <p class="how-desc">PropIQ iz teksta oglasa iščita lokaciju, cijenu, kvadraturu i stanje, a AI model koji poznaje hrvatsko tržište procjenjuje raspon vrijednosti i ključne rizike.</p>
+      <p class="how-desc">PropIQ iz teksta oglasa iščita lokaciju, cijenu, kvadraturu i stanje, a polazište procjene su medijani stvarno plaćenih cijena (Pregled tržišta nekretnina 2025., DZS indeks). AI predlaže korekcije za ovu nekretninu, a raspon i brojke zbraja sustav.</p>
     </div>
     <div class="how-divider"></div>
     <div class="how-step fade-in" style="transition-delay:0.24s">
       <div class="how-num">03</div>
       <div class="how-title">Dobiješ preporuku</div>
-      <p class="how-desc">Strukturirana investicijska procjena s ocjenom isplativosti, procijenjenim ROI-em i jasnom preporukom: kupi, pregovaraj ili preskoči.</p>
+      <p class="how-desc">Strukturirana investicijska procjena s ocjenom 1–10, prinosom od najma i jasnom oznakom: povoljna prilika, za pregovore ili oprez.</p>
     </div>
   </div>
 
@@ -1675,40 +1768,60 @@
     <div class="example-head fade-in">
       <div class="section-label">Primjer</div>
       <h2 class="section-title">Kako izgleda analiza</h2>
-      <p class="example-lead">Ovo je isječak stvarne PropIQ analize, skraćen.</p>
+      <p class="example-lead">Primjer analize: isječak izvještaja za jedan oglas, skraćen.</p>
     </div>
 
-    <div class="report fade-in">
+    <div class="report fade-in" id="primjer-kartica">
       <div class="report-glow"></div>
       <div class="report-inner">
         <div class="report-topline">
-          <span class="report-eyebrow"><span class="report-dot"></span>AI analiza nekretnine</span>
-          <span class="report-address">Zadar, novogradnja, 63 m², prizemlje</span>
+          <span class="report-pill">Primjer</span>
+          <span class="report-address">Zagreb, Središće, 130,45&nbsp;m²</span>
         </div>
 
-        <div class="report-block">
-          <h3 class="report-h">Procjena vrijednosti</h3>
-          <ul class="report-list">
-            <li>Tražena cijena: <span class="mono">5.100 EUR/m²</span>, ukupno oko <span class="mono">322.000 EUR</span></li>
-            <li>Tržišni raspon za lokaciju: <span class="mono">4.200</span> do <span class="mono">5.500 EUR/m²</span></li>
-            <li>Prizemlje nosi diskont od <span class="mono">5</span> do <span class="mono">10</span> posto u odnosu na više katove</li>
-            <li class="verdict">Ocjena: cijena je na gornjoj granici tržišnog raspona</li>
-          </ul>
+        <div class="fer">
+          <div class="fer-label">Fer raspon vrijednosti</div>
+          <div class="fer-raspon"><span data-do="410000">410.000</span> – <span data-do="470000">470.000</span>&nbsp;€</div>
+          <div class="fer-m2">3.142 – 3.614&nbsp;€/m²</div>
         </div>
 
-        <div class="report-block">
-          <h3 class="report-h">Ključni rizici</h3>
-          <ul class="report-list">
-            <li>Obračunska površina <span class="mono">63 m²</span> znatno je manja od stvarne <span class="mono">100 m²</span></li>
-            <li>Obvezna kupnja garažnog mjesta povećava ukupni trošak za <span class="mono">15.000</span> do <span class="mono">25.000 EUR</span></li>
-            <li>Prizemlje ograničava potencijal turističkog najma</li>
-            <li>Energetski certifikat nije dostupan</li>
-          </ul>
+        <div class="oznaka-red">
+          <span class="oznaka">OPREZ</span>
+          <span class="ocjena">Ocjena 1/10</span>
+          <span class="oznaka-opis">Tražena cijena je iznad fer raspona.</span>
+        </div>
+
+        <div class="traka" role="img" aria-label="Tražena cijena 694.896&nbsp;€ je iznad fer raspona 410.000 – 470.000&nbsp;€">
+          <div class="traka-trazena">Tražena 694.896&nbsp;€</div>
+          <div class="traka-os">
+            <span class="traka-fer" style="left:26.19%;width:14.29%"></span>
+            <span class="traka-marker" style="left:94.03%"></span>
+          </div>
+          <div class="traka-fer-oznaka" style="left:26.19%">Fer raspon</div>
+        </div>
+
+        <div class="report-mali-h">Korekcije polazišta</div>
+        <div class="korekcije">
+          <span class="kor kor-pl">+8&nbsp;% renovacija</span>
+          <span class="kor kor-mi">−7&nbsp;% veliki stan</span>
+          <span class="kor kor-pl">+4&nbsp;% kat/pogled</span>
+          <span class="kor kor-pl">+2&nbsp;% lift</span>
+          <span class="kor kor-mi">−4&nbsp;% bez parkinga</span>
+          <span class="kor kor-mi">−2&nbsp;% starost zgrade</span>
+        </div>
+        <p class="polaziste">Polazište: medijan stvarno plaćenih cijena, k.o. Zaprudski Otok, 3.345&nbsp;€/m² (MPGI/DZS)</p>
+
+        <div class="teaser">
+          <div class="teaser-tekst">
+            <div class="teaser-l">Ciljana ponuda</div>
+            <div class="teaser-s">Prijedlog za pregovore, nije procjena vrijednosti. Otkriva se u punoj analizi.</div>
+          </div>
+          <div class="teaser-v" aria-hidden="true">440.000&nbsp;€</div>
         </div>
       </div>
 
       <div class="report-cta">
-        <p class="report-note">Puna analiza sadrži tržišni kontekst, procjenu prinosa i konkretne iduće korake.</p>
+        <p class="report-note">Puna analiza sadrži i rizike, procjenu prinosa od najma te pitanja za prodavatelja.</p>
         <button class="btn-primary" onclick="openModal()">Pokreni analizu</button>
       </div>
     </div>
@@ -1719,7 +1832,7 @@
     <div class="section-header fade-in">
       <div>
         <div class="section-label">Mogućnosti</div>
-        <h2 class="section-title">Sve što trebate<br>za pametno investiranje</h2>
+        <h2 class="section-title">Sve što ti treba<br>za pametno investiranje</h2>
       </div>
       <p class="section-desc">Šest alata koji mijenjaju način na koji agencije i investitori procjenjuju nekretnine.</p>
     </div>
@@ -1731,8 +1844,8 @@
           </svg>
         </div>
         <div class="feature-num">01</div>
-        <div class="feature-title">Instant analiza</div>
-        <p class="feature-desc">Prvi rezultati za par sekundi. Unesite tekst oglasa i dobijte kompletnu investicijsku procjenu.</p>
+        <div class="feature-title">Izvještaj za oko pola minute</div>
+        <p class="feature-desc">Cijeli izvještaj obično stiže za oko pola minute, a tijekom izrade vidiš u kojoj je fazi. Unesi tekst oglasa i dobij kompletnu investicijsku procjenu.</p>
       </div>
       <div class="feature-card fade-in" style="transition-delay:0.08s">
         <div class="feature-icon">
@@ -1742,8 +1855,8 @@
           </svg>
         </div>
         <div class="feature-num">02</div>
-        <div class="feature-title">Njuškalo integracija</div>
-        <p class="feature-desc">Kopirajte tekst oglasa direktno s Njuškala. Bez API-ja, bez tehničkog znanja.</p>
+        <div class="feature-title">Radi s bilo kojim oglasnikom</div>
+        <p class="feature-desc">Kopiraj tekst oglasa s Njuškala ili drugog oglasnika. Bez linka, bez integracije, bez tehničkog znanja.</p>
       </div>
       <div class="feature-card fade-in" style="transition-delay:0.16s">
         <div class="feature-icon">
@@ -1753,8 +1866,8 @@
           </svg>
         </div>
         <div class="feature-num">03</div>
-        <div class="feature-title">ROI kalkulator</div>
-        <p class="feature-desc">Procijenjeni prinos najma, godišnji ROI i usporedba s tržišnim prosjekom za lokaciju.</p>
+        <div class="feature-title">Prinos od najma</div>
+        <p class="feature-desc">Bruto i neto prinos najma, godine povrata i položaj tražene cijene u odnosu na fer raspon vrijednosti.</p>
       </div>
       <div class="feature-card fade-in" style="transition-delay:0.24s">
         <div class="feature-icon">
@@ -1767,7 +1880,7 @@
         </div>
         <div class="feature-num">04</div>
         <div class="feature-title">PDF izvještaj</div>
-        <p class="feature-desc">Brendirani izvještaj koji možete odmah podijeliti s klijentima.</p>
+        <p class="feature-desc">Gumb „Spremi kao PDF” otvara ispis iz preglednika: izvještaj s PropIQ zaglavljem i datumom, spreman za dijeljenje.</p>
       </div>
       <div class="feature-card fade-in" style="transition-delay:0.32s">
         <div class="feature-icon">
@@ -1776,8 +1889,8 @@
           </svg>
         </div>
         <div class="feature-num">05</div>
-        <div class="feature-title">Tržišni trendovi</div>
-        <p class="feature-desc">Procjena kretanja cijena i potražnje po lokaciji, na temelju znanja AI modela o hrvatskom tržištu.</p>
+        <div class="feature-title">Stvarno plaćene cijene</div>
+        <p class="feature-desc">Polazište procjene su medijani stvarno plaćenih cijena (MPGI Pregled tržišta 2025., usklađeno DZS indeksom; Zagreb po katastarskim općinama), a ne nagađanje AI modela.</p>
       </div>
       <div class="feature-card fade-in" style="transition-delay:0.4s">
         <div class="feature-icon">
@@ -1800,59 +1913,75 @@
         <div class="section-label">Cijene</div>
         <h2 class="section-title">Jednostavno.<br>Transparentno.</h2>
       </div>
-      <p class="section-desc">Bez skrivenih naknada. Otkaži bilo kad. Počni besplatno bez kartice.</p>
+      <p class="section-desc">Bez skrivenih naknada. Pretplatu možeš otkazati bilo kad. Počni besplatno, bez kartice.</p>
     </div>
     <div class="pricing-grid">
       <div class="plan fade-in">
         <div class="plan-tier">Free</div>
         <div class="plan-price-wrap">
-          <div class="plan-price"><sup>€</sup>0</div>
+          <div class="plan-price">0<sup>€</sup></div>
           <div class="plan-period">bez kartice</div>
         </div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li>3 analize besplatno (ukupno)</li>
-          <li>Bez kreditne kartice</li>
-          <li>Osnovna tržišna izvješća</li>
-          <li>Email podrška</li>
+          <li>3 analize ukupno</li>
+          <li>Puni izvještaj</li>
+          <li>Spremi kao PDF (ispis)</li>
         </ul>
         <div class="plan-btn-wrap">
           <button class="btn-outline-sm" onclick="openModal()">Počni besplatno</button>
         </div>
       </div>
       <div class="plan fade-in" style="transition-delay:0.1s">
+        <div class="plan-tier">Paket</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price">12<sup>€</sup></div>
+          <div class="plan-period">jednokratno</div>
+        </div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li>5 analiza</li>
+          <li>Vrijedi 90 dana od kupnje</li>
+          <li>Bez pretplate</li>
+          <li>Puni izvještaj</li>
+          <li>Spremi kao PDF (ispis)</li>
+          <li>Za kupce koji traže jedan stan</li>
+        </ul>
+        <div class="plan-btn-wrap">
+          <a href="https://buy.stripe.com/6oU6oI5WtgLFf9aaQqbwk02" class="btn-outline-sm">Kupi Paket</a>
+        </div>
+      </div>
+      <div class="plan fade-in" style="transition-delay:0.2s">
         <div class="plan-tier">Standard</div>
         <div class="plan-price-wrap">
-          <div class="plan-price"><sup>€</sup>24</div>
+          <div class="plan-price">24,99<sup>€</sup></div>
           <div class="plan-period">po mjesecu</div>
         </div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
           <li>10 analiza mjesečno</li>
-          <li>Puna dubina analize</li>
-          <li>Web izvješće</li>
-          <li>Email podrška</li>
+          <li>Puni izvještaj</li>
+          <li>Spremi kao PDF (ispis)</li>
         </ul>
         <div class="plan-btn-wrap">
-          <a href="https://buy.stripe.com/9B69AU4Sp3YT2moaQqbwk00" class="btn-outline-sm">Odaberi Standard</a>
+          <a href="https://buy.stripe.com/8x27sMfx38f9f9a2jUbwk03" class="btn-outline-sm">Odaberi Standard</a>
         </div>
       </div>
-      <div class="plan featured fade-in" style="transition-delay:0.2s">
-        <div class="plan-badge">Najpopularnije</div>
+      <div class="plan featured fade-in" style="transition-delay:0.3s">
         <div class="plan-tier">Pro</div>
         <div class="plan-price-wrap">
-          <div class="plan-price"><sup>€</sup>49</div>
+          <div class="plan-price">49,99<sup>€</sup></div>
           <div class="plan-period">po mjesecu</div>
         </div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li>Neograničene analize</li>
-          <li>Puna dubina analize</li>
-          <li>PDF export izvješća</li>
-          <li>Prioritetna podrška</li>
+          <li>Neograničeno uz razumnu uporabu</li>
+          <li>Puni izvještaj</li>
+          <li>Spremi kao PDF (ispis)</li>
+          <li>Prioritetna podrška: odgovaram osobno, brže</li>
         </ul>
         <div class="plan-btn-wrap">
-          <a href="https://buy.stripe.com/7sY3cw2Kh671e56gaKbwk01" class="btn-dark">Odaberi Pro</a>
+          <a href="https://buy.stripe.com/fZueVe0C9gLFf9af6Gbwk04" class="btn-dark">Odaberi Pro</a>
         </div>
       </div>
     </div>
@@ -1879,7 +2008,7 @@
           </span>
         </button>
         <div class="faq-answer">
-          <p>PropIQ koristi veliki jezični model (LLM) koji poznaje hrvatsko tržište nekretnina. Iz teksta oglasa automatski prepoznaje ključne parametre — kvadraturu, lokaciju, stanje i cijenu — te na temelju tog znanja procjenjuje raspon vrijednosti, tržišni kontekst i ključne rizike. Rezultat je strukturirana procjena investicijske isplativosti s jasnom preporukom.</p>
+          <p>PropIQ iz teksta oglasa prepoznaje ključne parametre — kvadraturu, lokaciju, stanje i cijenu. Polazište procjene je medijan stvarno plaćenih cijena za grad ili katastarsku općinu (Pregled tržišta nekretnina MPGI-ja za 2025., usklađen DZS indeksom cijena). Veliki jezični model (LLM) za ovu nekretninu predlaže korekcije u postocima (stanje, kat, lift, parking…), a raspon vrijednosti, prinos i preporuku računa sustav. Rezultat je strukturirana procjena s jasnom oznakom: povoljna prilika, za pregovore ili oprez.</p>
         </div>
       </div>
 
@@ -1907,7 +2036,7 @@
           </span>
         </button>
         <div class="faq-answer">
-          <p>Prvi rezultati pojavljuju se za par sekundi, a cijeli izvještaj stiže unutar pola minute. U tom vremenu AI procjenjuje lokaciju, raspon vrijednosti, potencijalni prinos najma i tržišni kontekst te generira kompletan izvještaj spreman za preuzimanje.</p>
+          <p>Cijeli izvještaj obično stiže za oko pola minute. Dok čekaš, vidiš u kojoj je fazi analiza: prvo se procjenjuje fer vrijednost, zatim rizici i strategija pregovaranja. Gotov izvještaj možeš spremiti kao PDF.</p>
         </div>
       </div>
 
@@ -1935,7 +2064,7 @@
           </span>
         </button>
         <div class="faq-answer">
-          <p>Apsolutno. Free plan uključuje 3 potpune analize ukupno, jednokratno i bez unosa kartice. Možete testirati sve funkcionalnosti i uvjeriti se u kvalitetu izvještaja prije nego se odlučite za plaćeni plan. Nadogradnja je dostupna u bilo kojem trenutku.</p>
+          <p>Apsolutno. Free plan uključuje 3 potpune analize ukupno, jednokratno i bez unosa kartice. Možeš testirati sve funkcionalnosti i uvjeriti se u kvalitetu izvještaja prije nego se odlučiš za plaćeni plan. Nadogradnja je dostupna u bilo kojem trenutku.</p>
         </div>
       </div>
 
@@ -1944,22 +2073,21 @@
 
   <!-- CTA -->
   <section class="cta-section fade-in" id="kontakt">
-    <p class="cta-title">Počnite analizirati<br><em>danas.</em></p>
+    <p class="cta-title">Počni analizirati<br><em>danas.</em></p>
     <div class="cta-btns">
       <button class="btn-primary" onclick="openModal()">Pokreni prvu analizu</button>
-      <a href="mailto:sime.zubcic23@gmail.com" class="btn-outline">Kontaktirajte nas</a>
+      <a href="mailto:sime.zubcic23@gmail.com" class="btn-outline">Javi nam se</a>
     </div>
   </section>
 
   <!-- FOOTER -->
   <footer>
     <a href="#" class="footer-logo">
-      <svg width="22" height="22" viewBox="0 0 26 26" fill="none">
-        <rect x="0.75" y="0.75" width="24.5" height="24.5" rx="4.25" stroke="#f0ece4" stroke-width="1.5"/>
-        <rect x="4" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
-        <rect x="14" y="4" width="8" height="8" rx="1" fill="#f0ece4"/>
-        <rect x="4" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
-        <rect x="14" y="14" width="8" height="8" rx="1" fill="#f0ece4"/>
+      <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="4" y="4" width="8" height="24" rx="1" fill="#f0ece4"/>
+        <path d="M15 4H27Q28 4 28 5V21Q28 22 27 22H23Q22 22 22 21V10H15Q14 10 14 9V5Q14 4 15 4Z" fill="#f0ece4"/>
+        <rect x="14" y="12" width="6" height="8" rx="1" fill="#d4af37"/>
+        <rect x="14" y="22" width="6" height="6" rx="1" fill="#f0ece4"/>
       </svg>
       <span class="footer-logo-text">Prop<span>IQ</span></span>
     </a>
@@ -1976,47 +2104,53 @@
 
   <!-- MODAL -->
   <div class="modal-overlay" id="modal" onclick="handleOverlayClick(event)">
-    <div class="modal">
-      <button class="modal-close" onclick="closeModal()" aria-label="Zatvori">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-      <div class="modal-eyebrow">
-        <svg width="7" height="7" viewBox="0 0 7 7" fill="currentColor"><circle cx="3.5" cy="3.5" r="3.5"/></svg>
-        AI analiza nekretnine
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-naslov" tabindex="-1">
+      <header class="modal-bar">
+        <div class="modal-marka">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="4" width="20" height="56" rx="1" fill="#f0ece4"/><path d="M32 4H58V40H46V16H32Z" fill="#f0ece4"/><rect x="30" y="20" width="12" height="16" fill="#d4af37"/><rect x="30" y="40" width="12" height="12" fill="#f0ece4"/></svg>
+          <b>PropIQ</b>
+        </div>
+        <button type="button" class="modal-close" onclick="closeModal()" aria-label="Zatvori" title="Zatvori">
+          <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M2 2L16 16M16 2L2 16"/></svg>
+        </button>
+      </header>
+
+      <div class="korak-traka" id="korak-traka">
+        <button type="button" class="korak-natrag" id="korak-natrag" aria-label="Natrag na tekst oglasa" hidden>
+          <svg viewBox="0 0 20 12" aria-hidden="true"><path d="M19 6H2M6 1L1 6l5 5"/></svg>
+        </button>
+        <span class="korak-tekst" id="korak-tekst" aria-live="polite">1 od 2</span>
       </div>
-      <h3>Analiziraj oglas</h3>
-      <p class="modal-subtitle">Zalijepite tekst oglasa i dobijte AI analizu isplativosti.</p>
-      <form id="zahtjev-form">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="ime">Ime i prezime</label>
-            <input type="text" id="ime" name="ime" placeholder="Marko Kovačević" maxlength="100" required>
+
+      <section class="modal-poruka">
+        <h3 id="modal-naslov" class="fade" style="--i:1">Koliko oglas <em>stvarno vrijedi?</em></h3>
+        <p class="modal-subtitle fade" style="--i:2">Zalijepi oglas, za oko pola minute znaš je li cijena fer.</p>
+      </section>
+
+      <section class="modal-forma">
+      <form id="zahtjev-form" novalidate>
+        <div class="korak" id="korak-1">
+          <div class="form-group fade" style="--i:2">
+            <label for="oglas_tekst">Tekst oglasa</label>
+            <textarea id="oglas_tekst" name="oglas_tekst" rows="5" placeholder="Zalijepi naslov, cijenu, opis i karakteristike nekretnine s bilo kojeg oglasnika…" maxlength="15000"></textarea>
           </div>
-          <div class="form-group">
-            <label for="email">Email adresa</label>
-            <input type="email" id="email" name="email" placeholder="marko@agencija.hr" maxlength="254" required>
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="agencija">Naziv agencije <span style="opacity:.4;font-weight:400;text-transform:none;letter-spacing:0">(opcionalno)</span></label>
-          <input type="text" id="agencija" name="agencija" placeholder="Npr. Adriatic Estates d.o.o." maxlength="100">
-        </div>
-        <div class="form-group">
-          <label for="oglas_tekst">Tekst oglasa s Njuškala</label>
-          <textarea id="oglas_tekst" name="oglas_tekst" placeholder="Kopirajte naslov, cijenu, opis i karakteristike nekretnine..." maxlength="15000"></textarea>
-        </div>
-        <fieldset class="kljucni-podaci" style="min-width:0">
-          <h4>Ključni podaci (neobavezno — ako ih oglas nema ili ih želite ispraviti)</h4>
+          <div class="form-greska" id="form-greska" role="alert"></div>
+          <button type="button" class="pill-btn fade" style="--i:3" id="zalijepi-btn" hidden>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="4" width="10" height="13" rx="2"/><path d="M8 4V3h4v1"/></svg>
+            Zalijepi iz međuspremnika
+          </button>
+        <details class="kljucni-podaci fade" style="--i:3" id="kp_blok">
+          <summary><span class="plus" aria-hidden="true"></span>Dodaj cijenu, površinu ili kvart</summary>
+          <div class="kp-body" role="group" aria-label="Ključni podaci (neobavezno — ako ih oglas nema ili ih želiš ispraviti)">
+          <h4>Ključni podaci <small>Ako ih oglas nema ili ih želiš ispraviti.</small></h4>
           <div class="form-row">
             <div class="form-group">
               <label for="kp_cijena">Cijena (€)</label>
-              <input type="text" id="kp_cijena" name="cijena_eur" inputmode="numeric" placeholder="npr. 185.000" maxlength="15" autocomplete="off">
+              <input type="text" id="kp_cijena" name="cijena_eur" inputmode="numeric" placeholder="npr. 195.000" maxlength="15" autocomplete="off">
             </div>
             <div class="form-group">
-              <label for="kp_povrsina">Stambena površina (m²)</label>
-              <input type="text" id="kp_povrsina" name="povrsina_m2" inputmode="decimal" placeholder="npr. 58" maxlength="8" autocomplete="off">
+              <label for="kp_povrsina">Površina (m²)</label>
+              <input type="text" id="kp_povrsina" name="povrsina_m2" inputmode="decimal" placeholder="npr. 62" maxlength="8" autocomplete="off">
             </div>
           </div>
           <div class="form-row">
@@ -2030,7 +2164,7 @@
             </div>
           </div>
           <details class="vise-detalja" id="kp_vise">
-            <summary>Više detalja</summary>
+            <summary><span class="plus" aria-hidden="true"></span>Više detalja</summary>
             <div class="form-row">
               <div class="form-group">
                 <label for="kp_kat">Kat</label>
@@ -2042,22 +2176,43 @@
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group">
+              <div class="form-group sel">
                 <label for="kp_lift">Lift</label>
                 <select id="kp_lift" name="lift"><option value="">—</option><option value="da">Da</option><option value="ne">Ne</option></select>
               </div>
-              <div class="form-group">
+              <div class="form-group sel">
                 <label for="kp_parking">Parking</label>
                 <select id="kp_parking" name="parking"><option value="">—</option><option value="da">Da</option><option value="ne">Ne</option><option value="javni">Javni</option></select>
               </div>
             </div>
           </details>
-        </fieldset>
-        <div class="form-greska" id="form-greska" role="alert"></div>
-        <button type="submit" class="form-submit" id="form-submit-btn">
-          <div class="spinner"></div>
-          <span class="btn-text">Pokreni analizu</span>
-        </button>
+          </div>
+        </details>
+          <div class="form-akcija">
+            <button type="button" class="form-submit" id="dalje-btn">
+              <div class="spinner"></div>
+              <span class="btn-text">Dalje</span>
+              <svg class="btn-arrow" viewBox="0 0 22 10" aria-hidden="true"><path d="M1 5H20M16 1l4 4-4 4"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="korak" id="korak-2" hidden>
+          <h4 class="korak-naslov" id="korak-2-naslov">Gdje ti pošaljemo izvještaj?</h4>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="ime.prezime@primjer.hr" maxlength="254" inputmode="email" autocomplete="email" required>
+          </div>
+          <div class="form-greska" id="email-greska" role="alert"></div>
+          <p class="form-note">Prve 3 analize besplatno · bez kartice</p>
+          <div class="form-akcija">
+            <button type="submit" class="form-submit" id="form-submit-btn">
+              <div class="spinner"></div>
+              <span class="btn-text">Pokreni moju analizu</span>
+              <svg class="btn-arrow" viewBox="0 0 22 10" aria-hidden="true"><path d="M1 5H20M16 1l4 4-4 4"/></svg>
+            </button>
+          </div>
+        </div>
       </form>
       <div class="form-success" id="form-success">
         <div class="result-header">
@@ -2074,6 +2229,7 @@
         <div class="form-result" id="form-result"></div>
         <button class="form-reset-btn" onclick="resetForm()">↩ Nova analiza</button>
       </div>
+      </section>
     </div>
   </div>
 
@@ -2255,27 +2411,89 @@
     })();
 
     // ── Modal ──
+    let modalZadnjiFokus = null;
+    const modalEl = () => document.getElementById('modal');
+    const modalOtvoren = () => modalEl().classList.contains('open');
+    const manjePokreta = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let korak = 1;
+    const $ = (id) => document.getElementById(id);
+    const emailZnan = () => { const e = $('email'); return !!e.value.trim() && e.validity.valid; };
+
+    function osvjeziKorake() {
+      const ukupno = emailZnan() ? 1 : 2;
+      $('korak-tekst').textContent = `${korak} od ${ukupno}`;
+      $('korak-traka').hidden = ukupno === 1;
+      $('korak-natrag').hidden = korak === 1;
+      $('dalje-btn').querySelector('.btn-text').textContent = ukupno === 1 ? 'Pokreni moju analizu' : 'Dalje';
+      modalEl().querySelector('.modal').dataset.korak = String(korak);
+    }
+
+    // Glatki prijelaz (2 × 120 ms): stari korak izblijedi i pomakne se, novi uđe s druge strane.
+    function idiNaKorak(n) {
+      if (n === korak) return;
+      const stari = $('korak-' + korak), novi = $('korak-' + n);
+      const smjer = n > korak ? 1 : -1;
+      korak = n;
+      osvjeziKorake();
+      const gotovo = () => {
+        stari.hidden = true; stari.classList.remove('izlaz');
+        novi.hidden = false;
+        if (!manjePokreta()) {
+          novi.style.setProperty('--smjer', smjer);
+          novi.classList.add('ulaz');
+          novi.addEventListener('animationend', () => novi.classList.remove('ulaz'), { once: true });
+        }
+        modalEl().querySelector('.modal').scrollTo({ top: 0 });
+        (n === 2 ? $('email') : $('oglas_tekst')).focus({ preventScroll: true });
+      };
+      if (manjePokreta()) return gotovo();
+      stari.style.setProperty('--smjer', smjer);
+      stari.classList.add('izlaz');
+      setTimeout(gotovo, 120);
+    }
+
+    function autoRast() {
+      const ta = $('oglas_tekst');
+      ta.style.height = 'auto';
+      const max = Math.round(window.innerHeight * 0.5);
+      ta.style.height = Math.min(ta.scrollHeight, max) + 'px';
+      ta.style.overflowY = ta.scrollHeight > max ? 'auto' : 'hidden';
+    }
+
     function openModal() {
-      document.getElementById('modal').classList.add('open');
+      modalZadnjiFokus = document.activeElement;
+      modalEl().classList.add('open');
       document.body.style.overflow = 'hidden';
+      osvjeziKorake();
+      autoRast();
+      // Fokus na sam dijalog (čitač zaslona ga najavi); tipkovnica nastavlja od prvog polja, bez skakanja zaslona na mobitelu.
+      modalEl().querySelector('.modal').focus({ preventScroll: true });
     }
 
     function resetForm() {
-      document.getElementById('zahtjev-form').reset();
-      document.getElementById('kp_vise').open = false;
-      document.getElementById('form-greska').classList.remove('visible');
-      const btn = document.getElementById('form-submit-btn');
-      btn.disabled = false;
-      btn.classList.remove('loading');
-      document.getElementById('form-success').classList.remove('visible');
-      document.getElementById('recommendation-badge').innerHTML = '';
-      document.getElementById('form-result').innerHTML = '';
+      $('zahtjev-form').reset();
+      $('kp_vise').open = false;
+      $('kp_blok').open = false;
+      ['form-greska', 'email-greska'].forEach(id => { $(id).classList.remove('visible'); $(id).textContent = ''; });
+      ['form-submit-btn', 'dalje-btn'].forEach(id => { const b = $(id); b.disabled = false; b.classList.remove('loading'); });
+      korak = 1;
+      $('korak-1').hidden = false; $('korak-2').hidden = true;
+      ['korak-1', 'korak-2'].forEach(id => $(id).classList.remove('ulaz', 'izlaz'));
+      osvjeziKorake();
+      autoRast();
+      $('form-success').classList.remove('visible');
+      $('recommendation-badge').innerHTML = '';
+      $('form-result').innerHTML = '';
     }
 
     function closeModal() {
-      document.getElementById('modal').classList.remove('open');
+      const bioOtvoren = modalOtvoren();
+      modalEl().classList.remove('open');
       document.body.style.overflow = '';
       setTimeout(resetForm, 300);
+      if (bioOtvoren && modalZadnjiFokus && modalZadnjiFokus.focus) { modalZadnjiFokus.focus({ preventScroll: true }); }
+      modalZadnjiFokus = null;
     }
 
     function handleOverlayClick(e) {
@@ -2284,19 +2502,65 @@
 
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') closeModal();
+      // Fokus ostaje unutar modala (Tab / Shift+Tab kruži po njegovim kontrolama).
+      if (e.key !== 'Tab' || !modalOtvoren()) return;
+      const dijalog = modalEl().querySelector('.modal');
+      const fokusabilni = [...dijalog.querySelectorAll('a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])')]
+        .filter(el => !el.disabled && el.getClientRects().length > 0);
+      if (!fokusabilni.length) { e.preventDefault(); return; }
+      const prvi = fokusabilni[0], zadnji = fokusabilni[fokusabilni.length - 1];
+      if (!dijalog.contains(document.activeElement) || document.activeElement === dijalog) {
+        e.preventDefault(); (e.shiftKey ? zadnji : prvi).focus();
+      } else if (e.shiftKey && document.activeElement === prvi) { e.preventDefault(); zadnji.focus(); }
+      else if (!e.shiftKey && document.activeElement === zadnji) { e.preventDefault(); prvi.focus(); }
     });
 
-    // ── Form submit ──
-    function detectRecommendation(text) {
-      const t = text.toUpperCase();
-      if (/KUPI|KUPITI|PREPORUČAMO KUPNJU|IZVRSNA INVESTICIJA|IZVRSNA PRILIKA/.test(t))
-        return { cls: 'buy', label: '✓ Preporuka: Kupi' };
-      if (/PREGOVARAJ|PREGOVOR|RAZMOTRITI|UVJETNO|MOGUĆE/.test(t))
-        return { cls: 'negotiate', label: '◎ Preporuka: Pregovaraj' };
-      if (/PRESKOČI|PRESKOČITI|IZBJEGNI|IZBJEGAVATI|NIJE PREPORUČLJIVO|LOŠA INVESTICIJA/.test(t))
-        return { cls: 'skip', label: '✕ Preporuka: Preskoči' };
-      return null;
+    // Polje u fokusu uvijek ostaje vidljivo (ispod zaglavlja i iznad tipkovnice na mobitelu).
+    function pokaziUModalu(el, blok) {
+      if (!el || !modalOtvoren()) return;
+      el.scrollIntoView({ block: blok, behavior: manjePokreta() ? 'auto' : 'smooth' });
     }
+    modalEl().addEventListener('focusin', e => {
+      if (!e.target.matches('input, textarea, select')) return;
+      // Kratka odgodu da se tipkovnica na mobitelu stigne otvoriti prije izračuna položaja.
+      setTimeout(() => { if (document.activeElement === e.target) pokaziUModalu(e.target.closest('.form-group') || e.target, 'center'); }, 280);
+    });
+    // Otvaranje "Ključni podaci" / "Više detalja": sklopljeni sadržaj se otkriva ispod pregiba pa ga dovedemo u vidno polje.
+    ['kp_blok', 'kp_vise'].forEach(id => {
+      const det = document.getElementById(id);
+      det.addEventListener('toggle', () => {
+        if (!det.open) return;
+        const aktivno = document.activeElement;
+        if (det.contains(aktivno) && aktivno.matches('input, textarea, select')) return pokaziUModalu(aktivno.closest('.form-group') || aktivno, 'center');
+        // Pričekaj da se blok glatko otvori, pa ga dovedi u vidno polje.
+        setTimeout(() => pokaziUModalu(det, id === 'kp_vise' ? 'nearest' : 'start'), manjePokreta() ? 60 : 480);
+      });
+    });
+
+    // ── Primjer analize: brojke raspona kratko "nabroje" kad kartica uđe u ekran (600 ms) ──
+    (function () {
+      const kartica = document.getElementById('primjer-kartica');
+      if (!kartica || !('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const brojevi = [...kartica.querySelectorAll('[data-do]')];
+      const traka = kartica.querySelector('.traka');
+      const hr = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      // Brojke se skrivaju tek ako je kartica ispod ruba ekrana; inače ostaju konačne (bez treptanja).
+      if (kartica.getBoundingClientRect().top < window.innerHeight) return;
+      brojevi.forEach(b => { b.textContent = hr(0); });
+      traka.classList.add('van');
+      new IntersectionObserver((unosi, ob) => {
+        if (!unosi.some(u => u.isIntersecting)) return;
+        ob.disconnect();
+        traka.classList.add('ulazi');
+        const t0 = performance.now(), TRAJANJE = 600;
+        const korak = (t) => {
+          const p = Math.min(1, (t - t0) / TRAJANJE), k = 1 - Math.pow(1 - p, 3);
+          brojevi.forEach(b => { b.textContent = hr(Number(b.dataset.do) * k); });
+          if (p < 1) requestAnimationFrame(korak);
+        };
+        requestAnimationFrame(korak);
+      }, { threshold: 0.35 }).observe(kartica);
+    })();
 
     // ── FAQ accordion ──
     document.querySelectorAll('.faq-question').forEach(btn => {
@@ -2308,31 +2572,87 @@
       });
     });
 
-    document.getElementById('zahtjev-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const greskaEl = document.getElementById('form-greska');
-      greskaEl.classList.remove('visible');
+    function prikaziGresku(poruka) {
+      const g = $('form-greska');
+      g.textContent = poruka; g.classList.add('visible'); g.scrollIntoView({ block: 'nearest' });
+    }
+    function prikaziGreskuEmaila(poruka) {
+      const g = $('email-greska');
+      g.textContent = poruka; g.classList.add('visible');
+      $('email').focus({ preventScroll: true });
+    }
+    ['oglas_tekst', 'kp_cijena', 'kp_povrsina', 'kp_grad', 'kp_kvart', 'kp_kat', 'kp_godina', 'kp_lift', 'kp_parking']
+      .forEach(id => $(id).addEventListener('input', () => $('form-greska').classList.remove('visible')));
+    $('email').addEventListener('input', () => { $('email-greska').classList.remove('visible'); osvjeziKorake(); });
+    $('oglas_tekst').addEventListener('input', autoRast);
+    window.addEventListener('resize', autoRast);
+    $('korak-natrag').addEventListener('click', () => idiNaKorak(1));
 
-      // Neobavezna strukturirana polja: ista validacija kao na poslužitelju (assets/js/izracuni.js).
-      const polje = (id) => document.getElementById(id).value;
+    // Zalijepi iz međuspremnika: samo na HTTPS-u i gdje preglednik dopušta čitanje.
+    (function () {
+      const gumb = $('zalijepi-btn');
+      if (!(window.isSecureContext && location.protocol === 'https:' && navigator.clipboard && typeof navigator.clipboard.readText === 'function')) return;
+      gumb.hidden = false;
+      gumb.addEventListener('click', async () => {
+        try {
+          const tekst = (await navigator.clipboard.readText()).trim();
+          if (!tekst) return prikaziGresku('Međuspremnik je prazan. Kopiraj tekst oglasa pa pokušaj ponovno.');
+          $('oglas_tekst').value = tekst.slice(0, 15000);
+          $('form-greska').classList.remove('visible');
+          autoRast();
+        } catch {
+          prikaziGresku('Ne možemo pročitati međuspremnik. Pritisni i zadrži u polju pa odaberi Zalijepi.');
+        }
+      });
+    })();
+
+    // Korak 1: ista validacija kao na poslužitelju (assets/js/izracuni.js). Vraća provjerene podatke ili null.
+    function provjeriKorak1() {
+      $('form-greska').classList.remove('visible');
+      const polje = (id) => $(id).value;
       const pv = PropIQIzracuni.validirajPodatke({
         cijena_eur: polje('kp_cijena'), povrsina_m2: polje('kp_povrsina'), grad: polje('kp_grad'), kvart: polje('kp_kvart'),
         kat: polje('kp_kat'), godina_gradnje: polje('kp_godina'), lift: polje('kp_lift'), parking: polje('kp_parking'),
       });
-      const prikaziGresku = (poruka) => { greskaEl.textContent = poruka; greskaEl.classList.add('visible'); greskaEl.scrollIntoView({ block: 'nearest' }); };
-      if (!pv.ok) return prikaziGresku(pv.razlog);
+      if (!pv.ok) { $('kp_blok').open = true; prikaziGresku(pv.razlog); return null; }
       if (!PropIQIzracuni.mozeAnaliza(polje('oglas_tekst'), pv.podaci)) {
-        return prikaziGresku('Zalijepite tekst oglasa ili upišite barem cijenu, površinu i grad.');
+        prikaziGresku('Zalijepi tekst oglasa ili, ako ga nemaš, upiši cijenu, površinu i grad.');
+        return null;
       }
+      return pv;
+    }
+    function provjeriEmail() {
+      const e = $('email');
+      $('email-greska').classList.remove('visible');
+      if (!e.value.trim()) { prikaziGreskuEmaila('Upiši email na koji ti šaljemo izvještaj.'); return false; }
+      if (!e.validity.valid) { prikaziGreskuEmaila('Ovaj email ne izgleda ispravno. Provjeri ga, npr. ime.prezime@primjer.hr.'); return false; }
+      return true;
+    }
+    function daljeKlik() {
+      const pv = provjeriKorak1();
+      if (!pv) return;
+      // Email već poznat (npr. iz aktivacije paketa): preskoči drugi korak.
+      if (emailZnan()) return posalji(pv, $('dalje-btn'));
+      idiNaKorak(2);
+    }
+    $('dalje-btn').addEventListener('click', daljeKlik);
 
-      const btn = document.getElementById('form-submit-btn');
+    $('zahtjev-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      // Enter u polju prvog koraka ponaša se kao "Dalje".
+      if (korak === 1) return daljeKlik();
+      const pv = provjeriKorak1();
+      if (!pv) return idiNaKorak(1);
+      if (!provjeriEmail()) return;
+      posalji(pv, $('form-submit-btn'));
+    });
+
+    async function posalji(pv, btn) {
       btn.disabled = true;
       btn.classList.add('loading');
 
       const data = {
-        ime:         document.getElementById('ime').value,
         email:       document.getElementById('email').value,
-        agencija:    document.getElementById('agencija').value,
         oglas_tekst: document.getElementById('oglas_tekst').value,
         podaci:      pv.podaci,
         plan:        new URLSearchParams(window.location.search).get('plan') || '',
@@ -2352,7 +2672,6 @@
 
       // Email notifikacija korisniku putem Formspree. Čeka se odgovor (najviše 4 s) jer bi
       // preusmjeravanje na rezultat.html prekinulo zahtjev; greška ili timeout ne blokiraju analizu.
-      const agencija = data.agencija ? ` (${data.agencija})` : '';
       const formspreeCtrl = new AbortController();
       const formspreeTimer = setTimeout(() => formspreeCtrl.abort(), 4000);
       await fetch('https://formspree.io/f/mjgpakbd', {
@@ -2361,8 +2680,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email:   data.email,
-          name:    data.ime,
-          message: `Poštovani ${data.ime}${agencija},\n\nZaprimili smo vaš zahtjev za AI analizu nekretnine. Analiza se otvara izravno u vašem pregledniku.\n\nNapomena: analiza ostaje dostupna samo dok je kartica preglednika otvorena. Ako će vam trebati kasnije, obavezno je spremite.\n\nHvala na korištenju PropIQ-a.`,
+          message: `Zaprimili smo tvoj zahtjev za analizu oglasa. Analiza se otvara izravno u tvom pregledniku.\n\nNapomena: analiza ostaje dostupna samo dok je kartica preglednika otvorena. Ako će ti trebati kasnije, obavezno je spremi.\n\nHvala što koristiš PropIQ.`,
           _subject: 'Potvrda zahtjeva za PropIQ analizu',
           _replyto: data.email,
         }),
@@ -2376,7 +2694,35 @@
       try { window.propiqTrack && window.propiqTrack.defer('form_submit', { form_id: 'zahtjev-form', plan: data.plan || 'free' }); } catch {}
 
       window.location.href = 'rezultat.html';
-    });
+    }
+
+    // ── Paket: aktivacija nakon plaćanja (?plan=paket&session_id=cs_…) ──
+    // Kupnju potvrđuje poslužitelj (Stripe sesija mora biti plaćena i za Paket); kredit se veže uz email s plaćanja.
+    (async function aktivirajPaket() {
+      const q = new URLSearchParams(window.location.search);
+      const sessionId = q.get('session_id') || '';
+      if (q.get('plan') !== 'paket' || !/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) return;
+      const okvir = document.getElementById('paket-obavijest');
+      const poruka = (tekst) => { document.getElementById('paket-poruka').textContent = tekst; okvir.classList.add('visible'); };
+      try {
+        const res = await fetch('/.netlify/functions/analiza', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ korak: 'paket', session_id: sessionId }),
+        });
+        const p = await res.json().catch(() => ({}));
+        if (res.ok) {
+          const istek = new Date(p.istek).toLocaleDateString('hr-HR');
+          document.getElementById('email').value = p.email || '';
+          poruka(`Paket je aktiviran: ${p.preostalo} analiza, vrijedi do ${istek}. Pri analizi upiši isti email (${p.email}).`);
+        } else if (res.status === 409) {
+          poruka(`Ovaj paket je već aktiviran. Za analizu upiši email s kojim je plaćeno${p.email_maskiran ? ` (${p.email_maskiran})` : ''}.`);
+        } else {
+          poruka((p.error || 'Paket nismo mogli aktivirati.') + ' Ako je plaćeno, javi nam se na kontakt email.');
+        }
+      } catch {
+        poruka('Paket nismo mogli aktivirati zbog greške veze. Osvježi stranicu; ako je plaćeno, javi nam se na kontakt email.');
+      }
+    })();
 
     // ── Kupnja: povratak sa Stripea (?plan=…&session_id=cs_…) ──
     // Broji se samo jednom po plaćanju: session_id se pamti u localStorageu (refresh ne broji ponovo),
