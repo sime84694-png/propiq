@@ -728,6 +728,8 @@
     const NEMA_PROCJENE = 'nema procjene';
     const NF = new Intl.NumberFormat('hr-HR', { maximumFractionDigits: 0 });
     const NF1 = new Intl.NumberFormat('hr-HR', { maximumFractionDigits: 1 });
+    // Oglas kaže da je PDV uključen / bez poreza na promet (postavlja poslužitelj iz teksta oglasa).
+    let bezPorezaNaPromet = false;
     const jeBroj = (v) => typeof v === 'number' && Number.isFinite(v);
     // Broj i jedinica (€, €/m², %, m²) nikad se ne lome u dva retka: običan razmak postaje neprelomiv.
     const nb = (t) => (typeof t === 'string' ? t.replace(/(\d) (€\/m²|€|%|m²)/g, '$1\u00A0$2') : t);
@@ -982,10 +984,15 @@
         r.appendChild(el('p', null, 'Iz oglasa nisu uočeni posebni rizici.'));
       }
       const poreznaRed = el('div', 'porez');
-      poreznaRed.appendChild(el('span', null, 'Porez na promet nekretnina (3 %)'));
-      const ps = el('strong');
-      ps.appendChild(vrijednost(eur(iz.porez_na_promet), null, 'racun', razlozi.porez_na_promet));
-      poreznaRed.appendChild(ps);
+      if (bezPorezaNaPromet) {
+        poreznaRed.appendChild(el('span', null, 'Porez na promet nekretnina'));
+        poreznaRed.appendChild(el('strong', null, 'ne plaća se (PDV je uključen u cijenu)'));
+      } else {
+        poreznaRed.appendChild(el('span', null, 'Porez na promet nekretnina (3 %)'));
+        const ps = el('strong');
+        ps.appendChild(vrijednost(eur(iz.porez_na_promet), null, 'racun', razlozi.porez_na_promet));
+        poreznaRed.appendChild(ps);
+      }
       r.appendChild(poreznaRed);
       if (nemaCijene && jeBroj(rucnaCijena)) r.appendChild(rucnaNapomena());
       frag.appendChild(r);
@@ -1022,6 +1029,7 @@
     }
 
     function prikaziAnalizu(rezultat) {
+      bezPorezaNaPromet = rezultat.bez_poreza_na_promet === true;
       analizaEl.replaceChildren(izgradiIzvjestaj(rezultat.analiza, rezultat.izracuni, undefined, rezultat.uneseno, rezultat.referenca));
       hide(loadingEl);
       hide(errorEl);

@@ -175,3 +175,9 @@ test('procjena: razlog korekcije prolazi jezičnu obradu (ćirilica, HOA)', () =
 test('recenice: kratice ne prekidaju rečenicu', () => {
   assert.deepEqual(recenice('Stan je u k.o. Trešnjevka, tj. blizu centra. Druga rečenica.'), ['Stan je u k.o. Trešnjevka, tj. blizu centra.', 'Druga rečenica.']);
 });
+
+test('provjeriOmjere: "trostruko IZO staklo" nije tvrdnja o cijeni; uz cijenu i dalje jest', () => {
+  assert.equal(provjeriOmjere('Visokokvalitetna PVC stolarija s trostrukim IZO staklom.', null), null);
+  assert.equal(provjeriOmjere('Trostruko IZO staklo i dvostruko brtvljenje.', null), null);
+  assert.match(provjeriOmjere('Cijena je trostruko veća od raspona.', null), /trostruko/);
+});

@@ -344,3 +344,16 @@ test('porukaGreskeKoraka: poslužiteljeva poruka, prekid veze, 5xx bez JSON-a, 4
   assert.ok(/HTTP 404/.test(porukaGreskeKoraka({ ok: false, status: 404, payload: {} })));
   assert.ok(/nije potpun/.test(porukaGreskeKoraka({ ok: true, status: 200, payload: { rezultat: {} } })));
 });
+
+test('kartica poreza: ako oglas kaže da je PDV uključen, piše da se porez na promet ne plaća (umjesto 3 %)', () => {
+  const v = validirajAnalizu(puno);
+  const iz = izracunaj(v.analiza);
+  const obicno = ctx.izgradi(v.analiza, iz).textContent;
+  assert.ok(obicno.includes('Porez na promet nekretnina (3'));
+  vm.runInContext('bezPorezaNaPromet = true', ctx);
+  try {
+    const t = ctx.izgradi(v.analiza, iz).textContent;
+    assert.ok(t.includes('ne plaća se (PDV je uključen u cijenu)'), t);
+    assert.ok(!t.includes('Porez na promet nekretnina (3'));
+  } finally { vm.runInContext('bezPorezaNaPromet = false', ctx); }
+});

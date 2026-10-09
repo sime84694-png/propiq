@@ -71,12 +71,29 @@ function brojIzTeksta(t) {
   return /^\d{1,3}(\.\d{3})+$/.test(s) ? Number(s.replace(/\./g, '')) : Number(s);
 }
 
+// Iznosi u eurima koji se doslovno pojavljuju u tekstu oglasa (npr. parking 10.000 EUR): model ih smije citirati.
+export function iznosiIzOglasa(tekst) {
+  const out = [];
+  for (const m of String(tekst || '').matchAll(RE_BROJ_JEDINICA)) {
+    if (/^(%|posto)/i.test(m[3])) continue;
+    const x = brojIzTeksta(m[1]) * (m[2] ? 1000 : 1);
+    if (Number.isFinite(x)) out.push(x);
+  }
+  return out;
+}
+
+// Neutralan sažetak složen samo iz brojki koje je izračunao kod (rezervno rješenje kad model ne složi valjan sažetak).
+export function sazetakIzKoda(cijena, fer) {
+  return prvaRecenicaSazetka(cijena, fer)
+    || (fer && fer.min_eur > 0 ? `Fer raspon vrijednosti je ${eurHr(fer.min_eur)} do ${eurHr(fer.max_eur)} €; tražena cijena nije navedena u oglasu.` : 'Za ovaj oglas nema dovoljno podataka za procjenu raspona.');
+}
+
 // Svaki postotak u sažetku mora biti izračunati postotak razlike, a svaki iznos u eurima (osim €/m², €/mj, €/god)
 // cijena, granica raspona ili izračunata razlika. Vraća razlog odbijanja ili null.
-export function provjeriSazetak(sazetak, cijena, fer) {
+export function provjeriSazetak(sazetak, cijena, fer, dodatniIznosi = []) {
   const c = cinjeniceSazetka(cijena, fer);
   const cilj = fer ? izracuni.izracunajPonudu(cijena, fer.min_eur, fer.max_eur) : null;
-  const dopustenoEur = [cijena, fer && fer.min_eur, fer && fer.max_eur, c && c.razlika_eur > 0 ? c.razlika_eur : null, cilj && cilj.ponuda_eur].filter((v) => typeof v === 'number');
+  const dopustenoEur = [cijena, fer && fer.min_eur, fer && fer.max_eur, c && c.razlika_eur > 0 ? c.razlika_eur : null, cilj && cilj.ponuda_eur, ...dodatniIznosi].filter((v) => typeof v === 'number');
   for (const m of String(sazetak).matchAll(RE_BROJ_JEDINICA)) {
     const x = brojIzTeksta(m[1]) * (m[2] ? 1000 : 1);
     if (!Number.isFinite(x)) continue;

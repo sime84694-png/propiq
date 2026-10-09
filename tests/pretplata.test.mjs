@@ -5,6 +5,7 @@
 
 import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import zajednickiIzracuni from '../public/assets/js/izracuni.js';
 import { odrediReferencu } from '../netlify/lib/trziste.mjs';
 
@@ -346,7 +347,7 @@ test('dva koraka: A vraća ID i procjenu, B rezultat; limit i statistika tek nak
   assert.equal(r.status, 200);
   assert.match(r.a.procjena_id, /^[0-9a-f]{32}$/);
   assert.deepEqual(Object.keys(r.a.procjena).sort(), ['fer_vrijednost', 'najam']);
-  assert.deepEqual(Object.keys(r.body.rezultat).sort(), ['analiza', 'izracuni', 'referenca', 'uneseno']);
+  assert.deepEqual(Object.keys(r.body.rezultat).sort(), ['analiza', 'bez_poreza_na_promet', 'izracuni', 'referenca', 'uneseno']);
   assert.equal(r.body.rezultat.analiza.naslov, IZVJESTAJ.naslov);
   assert.equal(r.body.rezultat.izracuni.cijena_po_m2, 3333);
   assert.equal(iskoristeno('stream@primjer.hr'), 1);
@@ -798,6 +799,50 @@ test('bez cijene i dalje "nedovoljno podataka" (preporuka i ocjena null), procje
   assert.deepEqual(analiza.fer_vrijednost, ocekivanaFer('Split'));
 });
 
+// ── Oglas "Buzin": nema cijene stana, ima druge iznose u €, trostruko IZO staklo, novogradnja s PDV-om ──
+const OGLAS_BUZIN = fs.readFileSync(new URL('./fixtures/oglas-buzin.txt', import.meta.url), 'utf8');
+
+test('oglas Buzin (bez cijene stana): model citira 20.000 € garaže i "trostruko IZO staklo" — analiza prolazi iz prvog poziva, bez PDV-poreza', async () => {
+  mockFetch({});
+  const pozivi = bilježiPozive();
+  claudeOdgovor = () => claudeStream(izvjestajJson({
+    cijena_eur: null, preporuka: 'oprez', ocjena: 2,
+    sazetak: 'Uz stan se može dokupiti garažno mjesto za 20.000 € ili vanjsko za 10.000 €; cijena stana nije navedena.',
+    prednosti: ['Trostruko IZO staklo i podno grijanje dizalicom topline.', 'Garažno mjesto 20.000 € dostupno uz stan.'],
+  }));
+  const r = await pozovi({ email: 'buzin@primjer.hr', oglas_tekst: OGLAS_BUZIN });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(pozivi.filter((p) => p.alat === 'izvjestaj').length, 1, 'bez ponovnog poziva modela');
+  const { analiza } = r.body.rezultat;
+  assert.equal(analiza.preporuka, null);
+  assert.equal(analiza.ocjena, null);
+  assert.ok(analiza.sazetak.includes('20.000 €'), 'iznos iz oglasa smije se citirati');
+  assert.ok(analiza.prednosti.some((t) => /Trostruko IZO staklo/.test(t)));
+  assert.equal(r.body.rezultat.bez_poreza_na_promet, true, 'PDV je uključen: porez na promet se ne plaća');
+});
+
+test('izmišljen iznos i tvrdnja o omjeru u tekstu ne ruše analizu: sažetak se slaže kodom, tvrdnja se izbacuje (bez 502)', async () => {
+  mockFetch({});
+  const pozivi = bilježiPozive();
+  claudeOdgovor = () => claudeStream(izvjestajJson({
+    cijena_eur: null, preporuka: 'oprez', ocjena: 2,
+    sazetak: 'Stan vrijedi 999.999 € i vrijedi trostruko više od susjednog.',
+    prednosti: ['Cijena je trostruko veća od raspona.', 'Dizalo u zgradi.'],
+  }));
+  const r = await pozovi({ email: 'buzin2@primjer.hr', oglas_tekst: OGLAS_BUZIN });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(pozivi.filter((p) => p.alat === 'izvjestaj').length, 1);
+  const { analiza } = r.body.rezultat;
+  assert.ok(!analiza.sazetak.includes('999.999'));
+  assert.deepEqual(analiza.prednosti, ['Dizalo u zgradi.']);
+});
+
+test('oglas bez izjave o PDV-u: bez_poreza_na_promet je false (kartica ostaje na 3 %)', async () => {
+  mockFetch({});
+  const r = await pozovi({ email: 'obican@primjer.hr', oglas_tekst: 'Stan u Splitu, 240.000 €.' });
+  assert.equal(r.body.rezultat.bez_poreza_na_promet, false);
+});
+
 test('bez fer raspona (null) preporuka ostaje od modela, uz običnu validaciju', async () => {
   mockFetch({});
   procjenaOdgovor = () => claudeStream(procjenaJson({ fer_vrijednost: { min_eur: null, max_eur: null, pouzdanost: 'niska', obrazlozenje: 'Nepoznato mjesto.' } }));
@@ -997,7 +1042,7 @@ test('nepoznat kvart: gradski medijan, model dobiva ranije upute (kvart smije ko
 });
 
 // ── sažetak: gotovi brojevi od koda, validacija krivih brojki ──
-test('poziv 2 dobiva gotove brojeve sažetka (cijena iz forme); sažetak s izmišljenim postotkom se odbija i ponavlja', async () => {
+test('poziv 2 dobiva gotove brojeve sažetka (cijena iz forme); sažetak s izmišljenim postotkom se popravlja kodom, bez drugog poziva', async () => {
   mockFetch({});
   const pozivi = bilježiPozive();
   let n2 = 0;
@@ -1009,7 +1054,7 @@ test('poziv 2 dobiva gotove brojeve sažetka (cijena iz forme); sažetak s izmi�
   const r = await pozovi({ email: 'saz1@primjer.hr', oglas_tekst: 'Stan, Zagreb.', podaci: { cijena_eur: 400000, grad: 'Zagreb', povrsina_m2: 72 } });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const analize = pozivi.filter((p) => p.alat === 'izvjestaj');
-  assert.equal(analize.length, 2, 'prvi sažetak nije prošao validaciju → jedan ponovni pokušaj');
+  assert.equal(analize.length, 1, 'sažetak koji ne prolazi provjeru brojki složi kod; drugi poziv bi mogao premašiti 30 s');
   const fer = r.body.rezultat.analiza.fer_vrijednost;
   const iznad = 400000 - fer.max_eur;
   const ocekivano = `${String(iznad).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} € (${(Math.round(iznad / fer.max_eur * 1000) / 10).toString().replace('.', ',')} % iznad gornje granice raspona)`;
@@ -1023,7 +1068,7 @@ test('poziv 2 dobiva gotove brojeve sažetka (cijena iz forme); sažetak s izmi�
   assert.ok(procjene.length > 0 && procjene.every((p) => /"HOA" → "pričuva"/.test(p.sustav)), 'pojmovnik u promptu poziva 1');
   assert.ok(procjene.every((p) => /najviše 35 znakova/.test(p.sustav)), 'razlog korekcije: ~35 znakova u promptu');
   // prvu rečenicu slaže kod (cijena, raspon, razlika, %, omjer), model dodaje jednu rečenicu obrazloženja
-  assert.equal(r.body.rezultat.analiza.sazetak, `Tražena cijena od 400.000 € nalazi se ${ocekivano.split(' (')[0]} (${ocekivano.match(/\(([\d,]+ %)/)[1]}) iznad gornje granice fer raspona od ${String(fer.min_eur).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} do ${String(fer.max_eur).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} €, što je ${(Math.round(400000 / ((fer.min_eur + fer.max_eur) / 2) * 10) / 10).toFixed(1).replace('.', ',')} puta više od sredine raspona. Cijena je iznad raspona; vidi izračun.`);
+  assert.equal(r.body.rezultat.analiza.sazetak, `Tražena cijena od 400.000 € nalazi se ${ocekivano.split(' (')[0]} (${ocekivano.match(/\(([\d,]+ %)/)[1]}) iznad gornje granice fer raspona od ${String(fer.min_eur).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} do ${String(fer.max_eur).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} €, što je ${(Math.round(400000 / ((fer.min_eur + fer.max_eur) / 2) * 10) / 10).toFixed(1).replace('.', ',')} puta više od sredine raspona.`);
 });
 
 test('cijena samo u tekstu oglasa: poziv 2 ne dobiva brojke razlike i traži opisni sažetak', async () => {

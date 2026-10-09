@@ -3,7 +3,7 @@
 
 import izracuni from '../../public/assets/js/izracuni.js';
 import { obradiTekst, provjeriOmjere, provjeriPonudu, recenice } from './jezik.mjs';
-import { provjeriSazetak, omjerCijene, prvaRecenicaSazetka } from './sazetak.mjs';
+import { provjeriSazetak, omjerCijene, prvaRecenicaSazetka, iznosiIzOglasa, sazetakIzKoda } from './sazetak.mjs';
 
 export { cinjeniceSazetka, omjerCijene, prvaRecenicaSazetka, tekstCinjenicaSazetka, provjeriSazetak } from './sazetak.mjs';
 
@@ -287,9 +287,38 @@ function provjeriTekstove(a, cijena, fer) {
   return null;
 }
 
+// Popravak umjesto odbijanja: tekstualna provjera brojki nikad ne smije srušiti cijelu analizu (ni potrošiti drugi
+// poziv modelu). Tvrdnje koje ne prolaze izbacuju se iz popisa, a sažetak se slaže kodom. Promjene idu u `obrada` (log).
+function popraviTekstove(a, cijena, fer, obrada) {
+  const omjer = omjerCijene(cijena, fer);
+  const cilj = fer ? izracuni.izracunajPonudu(cijena, fer.min_eur, fer.max_eur) : null;
+  const izuzeto = [cijena, fer && fer.min_eur, fer && fer.max_eur];
+  const los = (t, polje) => provjeriOmjere(t, omjer, polje) || provjeriPonudu(t, cilj && cilj.ponuda_eur, izuzeto, polje);
+  const filtriraj = (popis, polje) => popis.filter((t, i) => {
+    const krivo = los(t, `${polje}[${i}]`);
+    if (krivo) obrada.push(`izbačeno: ${krivo}`);
+    return !krivo;
+  });
+  a.prednosti = filtriraj(a.prednosti, 'prednosti');
+  a.pregovaranje.aduti = filtriraj(a.pregovaranje.aduti, 'aduti');
+  a.pregovaranje.pitanja_prodavatelju = filtriraj(a.pregovaranje.pitanja_prodavatelju, 'pitanja');
+  a.nedostajuci_podaci = filtriraj(a.nedostajuci_podaci, 'nedostajuci_podaci');
+  a.rizici = a.rizici.filter((r, i) => {
+    const krivo = los(r.naslov, `rizici[${i}].naslov`) || los(r.opis, `rizici[${i}].opis`);
+    if (krivo) obrada.push(`izbačeno: ${krivo}`);
+    return !krivo;
+  });
+  const krivo = los(a.sazetak, 'sazetak');
+  if (krivo) {
+    obrada.push(`sažetak složen kodom: ${krivo}`);
+    a.sazetak = sazetakIzKoda(cijena, fer);
+  }
+  return a;
+}
+
 // Vraća { ok: true, analiza, obrada } (očišćena kopija; obrada = jezične promjene za log) ili { ok: false, razlog }.
 // slozi: prvu rečenicu sažetka (cijena, raspon, razlika, %, omjer) slaže kod, a od modela se zadržava samo prva rečenica.
-export function validirajAnalizu(ulaz, { slozi = false } = {}) {
+export function validirajAnalizu(ulaz, { slozi = false, popravi = false, oglas = '' } = {}) {
   const obrada = [];
   try {
     if (!jeObjekt(ulaz)) ne('korijen nije objekt');
@@ -315,8 +344,13 @@ export function validirajAnalizu(ulaz, { slozi = false } = {}) {
     const fer = validirajFer(u.fer_vrijednost, obrada);
     const prva = slozi ? prvaRecenicaSazetka(cijena, fer) : null;
     const sazetak = prva ? `${prva} ${recenice(u.sazetak.trim())[0]}` : u.sazetak.trim();
-    const krivSazetak = provjeriSazetak(sazetak, cijena, fer);
-    if (krivSazetak) ne(krivSazetak);
+    let sazetakKonacni = sazetak;
+    const krivSazetak = provjeriSazetak(sazetak, cijena, fer, iznosiIzOglasa(oglas));
+    if (krivSazetak) {
+      if (!popravi) ne(krivSazetak);
+      obrada.push(`sažetak složen kodom: ${krivSazetak}`);
+      sazetakKonacni = sazetakIzKoda(cijena, fer);
+    }
 
     const najam = validirajNajam(u.najam);
     if (!jeObjekt(u.pregovaranje)) ne('pregovaranje');
@@ -329,7 +363,7 @@ export function validirajAnalizu(ulaz, { slozi = false } = {}) {
       cijena_eur: cijena,
       preporuka,
       ocjena,
-      sazetak,
+      sazetak: sazetakKonacni,
       fer_vrijednost: fer,
       najam,
       prednosti: popisStr(u.prednosti, 'prednosti', 6),
@@ -343,6 +377,7 @@ export function validirajAnalizu(ulaz, { slozi = false } = {}) {
       },
       nedostajuci_podaci: popisStr(u.nedostajuci_podaci, 'nedostajuci_podaci', 8),
     };
+    if (popravi) popraviTekstove(analiza, cijena, fer, obrada);
     const krivTekst = provjeriTekstove(analiza, cijena, fer);
     if (krivTekst) ne(krivTekst);
     return { ok: true, analiza, obrada };
@@ -442,7 +477,7 @@ export function primijeniPreporuku(obj) {
 // podaci: što je korisnik upisao u formu — ti podaci imaju prednost pred onim što je izvukao model.
 // procjena: rezultat poziva 1; ako je zadan, fer_vrijednost i najam uvijek su iz njega (što god da je model
 // vratio), a preporuka se određuje iz odnosa cijene i tog raspona.
-export function parsirajIValidiraj(jsonTekst, podaci, procjena) {
+export function parsirajIValidiraj(jsonTekst, podaci, procjena, { oglas = '', popravi = false } = {}) {
   let obj;
   try {
     obj = JSON.parse(jsonTekst);
@@ -453,7 +488,7 @@ export function parsirajIValidiraj(jsonTekst, podaci, procjena) {
   if (procjena && jeObjekt(obj)) {
     obj = primijeniPreporuku({ ...obj, fer_vrijednost: procjena.fer_vrijednost, najam: procjena.najam });
   }
-  return validirajAnalizu(obj, { slozi: !!podaci && 'cijena_eur' in podaci });
+  return validirajAnalizu(obj, { slozi: !!podaci && 'cijena_eur' in podaci, oglas, popravi });
 }
 
 // ── izračuni (u kodu, ne u modelu) ──

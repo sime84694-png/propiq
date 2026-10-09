@@ -113,10 +113,18 @@ export function provjeriOmjere(tekst, omjer, polje = 'sazetak') {
         const nakon = String(tekst).slice(m.index + m[0].length);
         if (!new RegExp(`^${USPOREDBA_IZVOR}`, 'iu').test(nakon)) continue;
       }
+      // "trostruko IZO staklo" nije tvrdnja o cijeni: riječ je tvrdnja o omjeru samo ako rečenica govori o cijeni/vrijednosti.
+      if (!cjenovniKontekst(String(tekst), m.index)) continue;
       if (!ima || !(Math.abs(n - omjer) <= TOL_RIJEC)) return kriv(m[0]);
     }
   }
   return null;
+}
+const RE_CIJENA_KONTEKST = /cijen|skup|jeftin|vrijed|€|\beur|ponud|raspon|plati|kosta|tra[žz]/iu;
+function cjenovniKontekst(tekst, indeks) {
+  const od = Math.max(tekst.lastIndexOf('. ', indeks), tekst.lastIndexOf('! ', indeks), tekst.lastIndexOf('? ', indeks)) + 1;
+  const doKraja = tekst.slice(indeks).search(/[.!?](\s|$)/);
+  return RE_CIJENA_KONTEKST.test(tekst.slice(od, doKraja < 0 ? tekst.length : indeks + doKraja));
 }
 
 // ── ciljana ponuda nije vrijednost ──

@@ -28,6 +28,9 @@ import {
   izracunaj, validirajPodatke, mozeAnaliza, vremenskeCinjenice, tekstCinjenicaSazetka,
 } from '../lib/izvjestaj.mjs';
 import { ukloniCijene } from '../lib/redakcija.mjs';
+
+// Oglas navodi da je PDV uključen / da kupac ne plaća porez na promet (novogradnja): kartica poreza ne smije prikazati 3 %.
+const RE_BEZ_POREZA = /(pdv\s+(je\s+)?uklju[čc]en|ne\s+pla[ćc]a\s+(se\s+)?porez\s+na\s+promet|bez\s+poreza\s+na\s+promet|oslobo[đd]en\w*\s+(od\s+)?poreza\s+na\s+promet)/i;
 import { POJMOVNIK_TEKST } from '../lib/jezik.mjs';
 import { odrediReferencu, tekstReference, ogranicitiPouzdanost, granicaPouzdanosti, ogranicitiNajam, referencaZaKlijenta, nazivPolazista, napomenaKvarta, imenaZaKo } from '../lib/trziste.mjs';
 
@@ -450,7 +453,7 @@ export default async (req, context) => {
   // Prekini pozive prema Anthropicu (zajedno sa čitanjem streama) na 55 s da funkcija stigne
   // javiti jasnu poruku unutar Netlify 60 s limita, umjesto da bude "ubijena". Svaki korak
   // (procjena / analiza) je zaseban zahtjev i ima vlastitih 55 s.
-  const UKUPNO_MS = 55000;
+  const UKUPNO_MS = 27000; // Netlify prekida funkciju na 30 s; proračun mora završiti prije toga (čist 504 umjesto 502)
   const pocetak = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), UKUPNO_MS);
@@ -459,7 +462,7 @@ export default async (req, context) => {
   class AnthropicNedostupan extends Error {}
   // Ponovni pokušaj poziva ne počinje ako ne ostaje dovoljno vremena da završi.
   const MIN_ZA_ANALIZU_MS = 20000;
-  const MIN_ZA_PONOVNU_PROCJENU_MS = MIN_ZA_ANALIZU_MS + 10000;
+  const MIN_ZA_PONOVNU_PROCJENU_MS = 12000; // poziv 1 traje oko 6–8 s
   const provjeriVrijeme = (minPreostalo) => {
     if (UKUPNO_MS - (Date.now() - pocetak) < minPreostalo) throw new VrijemeIsteklo('Ne stiže završiti unutar 55 s.');
   };
@@ -585,12 +588,12 @@ export default async (req, context) => {
     if (zapis.h !== tekstHash) {
       return json(400, { error: 'Procjena ne pripada ovom oglasu. Pokreni analizu ponovo.' });
     }
-    const v = await izvrsi('analiza', () => pozivAnalize(zapis.p), (tekst) => { const v = parsirajIValidiraj(tekst, podaci, zapis.p); logObrade('analiza', v); return v; }, MIN_ZA_ANALIZU_MS);
+    const v = await izvrsi('analiza', () => pozivAnalize(zapis.p), (tekst) => { const v = parsirajIValidiraj(tekst, podaci, zapis.p, { oglas: oglasTekst, popravi: true }); logObrade('analiza', v); return v; }, MIN_ZA_ANALIZU_MS);
     logTrajanje('analiza');
     if (!v) {
       return json(502, { error: 'Analiza nije uspjela složiti izvještaj. Pokušaj ponovo — ova analiza se ne broji u limit.' });
     }
-    const rezultat = { analiza: v.analiza, izracuni: izracunaj(v.analiza), uneseno: podaci, referenca: referencaZaKlijenta(referenca) };
+    const rezultat = { analiza: v.analiza, izracuni: izracunaj(v.analiza), uneseno: podaci, referenca: referencaZaKlijenta(referenca), bez_poreza_na_promet: RE_BEZ_POREZA.test(oglasTekst) };
     // Greška pri bilježenju (npr. Blobs) ne smije poništiti analizu koju je korisnik već dobio.
     try {
       await zabiljeziUspjeh();
