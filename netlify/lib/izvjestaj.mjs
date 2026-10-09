@@ -124,6 +124,38 @@ export const TOOL = {
   },
 };
 
+// Izvještaj se slaže iz dva dijela koji se traže istodobno (da cijela analiza stane u ~20 s):
+//  - "cijena" (nakon procjene): naslov, lokacija, cijena, preporuka, ocjena, sažetak, aduti — kratak izlaz;
+//  - "rizici" (odmah, bez procjene): prednosti, rizici, pitanja prodavatelju, što oglas ne navodi.
+export const TOOL_CIJENA_NAME = 'izvjestaj_cijena';
+export const TOOL_RIZICI_NAME = 'izvjestaj_rizici';
+const SV = TOOL.input_schema.properties;
+export const TOOL_CIJENA = {
+  name: TOOL_CIJENA_NAME,
+  description: 'Ključni dio izvještaja: naslov, lokacija, cijena, preporuka, ocjena, sažetak i aduti za pregovore. Jedini dopušteni oblik odgovora.',
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    required: ['naslov', 'lokacija', 'povrsina_m2', 'cijena_eur', 'preporuka', 'ocjena', 'sazetak', 'aduti'],
+    properties: {
+      naslov: SV.naslov, lokacija: SV.lokacija, povrsina_m2: SV.povrsina_m2, cijena_eur: SV.cijena_eur, preporuka: SV.preporuka, ocjena: SV.ocjena,
+      sazetak: { type: 'string', description: 'Ako poruka kaže da prvu rečenicu slaže sustav: samo JEDNA kratka rečenica obrazloženja (do ~120 znakova) bez brojki cijene, raspona i razlike. Inače najviše 2 kratke rečenice (do ~200 znakova).' },
+      aduti: SV.pregovaranje.properties.aduti,
+    },
+  },
+};
+export const TOOL_RIZICI = {
+  name: TOOL_RIZICI_NAME,
+  description: 'Rizici, prednosti, pitanja za prodavatelja i podaci koje oglas ne navodi. Jedini dopušteni oblik odgovora.',
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    required: ['prednosti', 'rizici', 'pitanja_prodavatelju', 'nedostajuci_podaci'],
+    properties: {
+      prednosti: SV.prednosti, rizici: SV.rizici,
+      pitanja_prodavatelju: SV.pregovaranje.properties.pitanja_prodavatelju, nedostajuci_podaci: SV.nedostajuci_podaci,
+    },
+  },
+};
+
 // ── datum i starost (u kodu, ne u modelu: model misli da je još 2025.) ──
 
 // Današnji datum u Europe/Zagreb kao { godina, datum: 'YYYY-MM-DD' }.
@@ -489,6 +521,37 @@ export function parsirajIValidiraj(jsonTekst, podaci, procjena, { oglas = '', po
     obj = primijeniPreporuku({ ...obj, fer_vrijednost: procjena.fer_vrijednost, najam: procjena.najam });
   }
   return validirajAnalizu(obj, { slozi: !!podaci && 'cijena_eur' in podaci, oglas, popravi });
+}
+
+// Dio izvještaja: "cijena" → { ok, analiza } (puni izvještaj s praznim popisima koje piše dio "rizici");
+// "rizici" → { ok, rizici: { prednosti, rizici, pitanja_prodavatelju, nedostajuci_podaci } }. Ista validacija,
+// jezična obrada i popravak kao za cijeli izvještaj. Prihvaća i oblik cijelog izvještaja (pregovaranje.aduti).
+export function parsirajIValidirajDio(dio, jsonTekst, podaci, procjena, opcije = {}) {
+  let o;
+  try {
+    o = JSON.parse(jsonTekst);
+  } catch {
+    return { ok: false, razlog: 'JSON nije valjan (moguće odrezan)' };
+  }
+  if (!jeObjekt(o)) return { ok: false, razlog: 'korijen nije objekt' };
+  const preg = jeObjekt(o.pregovaranje) ? o.pregovaranje : {};
+  if (dio === 'cijena') {
+    const { aduti, pregovaranje, prednosti, rizici, pitanja_prodavatelju, nedostajuci_podaci, ...ostalo } = o;
+    const obj = { ...ostalo, prednosti: [], rizici: [], nedostajuci_podaci: [], pregovaranje: { aduti: Array.isArray(aduti) ? aduti : (preg.aduti ?? []), pitanja_prodavatelju: [] } };
+    return parsirajIValidiraj(JSON.stringify(obj), podaci, procjena, opcije);
+  }
+  const stub = {
+    naslov: '-', lokacija: { grad: null, kvart: null }, povrsina_m2: null, cijena_eur: null, preporuka: null, ocjena: null, sazetak: '-',
+    fer_vrijednost: { min_eur: null, max_eur: null, pouzdanost: 'niska', obrazlozenje: '-' },
+    najam: { dugorocni_mj_eur: null, turisticki_godisnje_eur: null },
+    prednosti: o.prednosti, rizici: o.rizici,
+    pregovaranje: { aduti: [], pitanja_prodavatelju: o.pitanja_prodavatelju ?? preg.pitanja_prodavatelju },
+    nedostajuci_podaci: o.nedostajuci_podaci,
+  };
+  const v = validirajAnalizu(stub, { popravi: opcije.popravi, oglas: opcije.oglas });
+  if (!v.ok) return v;
+  const a = v.analiza;
+  return { ok: true, obrada: v.obrada, rizici: { prednosti: a.prednosti, rizici: a.rizici, pitanja_prodavatelju: a.pregovaranje.pitanja_prodavatelju, nedostajuci_podaci: a.nedostajuci_podaci } };
 }
 
 // ── izračuni (u kodu, ne u modelu) ──

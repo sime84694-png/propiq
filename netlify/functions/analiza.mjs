@@ -24,7 +24,7 @@ import stripePlan from '../lib/stripe-plan.js';
 import cjenik from '../lib/cjenik.js';
 import { krediti, potrosiKredit, aktivirajPaket } from '../lib/paket.mjs';
 import {
-  TOOL, TOOL_NAME, TOOL_PROCJENA, TOOL_PROCJENA_BEZ_REFERENCE, TOOL_PROCJENA_NAME, FER, parsirajIValidiraj, parsirajIValidirajProcjenu,
+  TOOL, TOOL_NAME, TOOL_CIJENA, TOOL_RIZICI, parsirajIValidirajDio, TOOL_PROCJENA, TOOL_PROCJENA_BEZ_REFERENCE, TOOL_PROCJENA_NAME, FER, parsirajIValidiraj, parsirajIValidirajProcjenu,
   izracunaj, validirajPodatke, mozeAnaliza, vremenskeCinjenice, tekstCinjenicaSazetka,
 } from '../lib/izvjestaj.mjs';
 import { ukloniCijene } from '../lib/redakcija.mjs';
@@ -92,6 +92,10 @@ Stil:
 - Sve mora biti specifično za OVAJ oglas — navedi konkretne detalje iz njega. Bez generičkih fraza ("lokacija je ključna", "uvijek provjerite dokumentaciju") koje bi stajale uz bilo koji oglas.
 - Vrlo kratko (odgovor se plaća po riječi): sažetak jedna rečenica obrazloženja kad prvu slaže sustav (inače najviše 2 rečenice); prednosti do 4 stavke (kratke fraze); rizici do 4 (naslov do ~6 riječi, opis najviše 2 kratke rečenice); aduti do 3 (jedna rečenica); pitanja prodavatelju do 4 (kratka); nedostajući podaci do 5 (kratke fraze). Bez uvoda, ponavljanja i općih napomena.
 - "pregovaranje.aduti" su argumenti kupca za spuštanje cijene, utemeljeni u oglasu ili fiksnoj procjeni.`;
+
+// Izvještaj se slaže iz dva dijela (vidi izvjestaj.mjs); oba dijela dijele ostatak sustavske upute.
+const SYSTEM_DIO_CIJENA = `NAPOMENA ZA OVAJ POZIV: umjesto alata "izvjestaj" pozovi alat "izvjestaj_cijena". Popuni SAMO njegova polja (naslov, lokacija, površina, cijena, preporuka, ocjena, sažetak, aduti). Rizike, prednosti, pitanja prodavatelju i nedostajuće podatke piše drugi poziv: njih NE pišeš. Piši najkraće moguće: sažetak jedna do dvije kratke rečenice, aduti do 3 kratke stavke.\n\n${SYSTEM_PROMPT}`;
+const SYSTEM_DIO_RIZICI = `NAPOMENA ZA OVAJ POZIV: umjesto alata "izvjestaj" pozovi alat "izvjestaj_rizici". Popuni SAMO njegova polja (prednosti, rizici, pitanja prodavatelju, nedostajući podaci). Naslov, cijenu, preporuku, ocjenu, sažetak i aduti piše drugi poziv: njih NE pišeš. U ovom pozivu NEMA fiksne procjene tržišta: ne procjenjuj je li cijena visoka ili niska, ne spominji fer raspon, omjere ni ciljanu ponudu; rizike i prednosti temelji na oglasu i podacima koje je korisnik upisao.\n\n${SYSTEM_PROMPT}`;
 
 const SYSTEM_PROMPT_PROCJENA_OSNOVA = `Ti si PropIQ — procjenitelj tržišne vrijednosti nekretnina na hrvatskom tržištu.
 Pozovi alat "procjena". Odgovor je ISKLJUČIVO taj poziv — bez ikakvog drugog teksta.
@@ -273,11 +277,11 @@ export default async (req, context) => {
     const r = await aktivirajPaket(String(data.session_id || '').trim(), stripeSecretKey, hashEmaila);
     return json(r.status, r.body);
   }
-  if (korak !== 'procjena' && korak !== 'analiza') {
+  if (korak !== 'procjena' && korak !== 'cijena' && korak !== 'rizici') {
     return json(400, { error: 'Nepoznat korak analize. Osvježi stranicu i pokušaj ponovo.' });
   }
   const procjenaId = String(data.procjena_id || '');
-  if (korak === 'analiza' && !PROCJENA_ID_FORMAT.test(procjenaId)) {
+  if (korak === 'cijena' && !PROCJENA_ID_FORMAT.test(procjenaId)) {
     return json(404, { error: 'Procjena nije pronađena. Pokreni analizu ponovo.' });
   }
 
@@ -337,7 +341,7 @@ export default async (req, context) => {
   let porukaLimita = null;
 
   // Ponavljanje se prepoznaje po request_id iz forme; ako ga nema, korak B ima ID procjene (isti za ponovni pokušaj).
-  const requestId = /^[A-Za-z0-9-]{8,64}$/.test(String(data.request_id || '')) ? String(data.request_id) : (korak === 'analiza' ? procjenaId : '');
+  const requestId = /^[A-Za-z0-9-]{8,64}$/.test(String(data.request_id || '')) ? String(data.request_id) : (korak === 'cijena' ? procjenaId : '');
   const imaPodataka = Object.keys(podaci).length > 0;
   const tekstHash = crypto.createHash('sha256').update(imaPodataka ? `${oglasTekst}\n${JSON.stringify(podaci)}` : oglasTekst).digest('hex');
   let zahtjevi = null;
@@ -349,8 +353,8 @@ export default async (req, context) => {
     const zapis = await procitajZahtjev(zahtjevi, zahtjevPrefix);
     if (jePonavljanje(zapis, tekstHash)) {
       ponovljeno = true;
-      // Ponavljanja troši samo korak B (A i B istog zahtjeva ne smiju dvaput potrošiti isto ponavljanje).
-      if (korak === 'analiza') await zapisiZahtjev(zahtjevi, zapis.key, { h: zapis.h, d: (zapis.d || 0) + 1 });
+      // Ponavljanja troši samo korak "cijena" (koraci istog zahtjeva ne smiju dvaput potrošiti isto ponavljanje).
+      if (korak === 'cijena') await zapisiZahtjev(zahtjevi, zapis.key, { h: zapis.h, d: (zapis.d || 0) + 1 });
     }
   }
 
@@ -450,10 +454,20 @@ export default async (req, context) => {
     `\n\n${procjenaTekst(procjena)}` +
     `\n\n${tekstCinjenicaSazetka(podaci.cijena_eur ?? null, procjena.fer_vrijednost, 'cijena_eur' in podaci)}`;
 
+  // Rizici se traže odmah, istodobno s procjenom: poruka NEMA fiksnu procjenu ni brojke sažetka.
+  const porukaRizici = () =>
+    `Podnositelj: ${ime || 'nepoznato'}` +
+    (agencija ? ` (agencija: ${agencija})` : '') +
+    `\n\nVremenske činjenice:\n${vremena(oglasTekst)}` +
+    (imaPodataka ? `\n\nPodaci koje je korisnik upisao (potvrđeni, imaju prednost pred oglasom):\n${opisPodataka(podaci)}` : '') +
+    (oglasTekst
+      ? `\n\nTekst oglasa nekretnine:\n\"\"\"\n${oglasTekst}\n\"\"\"`
+      : '\n\nKorisnik nije zalijepio tekst oglasa; koristi samo gore upisane podatke.');
+
   // Prekini pozive prema Anthropicu (zajedno sa čitanjem streama) na 55 s da funkcija stigne
   // javiti jasnu poruku unutar Netlify 60 s limita, umjesto da bude "ubijena". Svaki korak
   // (procjena / analiza) je zaseban zahtjev i ima vlastitih 55 s.
-  const UKUPNO_MS = 27000; // Netlify prekida funkciju na 30 s; proračun mora završiti prije toga (čist 504 umjesto 502)
+  const UKUPNO_MS = 24000; // Netlify prekida funkciju na 30 s; proračun mora završiti prije toga (čist 504 umjesto 502)
   const pocetak = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), UKUPNO_MS);
@@ -461,7 +475,7 @@ export default async (req, context) => {
   class VrijemeIsteklo extends Error {}
   class AnthropicNedostupan extends Error {}
   // Ponovni pokušaj poziva ne počinje ako ne ostaje dovoljno vremena da završi.
-  const MIN_ZA_ANALIZU_MS = 20000;
+  const MIN_ZA_ANALIZU_MS = 10000; // dio izvještaja traje oko 8–15 s; ponovni poziv u istom zahtjevu samo ako ostaje barem toliko
   const MIN_ZA_PONOVNU_PROCJENU_MS = 12000; // poziv 1 traje oko 6–8 s
   const provjeriVrijeme = (minPreostalo) => {
     if (UKUPNO_MS - (Date.now() - pocetak) < minPreostalo) throw new VrijemeIsteklo('Ne stiže završiti unutar 55 s.');
@@ -493,8 +507,11 @@ export default async (req, context) => {
   const pozivProcjene = () => pozoviClaude({
     system: systemProcjena(medijan !== null, !!referenca.ko), tool: medijan !== null ? TOOL_PROCJENA : TOOL_PROCJENA_BEZ_REFERENCE, poruka: porukaProcjena, maxTokens: 800, temperature: 0,
   });
-  const pozivAnalize = (procjena) => pozoviClaude({
-    system: SYSTEM_PROMPT, tool: TOOL, poruka: porukaAnaliza(procjena), maxTokens: 2400, temperature: 0.3,
+  const pozivCijene = (procjena) => pozoviClaude({
+    system: SYSTEM_DIO_CIJENA, tool: TOOL_CIJENA, poruka: porukaAnaliza(procjena), maxTokens: 900, temperature: 0.3,
+  });
+  const pozivRizika = () => pozoviClaude({
+    system: SYSTEM_DIO_RIZICI, tool: TOOL_RIZICI, poruka: porukaRizici(), maxTokens: 1500, temperature: 0.3,
   });
 
   const trajanja = {}; // izlazni tokeni poziva (za log)
@@ -575,7 +592,24 @@ export default async (req, context) => {
     }
   }
 
-  // ── Korak B: analiza (poziv 2). Procjenu čita iz Blobsa — klijentu se ne vjeruje ──
+  // ── Korak "rizici": prednosti, rizici, pitanja, nedostajući podaci. Ne ovisi o procjeni pa ga klijent šalje odmah,
+  // istodobno s korakom A. Ne troši kvotu (broji je korak "cijena"); email i kvota provjereni su gore, kao za sve korake. ──
+  if (korak === 'rizici') {
+    try {
+      const v = await izvrsi('rizici', pozivRizika, (tekst) => { const r = parsirajIValidirajDio('rizici', tekst, podaci, null, { oglas: oglasTekst, popravi: true }); logObrade('rizici', r); return r; }, MIN_ZA_ANALIZU_MS);
+      logTrajanje('rizici');
+      if (!v) {
+        return json(502, { error: 'Dio izvještaja s rizicima nije uspio. Pokušaj ponovo — ova analiza se ne broji u limit.' });
+      }
+      return json(200, { rizici: v.rizici, mjerenje: { ms: Date.now() - pocetak, izlazni_tokeni: trajanja.riziciTokeni ?? null } });
+    } catch (err) {
+      return greskaKoraka('rizici', err);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  // ── Korak "cijena": sažetak, preporuka, aduti (poziv 2). Procjenu čita iz Blobsa — klijentu se ne vjeruje ──
   // Nepoznat i tuđi ID daju isti odgovor (404), da se ID-jevi ne mogu provjeravati.
   try {
     const zapis = await procitajZahtjev(procjene, `${procjenaId}:`);
@@ -588,21 +622,22 @@ export default async (req, context) => {
     if (zapis.h !== tekstHash) {
       return json(400, { error: 'Procjena ne pripada ovom oglasu. Pokreni analizu ponovo.' });
     }
-    const v = await izvrsi('analiza', () => pozivAnalize(zapis.p), (tekst) => { const v = parsirajIValidiraj(tekst, podaci, zapis.p, { oglas: oglasTekst, popravi: true }); logObrade('analiza', v); return v; }, MIN_ZA_ANALIZU_MS);
-    logTrajanje('analiza');
+    const v = await izvrsi('cijena', () => pozivCijene(zapis.p), (tekst) => { const v = parsirajIValidirajDio('cijena', tekst, podaci, zapis.p, { oglas: oglasTekst, popravi: true }); logObrade('cijena', v); return v; }, MIN_ZA_ANALIZU_MS);
+    logTrajanje('cijena');
     if (!v) {
       return json(502, { error: 'Analiza nije uspjela složiti izvještaj. Pokušaj ponovo — ova analiza se ne broji u limit.' });
     }
     const rezultat = { analiza: v.analiza, izracuni: izracunaj(v.analiza), uneseno: podaci, referenca: referencaZaKlijenta(referenca), bez_poreza_na_promet: RE_BEZ_POREZA.test(oglasTekst) };
+    // Kvota se broji ovdje, kad je uspio dio s cijenom i preporukom (srž izvještaja); dio s rizicima je dopuna.
     // Greška pri bilježenju (npr. Blobs) ne smije poništiti analizu koju je korisnik već dobio.
     try {
       await zabiljeziUspjeh();
     } catch (err) {
       console.error('Bilježenje uspješne analize nije uspjelo:', err);
     }
-    return json(200, { rezultat });
+    return json(200, { rezultat, mjerenje: { ms: Date.now() - pocetak, izlazni_tokeni: trajanja.cijenaTokeni ?? null } });
   } catch (err) {
-    return greskaKoraka('analiza', err);
+    return greskaKoraka('cijena', err);
   } finally {
     clearTimeout(timeout);
   }

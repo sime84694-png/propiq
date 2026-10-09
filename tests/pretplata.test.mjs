@@ -149,13 +149,21 @@ async function korak(body) {
   }));
   return { status: res.status, body: await res.json() };
 }
-// Cijeli tok kao rezultat.html: A (procjena) pa B (analiza), bez ponovnih pokušaja.
-// Uspjeh (200) je tek kad B vrati izvještaj; greška se zrcali i kao body.greska.
+// Cijeli tok kao rezultat.html: rizici (B2) kreću odmah s procjenom (A), pa preporuka (B1) s ID-jem iz A, bez ponovnih pokušaja.
+// Uspjeh (200) je tek kad B1 vrati izvještaj; dio s rizicima se spaja u rezultat ako je stigao
+// (inače rezultat.analiza ostaje s praznim popisima, a body.rizici_status nosi grešku). Greška se zrcali i kao body.greska.
 async function pozovi(body) {
+  const rizici = korak({ ...body, korak: 'rizici' });
   const a = await korak({ ...body, korak: 'procjena' });
-  if (a.status !== 200) return { ...a, body: { ...a.body, greska: a.body.error } };
-  const b = await korak({ ...body, korak: 'analiza', procjena_id: a.body.procjena_id });
-  return { status: b.status, body: { ...b.body, greska: b.body.error }, a: a.body };
+  if (a.status !== 200) { await rizici; return { ...a, body: { ...a.body, greska: a.body.error } }; }
+  const b = await korak({ ...body, korak: 'cijena', procjena_id: a.body.procjena_id });
+  const r = await rizici;
+  if (b.status === 200 && r.status === 200) {
+    const an = b.body.rezultat.analiza;
+    Object.assign(an, { prednosti: r.body.rizici.prednosti, rizici: r.body.rizici.rizici, nedostajuci_podaci: r.body.rizici.nedostajuci_podaci });
+    an.pregovaranje = { ...an.pregovaranje, pitanja_prodavatelju: r.body.rizici.pitanja_prodavatelju };
+  }
+  return { status: b.status, body: { ...b.body, greska: b.body.error, rizici_status: r.status, rizici_greska: r.body.error }, a: a.body };
 }
 
 let n = 0;
@@ -364,7 +372,7 @@ test('korak A: spremi procjenu pod nasumičnim ID-jem, ne troši limit ni statis
   assert.equal(procjeneBlobs().length, 1);
   assert.match(procjeneBlobs()[0][0], new RegExp(`^propiq-procjene/${a.body.procjena_id}:\\d+$`));
   assert.doesNotMatch(JSON.stringify(procjeneBlobs()), /samoa@primjer\.hr/, 'zapis ne sadrži email, nego hash');
-  const b = await korak({ email: 'samoa@primjer.hr', oglas_tekst: 'Stan A', request_id: 'req-samoa-01', korak: 'analiza', procjena_id: a.body.procjena_id });
+  const b = await korak({ email: 'samoa@primjer.hr', oglas_tekst: 'Stan A', request_id: 'req-samoa-01', korak: 'cijena', procjena_id: a.body.procjena_id });
   assert.equal(b.status, 200);
   assert.equal(iskoristeno('samoa@primjer.hr'), 1);
 });
@@ -372,7 +380,7 @@ test('korak A: spremi procjenu pod nasumičnim ID-jem, ne troši limit ni statis
 test('korak B: fer vrijednost i najam dolaze iz spremljene procjene, ne od klijenta', async () => {
   mockFetch({});
   const a = await korak({ email: 'b1@primjer.hr', oglas_tekst: 'Stan B', korak: 'procjena' });
-  const b = await korak({ email: 'b1@primjer.hr', oglas_tekst: 'Stan B', korak: 'analiza', procjena_id: a.body.procjena_id,
+  const b = await korak({ email: 'b1@primjer.hr', oglas_tekst: 'Stan B', korak: 'cijena', procjena_id: a.body.procjena_id,
     procjena: { fer_vrijednost: { min_eur: 1, max_eur: 2, pouzdanost: 'visoka', obrazlozenje: 'x' } }, fer_vrijednost: { min_eur: 1, max_eur: 2 } });
   assert.deepEqual(b.body.rezultat.analiza.fer_vrijednost, a.body.procjena.fer_vrijednost);
 });
@@ -386,12 +394,12 @@ test('korak B pada pa uspije iz drugog pokušaja s istim ID-jem: poziv 1 se ne p
   procjenaOdgovor = (t) => { procjenaPoziva++; return staraProcjena(t); };
   claudeOdgovor = () => (++analizaPoziva === 1 ? claudeStream(izvjestajJson(), { prekini: true }) : claudeStream(izvjestajJson()));
   const a = await korak({ ...tijelo, korak: 'procjena' });
-  const b1 = await korak({ ...tijelo, korak: 'analiza', procjena_id: a.body.procjena_id });
+  const b1 = await korak({ ...tijelo, korak: 'cijena', procjena_id: a.body.procjena_id });
   assert.equal(b1.status, 502);
   assert.match(b1.body.error, /ne broji u limit/);
   assert.equal(iskoristeno('ponovo@primjer.hr'), 0);
   assert.equal(statistika().length, 0);
-  const b2 = await korak({ ...tijelo, korak: 'analiza', procjena_id: a.body.procjena_id });
+  const b2 = await korak({ ...tijelo, korak: 'cijena', procjena_id: a.body.procjena_id });
   assert.equal(b2.status, 200);
   assert.equal(b2.body.rezultat.analiza.naslov, IZVJESTAJ.naslov);
   assert.equal(procjenaPoziva, 1, 'ponovni pokušaj B ne zove poziv 1');
@@ -403,8 +411,8 @@ test('B uspije, a odgovor se izgubi: ponovni B s istim ID-jem vraća rezultat i 
   mockFetch({});
   const tijelo = { email: 'izgubljen@primjer.hr', oglas_tekst: 'Stan I' }; // bez request_id: dedup ide po ID-ju procjene
   const a = await korak({ ...tijelo, korak: 'procjena' });
-  const b1 = await korak({ ...tijelo, korak: 'analiza', procjena_id: a.body.procjena_id });
-  const b2 = await korak({ ...tijelo, korak: 'analiza', procjena_id: a.body.procjena_id });
+  const b1 = await korak({ ...tijelo, korak: 'cijena', procjena_id: a.body.procjena_id });
+  const b2 = await korak({ ...tijelo, korak: 'cijena', procjena_id: a.body.procjena_id });
   assert.equal(b1.status, 200);
   assert.equal(b2.status, 200);
   assert.equal(iskoristeno('izgubljen@primjer.hr'), 1);
@@ -415,10 +423,10 @@ test('nepoznat, nevaljan i tuđi ID procjene se odbija, bez poziva prema Anthrop
   mockFetch({});
   const a = await korak({ email: 'vlasnik@primjer.hr', oglas_tekst: 'Stan V', korak: 'procjena' });
   const pozivi = bilježiPozive();
-  const nepoznat = await korak({ email: 'vlasnik@primjer.hr', oglas_tekst: 'Stan V', korak: 'analiza', procjena_id: 'a'.repeat(32) });
-  const nevaljan = await korak({ email: 'vlasnik@primjer.hr', oglas_tekst: 'Stan V', korak: 'analiza', procjena_id: '../../x' });
-  const bez = await korak({ email: 'vlasnik@primjer.hr', oglas_tekst: 'Stan V', korak: 'analiza' });
-  const tudji = await korak({ email: 'tudji@primjer.hr', oglas_tekst: 'Stan V', korak: 'analiza', procjena_id: a.body.procjena_id });
+  const nepoznat = await korak({ email: 'vlasnik@primjer.hr', oglas_tekst: 'Stan V', korak: 'cijena', procjena_id: 'a'.repeat(32) });
+  const nevaljan = await korak({ email: 'vlasnik@primjer.hr', oglas_tekst: 'Stan V', korak: 'cijena', procjena_id: '../../x' });
+  const bez = await korak({ email: 'vlasnik@primjer.hr', oglas_tekst: 'Stan V', korak: 'cijena' });
+  const tudji = await korak({ email: 'tudji@primjer.hr', oglas_tekst: 'Stan V', korak: 'cijena', procjena_id: a.body.procjena_id });
   assert.deepEqual([nepoznat.status, nevaljan.status, bez.status, tudji.status], [404, 404, 404, 404]);
   assert.deepEqual(tudji.body, nepoznat.body, 'tuđi ID se ne razlikuje od nepoznatog');
   assert.equal(pozivi.length, 0);
@@ -429,7 +437,7 @@ test('nepoznat, nevaljan i tuđi ID procjene se odbija, bez poziva prema Anthrop
 test('ID procjene ne vrijedi za drugi oglas (tekst ili podaci)', async () => {
   mockFetch({});
   const a = await korak({ email: 'drugi@primjer.hr', oglas_tekst: 'Stan D', korak: 'procjena' });
-  const r = await korak({ email: 'drugi@primjer.hr', oglas_tekst: 'Sasvim drugi stan', korak: 'analiza', procjena_id: a.body.procjena_id });
+  const r = await korak({ email: 'drugi@primjer.hr', oglas_tekst: 'Sasvim drugi stan', korak: 'cijena', procjena_id: a.body.procjena_id });
   assert.equal(r.status, 400);
   assert.equal(iskoristeno('drugi@primjer.hr'), 0);
 });
@@ -441,7 +449,7 @@ test('istekao ID procjene (stariji od 1 h): 410, bez poziva prema Anthropicu i b
   blobs.delete(kljuc);
   blobs.set(`propiq-procjene/${a.body.procjena_id}:${Date.now() - 61 * 60 * 1000}`, vrijednost);
   const pozivi = bilježiPozive();
-  const r = await korak({ email: 'istek@primjer.hr', oglas_tekst: 'Stan E', korak: 'analiza', procjena_id: a.body.procjena_id });
+  const r = await korak({ email: 'istek@primjer.hr', oglas_tekst: 'Stan E', korak: 'cijena', procjena_id: a.body.procjena_id });
   assert.equal(r.status, 410);
   assert.match(r.body.error, /istekla/);
   assert.equal(pozivi.length, 0);
@@ -475,21 +483,28 @@ test('zahtjev prema Anthropicu forsira tool "izvjestaj" i ostavlja prostora za J
   const lazniFetch = global.fetch;
   let tijelo;
   global.fetch = async (url, opts) => {
-    if (new URL(url).hostname === 'api.anthropic.com') tijelo = JSON.parse(opts.body);
+    if (new URL(url).hostname === 'api.anthropic.com') {
+      const t = JSON.parse(opts.body);
+      if (t.tool_choice.name === 'izvjestaj_cijena') tijelo = t; else if (t.tool_choice.name === 'izvjestaj_rizici') rizici = t;
+    }
     return lazniFetch(url, opts);
   };
+  let rizici;
   await pozovi({ email: 'tool@primjer.hr', oglas_tekst: 'X' });
-  assert.deepEqual(tijelo.tool_choice, { type: 'tool', name: 'izvjestaj' });
-  assert.equal(tijelo.tools[0].name, 'izvjestaj');
+  assert.deepEqual(tijelo.tool_choice, { type: 'tool', name: 'izvjestaj_cijena' });
+  assert.equal(tijelo.tools[0].name, 'izvjestaj_cijena');
   assert.ok(!('fer_vrijednost' in tijelo.tools[0].input_schema.properties) && !('najam' in tijelo.tools[0].input_schema.properties), 'analiza ne smije mijenjati procjenu');
-  assert.ok(tijelo.max_tokens >= 2000);
+  assert.deepEqual(Object.keys(tijelo.tools[0].input_schema.properties).sort(), ['aduti', 'cijena_eur', 'lokacija', 'naslov', 'ocjena', 'povrsina_m2', 'preporuka', 'sazetak']);
+  assert.ok(tijelo.max_tokens >= 800 && tijelo.max_tokens <= 1200, 'kratak izlaz dijela s cijenom');
   assert.equal(tijelo.stream, true);
+  assert.deepEqual(Object.keys(rizici.tools[0].input_schema.properties).sort(), ['nedostajuci_podaci', 'pitanja_prodavatelju', 'prednosti', 'rizici']);
+  assert.ok(!/Fiksna procjena tržišta|Gotovi brojevi za sažetak/.test(JSON.stringify(rizici.messages)), 'rizici ne ovise o procjeni ni brojkama sažetka');
 });
 
 test('nevaljan JSON: jedan ponovni pokušaj, pa uspjeh se broji jednom', async () => {
   mockFetch({});
   let poziva = 0;
-  claudeOdgovor = () => (++poziva === 1 ? claudeStream('{"naslov": "odrezan...') : claudeStream(izvjestajJson()));
+  claudeOdgovor = (t) => (t.tool_choice.name === 'izvjestaj_rizici' ? claudeStream(izvjestajJson()) : ++poziva === 1 ? claudeStream('{"naslov": "odrezan...') : claudeStream(izvjestajJson()));
   const r = await pozovi({ email: 'retry@primjer.hr', oglas_tekst: 'R' });
   assert.equal(poziva, 2);
   assert.equal(r.status, 200);
@@ -500,7 +515,7 @@ test('nevaljan JSON: jedan ponovni pokušaj, pa uspjeh se broji jednom', async (
 test('odgovor koji ne prolazi validaciju ni iz drugog pokušaja: greška, limit se ne troši', async () => {
   mockFetch({});
   let poziva = 0;
-  claudeOdgovor = () => { poziva++; return claudeStream(izvjestajJson({ sazetak: '' })); };
+  claudeOdgovor = (t) => { if (t.tool_choice.name === 'izvjestaj_rizici') return claudeStream(izvjestajJson()); poziva++; return claudeStream(izvjestajJson({ sazetak: '' })); };
   const r = await pozovi({ email: 'nevaljan@primjer.hr', oglas_tekst: 'N', request_id: 'req-nevl-0001' });
   assert.equal(poziva, 2, 'točno jedan retry');
   assert.equal(r.status, 502);
@@ -513,7 +528,7 @@ test('odgovor koji ne prolazi validaciju ni iz drugog pokušaja: greška, limit 
 test('stop_reason max_tokens (odrezan JSON) je neuspjeh i retry, ne uspjeh', async () => {
   mockFetch({});
   let poziva = 0;
-  claudeOdgovor = () => { poziva++; return claudeStream(izvjestajJson(), { stopReason: 'max_tokens' }); };
+  claudeOdgovor = (t) => { if (t.tool_choice.name === 'izvjestaj_rizici') return claudeStream(izvjestajJson()); poziva++; return claudeStream(izvjestajJson(), { stopReason: 'max_tokens' }); };
   const r = await pozovi({ email: 'odrezan@primjer.hr', oglas_tekst: 'Z' });
   assert.equal(poziva, 2);
   assert.equal(r.status, 502);
@@ -595,7 +610,7 @@ test('Blobs pada pri bilježenju nakon uspješne analize: korak B ipak vraća re
   const tijelo = { email: 'blobs@primjer.hr', oglas_tekst: 'T', request_id: 'req-blobs-1' };
   const a = await korak({ ...tijelo, korak: 'procjena' });
   blobsUpisPada = true; // procjena je već spremljena; ispad nastaje pri bilježenju limita
-  const r = await korak({ ...tijelo, korak: 'analiza', procjena_id: a.body.procjena_id });
+  const r = await korak({ ...tijelo, korak: 'cijena', procjena_id: a.body.procjena_id });
   assert.equal(r.status, 200);
   assert.equal(r.body.error, undefined);
   assert.equal(r.body.rezultat.analiza.naslov, IZVJESTAJ.naslov);
@@ -691,10 +706,12 @@ test('nevaljana polja forme: 400, bez poziva i bez trošenja limita', async () =
 function bilježiPozive() {
   const lazniFetch = global.fetch;
   const pozivi = [];
+  pozivi.rizici = [];
   global.fetch = async (url, opts) => {
     if (new URL(url).hostname === 'api.anthropic.com') {
       const tijelo = JSON.parse(opts.body);
-      pozivi.push({ alat: tijelo.tool_choice.name, tijelo, poruke: JSON.stringify(tijelo.messages), sustav: tijelo.system });
+      // Dio "rizici" (B2) ide istodobno s procjenom: bilježi se zasebno (pozivi.rizici), da redoslijed ostalih poziva ostane provjerljiv.
+      (tijelo.tool_choice.name === 'izvjestaj_rizici' ? pozivi.rizici : pozivi).push({ alat: tijelo.tool_choice.name === 'izvjestaj_cijena' ? 'izvjestaj' : tijelo.tool_choice.name === 'izvjestaj_rizici' ? 'rizici' : tijelo.tool_choice.name, tijelo, poruke: JSON.stringify(tijelo.messages), sustav: tijelo.system });
     }
     return lazniFetch(url, opts);
   };
@@ -799,6 +816,60 @@ test('bez cijene i dalje "nedovoljno podataka" (preporuka i ocjena null), procje
   assert.deepEqual(analiza.fer_vrijednost, ocekivanaFer('Split'));
 });
 
+// ── Izvještaj u dva dijela: "rizici" kreće odmah s procjenom, "cijena" nakon nje; kvota se broji jednom, kad uspije "cijena" ──
+const brojiPozive = () => { const c = { cijena: 0, rizici: 0 }; const f = global.fetch; global.fetch = async (u, o) => { if (new URL(u).hostname === 'api.anthropic.com') c[JSON.parse(o.body).tool_choice.name === 'izvjestaj_rizici' ? 'rizici' : 'cijena']++; return f(u, o); }; return c; };
+
+test('dva dijela uspješna: kvota se broji jednom, a izvještaj ima i cijenu i rizike', async () => {
+  mockFetch({});
+  const r = await pozovi({ email: 'dva1@primjer.hr', oglas_tekst: 'Stan D1', request_id: 'req-dva1-0001' });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.rizici_status, 200);
+  assert.ok(r.body.rezultat.analiza.rizici.length > 0 && r.body.rezultat.analiza.prednosti.length > 0);
+  assert.equal(iskoristeno('dva1@primjer.hr'), 1);
+  assert.equal(statistika().length, 1);
+});
+
+test('dio "rizici" pada, "cijena" uspije: djelomičan izvještaj, kvota se ipak broji jednom (srž izvještaja je isporučena)', async () => {
+  mockFetch({});
+  const c = brojiPozive();
+  claudeOdgovor = (t) => (t.tool_choice.name === 'izvjestaj_rizici' ? claudeStream(izvjestajJson(), { prekini: true }) : claudeStream(izvjestajJson()));
+  const r = await pozovi({ email: 'dva2@primjer.hr', oglas_tekst: 'Stan D2', request_id: 'req-dva2-0001' });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.rizici_status, 502);
+  assert.match(r.body.rizici_greska, /ne broji u limit/);
+  assert.deepEqual(r.body.rezultat.analiza.rizici, [], 'rizika nema, a to klijent prikazuje kao "dio nije stigao"');
+  assert.equal(iskoristeno('dva2@primjer.hr'), 1);
+  assert.ok(c.rizici >= 1);
+});
+
+test('dio "cijena" pada: nema izvještaja i nema brojanja, makar su rizici stigli', async () => {
+  mockFetch({});
+  claudeOdgovor = (t) => (t.tool_choice.name === 'izvjestaj_rizici' ? claudeStream(izvjestajJson()) : claudeStream(izvjestajJson({ sazetak: '' })));
+  const r = await pozovi({ email: 'dva3@primjer.hr', oglas_tekst: 'Stan D3', request_id: 'req-dva3-0001' });
+  assert.equal(r.status, 502);
+  assert.equal(r.body.rizici_status, 200);
+  assert.equal(iskoristeno('dva3@primjer.hr'), 0);
+});
+
+test('ponavljanje dijela "rizici" (klijent ga ponovi) ne troši kvotu; ponovljeni "cijena" s istim request_id ne broji dvaput', async () => {
+  mockFetch({});
+  const tijelo = { email: 'dva4@primjer.hr', oglas_tekst: 'Stan D4', request_id: 'req-dva4-0001' };
+  const prvi = await pozovi(tijelo);
+  assert.equal(prvi.status, 200);
+  assert.equal((await korak({ ...tijelo, korak: 'rizici' })).status, 200);
+  assert.equal((await korak({ ...tijelo, korak: 'cijena', procjena_id: prvi.a.procjena_id })).status, 200);
+  assert.equal(iskoristeno('dva4@primjer.hr'), 1);
+});
+
+test('dio "rizici" poštuje limit kao i ostali koraci (403 bez poziva prema Anthropicu)', async () => {
+  mockFetch({});
+  await koliko('dva5@primjer.hr', 3);
+  const pozivi = bilježiPozive();
+  const r = await korak({ email: 'dva5@primjer.hr', oglas_tekst: 'Novi', korak: 'rizici' });
+  assert.equal(r.status, 403);
+  assert.equal(pozivi.rizici.length + pozivi.length, 0);
+});
+
 // ── Oglas "Buzin": nema cijene stana, ima druge iznose u €, trostruko IZO staklo, novogradnja s PDV-om ──
 const OGLAS_BUZIN = fs.readFileSync(new URL('./fixtures/oglas-buzin.txt', import.meta.url), 'utf8');
 
@@ -895,7 +966,8 @@ test('log bilježi trajanje oba poziva (svaki u svom koraku)', async () => {
   console.log = (...a) => logovi.push(a.join(' '));
   try { await pozovi({ email: 'log@primjer.hr', oglas_tekst: 'Stan' }); } finally { console.log = staro; }
   assert.ok(logovi.some((l) => /Trajanje poziva: procjena \d+ ms; izlazni tokeni: \d+\./.test(l)), logovi.join('|'));
-  assert.ok(logovi.some((l) => /Trajanje poziva: analiza \d+ ms; izlazni tokeni: \d+\./.test(l)), logovi.join('|'));
+  assert.ok(logovi.some((l) => /Trajanje poziva: cijena \d+ ms; izlazni tokeni: \d+\./.test(l)), logovi.join('|'));
+  assert.ok(logovi.some((l) => /Trajanje poziva: rizici \d+ ms; izlazni tokeni: \d+\./.test(l)), logovi.join('|'));
 });
 
 // ── referentni tržišni podaci u pozivu 1: usklađeni medijan realiziranih cijena ──
@@ -1046,7 +1118,8 @@ test('poziv 2 dobiva gotove brojeve sažetka (cijena iz forme); sažetak s izmi�
   mockFetch({});
   const pozivi = bilježiPozive();
   let n2 = 0;
-  claudeOdgovor = () => {
+  claudeOdgovor = (t) => {
+    if (t.tool_choice.name === 'izvjestaj_rizici') return claudeStream(izvjestajJson());
     n2++;
     return claudeStream(izvjestajJson({ cijena_eur: 400000, preporuka: 'oprez', ocjena: 2,
       sazetak: n2 === 1 ? 'Cijena je 3 % iznad raspona.' : 'Cijena je iznad raspona; vidi izračun.' }));

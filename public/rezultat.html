@@ -650,8 +650,8 @@
   <script>
     const loadingEl = document.getElementById('loading');
     // Stvarne faze: server javlja koji je poziv u tijeku (bez postotaka, trajanje nije predvidivo).
-    // Faze prate zahtjeve: A (procjena) pa B (analiza).
-    const FAZE = { procjena: 'Procjenjujem fer vrijednost…', analiza: 'Analiziram rizike i pregovore…' };
+    // Faze prate stvarne dijelove: procjena (A), zatim preporuka (B1) i rizici (B2); B2 kreće odmah s A.
+    const FAZE = { procjena: 'Procjenjujem fer vrijednost…', cijena: 'Slažem preporuku…', rizici: 'Tražim rizike…' };
     const loadingTekstEl = document.getElementById('loading-tekst');
     const analizaEl = document.getElementById('analiza');
     const errorEl = document.getElementById('error');
@@ -730,6 +730,9 @@
     const NF1 = new Intl.NumberFormat('hr-HR', { maximumFractionDigits: 1 });
     // Oglas kaže da je PDV uključen / bez poreza na promet (postavlja poslužitelj iz teksta oglasa).
     let bezPorezaNaPromet = false;
+    // Dio izvještaja s rizicima nije stigao (ni nakon ponavljanja): kartica rizika to kaže i nudi ponovni pokušaj.
+    let rizikaNedostaju = false;
+    let ponoviRizike = null;
     const jeBroj = (v) => typeof v === 'number' && Number.isFinite(v);
     // Broj i jedinica (€, €/m², %, m²) nikad se ne lome u dva retka: običan razmak postaje neprelomiv.
     const nb = (t) => (typeof t === 'string' ? t.replace(/(\d) (€\/m²|€|%|m²)/g, '$1\u00A0$2') : t);
@@ -981,7 +984,12 @@
           r.appendChild(d);
         });
       } else {
-        r.appendChild(el('p', null, 'Iz oglasa nisu uočeni posebni rizici.'));
+        r.appendChild(el('p', null, rizikaNedostaju ? 'Dio izvještaja s rizicima, prednostima i pitanjima za prodavatelja nije stigao.' : 'Iz oglasa nisu uočeni posebni rizici.'));
+        if (rizikaNedostaju && ponoviRizike) {
+          const g = el('button', 'btn-ghost', 'Pokušaj ponovo samo ovaj dio');
+          g.addEventListener('click', ponoviRizike);
+          r.appendChild(g);
+        }
       }
       const poreznaRed = el('div', 'porez');
       if (bezPorezaNaPromet) {
@@ -1026,6 +1034,18 @@
       ft.style.animationDelay = `${kartIndeks * 0.09}s`;
       frag.appendChild(ft);
       return frag;
+    }
+
+    // Spaja dio s rizicima u izvještaj. Vraća true ako je dio stigao i valjan.
+    function spojiRizike(rezultat, r) {
+      const d = r && r.ok && r.payload && r.payload.rizici;
+      if (!d || !Array.isArray(d.rizici) || !Array.isArray(d.prednosti) || !Array.isArray(d.pitanja_prodavatelju) || !Array.isArray(d.nedostajuci_podaci)) return false;
+      const a = rezultat.analiza;
+      a.prednosti = d.prednosti;
+      a.rizici = d.rizici;
+      a.pregovaranje = { ...a.pregovaranje, pitanja_prodavatelju: d.pitanja_prodavatelju };
+      a.nedostajuci_podaci = d.nedostajuci_podaci;
+      return true;
     }
 
     function prikaziAnalizu(rezultat) {
@@ -1104,8 +1124,10 @@
       }
 
       try {
-        // Zahtjev A: slijepa procjena. Poslužitelj je sprema i vraća ID.
+        // Rizici (B2) ne ovise o procjeni: kreću odmah, istodobno s procjenom (A). Svaki dio ima vlastito ponavljanje.
         loadingTekstEl.textContent = FAZE.procjena;
+        const rizikaZahtjev = izvrsiKorak({ ...data, korak: 'rizici' });
+        // Zahtjev A: slijepa procjena. Poslužitelj je sprema i vraća ID.
         const a = await izvrsiKorak({ ...data, korak: 'procjena' });
         if (!a.ok || !a.payload.procjena_id) {
           console.error('Korak A nije uspio:', a.status, Object.keys(a.payload));
@@ -1113,14 +1135,26 @@
           return;
         }
 
-        // Zahtjev B: analiza na temelju spremljene procjene. Limit se troši tek kad B uspije.
-        loadingTekstEl.textContent = FAZE.analiza;
-        const b = await izvrsiKorak({ ...data, korak: 'analiza', procjena_id: a.payload.procjena_id });
-        const analiza = b.payload.rezultat;
-        if (!b.ok || !jeRezultat(analiza)) {
-          console.error('Korak B nije uspio:', b.status, Object.keys(b.payload));
+        // Zahtjev B1: preporuka na temelju spremljene procjene. Limit se troši tek kad B1 uspije.
+        loadingTekstEl.textContent = FAZE.cijena;
+        const b = await izvrsiKorak({ ...data, korak: 'cijena', procjena_id: a.payload.procjena_id });
+        const rezultat = b.payload.rezultat;
+        if (!b.ok || !jeRezultat(rezultat)) {
+          console.error('Korak B1 nije uspio:', b.status, Object.keys(b.payload));
           showError(porukaGreskeKoraka(b), b.status === 403);
           return;
+        }
+        loadingTekstEl.textContent = FAZE.rizici;
+        const r = await rizikaZahtjev;
+        const analiza = rezultat;
+        rizikaNedostaju = !spojiRizike(analiza, r);
+        if (rizikaNedostaju) {
+          console.error('Dio s rizicima nije stigao:', r.status, Object.keys(r.payload));
+          ponoviRizike = async () => {
+            const ponovno = await izvrsiKorak({ ...data, korak: 'rizici' });
+            rizikaNedostaju = !spojiRizike(analiza, ponovno);
+            prikaziAnalizu(analiza);
+          };
         }
 
         try {
@@ -1131,8 +1165,8 @@
           return;
         }
 
-        // Spremi gotov rezultat da F5 prikaže istu analizu bez novog poziva.
-        if (data.request_id) {
+        // Spremi gotov rezultat da F5 prikaže istu analizu bez novog poziva (samo potpun izvještaj).
+        if (data.request_id && !rizikaNedostaju) {
           try {
             sessionStorage.setItem('propiq_analiza_rezultat',
               JSON.stringify({ request_id: data.request_id, analiza }));
