@@ -202,13 +202,16 @@ export function nadjiKo(grad, unos, baza = TRZISTE) {
 export const imenaZaKo = (grad, ko, baza = TRZISTE) => [...rjecnikKo(grad, baza)].filter(([, v]) => v === ko).map(([k]) => k);
 
 const kratkiUnos = (s) => String(s).trim().slice(0, 25);
-// Napomena (kratka, ulazi u obrazloženje) kad se umjesto k.o. koristi gradski medijan.
+// Nema podataka o cijenama za kvart: polazište je medijan cijelog grada (razina 'grad'), pa lokacija unutar grada nije uračunata.
+// Vrijedi za svaki grad osim kad je polazište medijan k.o. (Zagreb s mapiranim kvartom) ili postoje tražene cijene za zonu.
+export const bezPodatakaZaKvart = (ref) => !!ref && ref.razina === 'grad';
+
+// Napomena (ulazi u obrazloženje i u referencu za klijenta) kad se umjesto k.o. koristi gradski medijan.
 export function napomenaKvarta(ref) {
-  if (!ref || !ref.kvartStatus || ref.kvartStatus === 'ko') return null;
-  const u = `„${kratkiUnos(ref.kvartUnos)}”`;
-  if (ref.kvartStatus === 'dvosmisleno') return `Kvart ${u} obuhvaća više k.o.: gradski medijan.`;
-  if (ref.kvartStatus === 'malo_prodaja') return `K.o. ${ref.kvartKo} ima manje od ${MIN_PRODAJA_KO} prodaja: gradski medijan.`;
-  return `Kvart ${u} nije mapiran na k.o.: gradski medijan.`;
+  if (!bezPodatakaZaKvart(ref)) return null;
+  const kvart = ref.kvartUnos && String(ref.kvartUnos).trim() ? kratkiUnos(ref.kvartUnos) : null;
+  const razlog = kvart ? `Za kvart ${kvart} nemamo podatke o cijenama` : 'Podatke o cijenama po kvartovima nemamo';
+  return `Procjena se temelji na medijanu cijelog grada. ${razlog}, pa lokacija unutar grada nije uračunata.`;
 }
 
 // Naziv polazišta za obrazloženje: "k.o. Zaprudski Otok" ili naziv grada.
@@ -312,9 +315,10 @@ export function tekstReference(ref) {
 }
 
 const REDOSLIJED = ['niska', 'srednja', 'visoka'];
-const NAJVISE = { kvart: 'visoka', ko: 'srednja', grad: 'srednja' };
+const NAJVISE = { kvart: 'visoka', ko: 'srednja', grad: 'niska' };
 
-// "visoka" samo uz tražene cijene za kvart; k.o. ili grad → najviše "srednja" (medijan k.o. i dalje obuhvaća sve starosti i stanja); bez reference → "niska".
+// "visoka" samo uz tražene cijene za kvart; k.o. → najviše "srednja" (medijan k.o. i dalje obuhvaća sve starosti i stanja);
+// samo grad (kvart bez podataka) ili bez reference → "niska".
 export const granicaPouzdanosti = (ref) => NAJVISE[ref && ref.razina] || 'niska';
 
 export function ogranicitiPouzdanost(procjena, ref) {

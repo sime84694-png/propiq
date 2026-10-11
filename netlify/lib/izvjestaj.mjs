@@ -41,6 +41,7 @@ const NAJAM_SHEMA = {
 // Poziv 1 (slijepa procjena) kad POSTOJI usklađeni medijan: model vraća samo korekcije u postocima i pouzdanost;
 // raspon (€/m² i ukupni €) i tekst obrazloženja računa kod (izracunajFer). Model NE vraća min_eur/max_eur.
 export const { FER } = izracuni;
+const MAX_IZVOR = 80;
 export const TOOL_PROCJENA = {
   name: TOOL_PROCJENA_NAME,
   description: 'Korekcije usklađenog medijana za ovu nekretninu, pouzdanost i najam. Raspon vrijednosti računa sustav.',
@@ -51,9 +52,10 @@ export const TOOL_PROCJENA = {
         type: 'array', maxItems: FER.MAX_STAVKI,
         description: `Najviše ${FER.MAX_STAVKI} korekcija usklađenog medijana (€/m²) za ovu nekretninu; svaka je zaseban čimbenik.`,
         items: {
-          type: 'object', additionalProperties: false, required: ['razlog', 'postotak'],
+          type: 'object', additionalProperties: false, required: ['razlog', 'postotak', 'izvor'],
           properties: {
             razlog: { type: 'string', maxLength: FER.MAX_RAZLOG, description: `Kratko (do ${FER.MAX_RAZLOG} znakova), npr. "renovirano", "bez lifta", "parking".` },
+            izvor: { type: 'string', maxLength: MAX_IZVOR, description: `DOSLOVNI kratki citat iz teksta oglasa (do ${MAX_IZVOR} znakova) koji izričito navodi to svojstvo, ili "forma: <polje>" (lift, parking, kat, godina_gradnje, povrsina_m2) za podatak iz forme. Korekcija bez izvora odbacuje se.` },
             postotak: { type: 'integer', minimum: -FER.MAX_KOREKCIJA, maximum: FER.MAX_KOREKCIJA, description: `Cijeli broj postotaka, −${FER.MAX_KOREKCIJA}…+${FER.MAX_KOREKCIJA}; negativan snižava, pozitivan povećava €/m².` },
           },
         },
@@ -378,6 +380,7 @@ export function validirajAnalizu(ulaz) {
 // kontekst.bezLokacije (polazište je medijan k.o.): korekcije za lokaciju/kvart odbacuju se u kodu (rezultat.odbaceno);
 // kontekst.lokacijaRijeci: imena kvarta/k.o./grada čije spominjanje u razlogu znači korekciju lokacije.
 // kontekst.napomena: zašto nije korišten medijan k.o. (ulazi u obrazloženje).
+// kontekst.izvori { oglas, podaci }: ako je zadan, korekcija bez izvora (citat iz oglasa / polje forme) odbacuje se (rezultat.odbaceno).
 export function parsirajIValidirajProcjenu(jsonTekst, kontekst = {}) {
   let obj;
   try {
@@ -401,6 +404,31 @@ export function parsirajIValidirajProcjenu(jsonTekst, kontekst = {}) {
   }
 }
 
+// ── izvor korekcije: svaka korekcija mora se temeljiti na tekstu oglasa ili polju forme ──
+// Model ne smije izmisliti svojstvo (lift, parking, renovacija...) koje oglas ne navodi. Zato svaka stavka nosi "izvor":
+// doslovni citat iz oglasa (provjerava se da stvarno stoji u tekstu) ili "forma: <polje>" (provjerava se da je polje upisano).
+// Uz to, za teme sklone izmišljanju razlog i izvor moraju govoriti o istome (npr. "namješten, useljiv" nije izvor za "renovirano").
+const POLJA_FORME = [[/\bgodin/, 'godina_gradnje'], [/\bpovrsin/, 'povrsina_m2'], [/\blift/, 'lift'], [/\bparking/, 'parking'], [/\bkat\b/, 'kat'], [/\bkvart/, 'kvart'], [/\bgrad\b/, 'grad']];
+const TEME_KOREKCIJA = [
+  { razlog: /lift|dizal/, oglas: /lift|dizal/, polje: 'lift' },
+  { razlog: /parking|parkir|garaz/, oglas: /parking|parkir|garaz/, polje: 'parking' },
+  { razlog: /renov|obnov|adapt|preured|sanir|rekonstru|novouredj/, oglas: /renov|obnov|adapt|preured|sanir|rekonstru|novouredj/, polje: null },
+  { razlog: /energet/, oglas: /energet/, polje: null },
+  { razlog: /instalacij|vodovod|elektro/, oglas: /instalacij|vodovod|elektro|struj/, polje: null },
+];
+export function provjeriIzvorKorekcije(k, { oglas = '', podaci = {} } = {}) {
+  if (!jeObjekt(k) || typeof k.razlog !== 'string') return true; // oblik provjerava ocistiKorekcije
+  const izvor = typeof k.izvor === 'string' ? norm(k.izvor) : '';
+  if (izvor.length < 3) return false;
+  const teme = TEME_KOREKCIJA.filter((t) => t.razlog.test(norm(k.razlog)));
+  if (/^forma\b/.test(izvor)) {
+    const polje = (POLJA_FORME.find(([re]) => re.test(izvor.replace(/^forma\s*/, ''))) || [])[1];
+    return !!polje && polje in podaci && teme.every((t) => t.polje === polje);
+  }
+  if (!` ${norm(oglas)} `.includes(` ${izvor} `)) return false;
+  return teme.every((t) => t.oglas.test(izvor));
+}
+
 // ── korekcija za lokaciju kad je polazište medijan k.o. (lokacija je već u njemu) ──
 const norm = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, ' ').trim();
 // Opći izrazi lokacije: dijelovi riječi (kvart, lokacij…, mikrolokacij…) i cijele riječi (centar, zona, blizina…).
@@ -417,11 +445,17 @@ export function jeKorekcijaLokacije(razlog, rijeci = []) {
     : rijeciRazloga.some((w) => w === r || (r.length >= 5 && w.startsWith(r.slice(0, -1))))));
 }
 
-function izracunajIzKorekcija(obj, { medijan_eur_m2, povrsina_m2 = null, najvisaPouzdanost = null, naziv = null, napomena = null, bezLokacije = false, lokacijaRijeci = [] }, odbaceno = []) {
+function izracunajIzKorekcija(obj, { medijan_eur_m2, povrsina_m2 = null, najvisaPouzdanost = null, naziv = null, napomena = null, bezLokacije = false, lokacijaRijeci = [], izvori = null }, odbaceno = []) {
   if (!POUZDANOSTI.includes(obj.pouzdanost)) ne(`pouzdanost: nedopuštena vrijednost (${vrsta(obj.pouzdanost)})`);
   let kor = obj.korekcije;
   if (typeof kor === 'string') { try { kor = JSON.parse(kor); } catch { /* ostaje tekst: pada ispod */ } }
   if (!Array.isArray(kor)) ne(`korekcije: očekivan popis, stigao ${vrsta(kor)}`);
+  // Kad su poznati izvori (oglas, polja forme), korekcija bez provjerljivog izvora se odbacuje prije čišćenja (ono briše polje "izvor").
+  if (izvori && Array.isArray(kor)) {
+    const bezIzvora = kor.filter((k) => !provjeriIzvorKorekcije(k, izvori));
+    odbaceno.push(...bezIzvora.map((k) => ({ razlog: k.razlog, postotak: k.postotak, uzrok: 'bez izvora u oglasu ili formi' })));
+    kor = kor.filter((k) => !bezIzvora.includes(k));
+  }
   let ociscene = izracuni.ocistiKorekcije(kor);
   if (ociscene === null) ne('korekcije: svaka stavka mora imati razlog (tekst) i postotak (broj)');
   if (bezLokacije) {
@@ -458,7 +492,8 @@ export function primijeniPreporuku(obj) {
 // podaci: što je korisnik upisao u formu — ti podaci imaju prednost pred onim što je izvukao model.
 // procjena: rezultat poziva 1; ako je zadan, fer_vrijednost i najam uvijek su iz njega (što god da je model
 // vratio), a preporuka se određuje iz odnosa cijene i tog raspona.
-export function parsirajIValidiraj(jsonTekst, podaci, procjena) {
+// izvori { oglas }: ako je zadan, rizici i aduti koji tvrde da nečega nema, a oglas/forma to ne potvrđuju, prepravljaju se ili odbacuju (ocistiNegacije).
+export function parsirajIValidiraj(jsonTekst, podaci, procjena, izvori = null) {
   let obj;
   try {
     obj = JSON.parse(jsonTekst);
@@ -469,7 +504,47 @@ export function parsirajIValidiraj(jsonTekst, podaci, procjena) {
   if (procjena && jeObjekt(obj)) {
     obj = primijeniPreporuku({ ...obj, fer_vrijednost: procjena.fer_vrijednost, najam: procjena.najam });
   }
-  return validirajAnalizu(obj);
+  const v = validirajAnalizu(obj);
+  return v.ok && izvori ? { ...v, analiza: ocistiNegacije(v.analiza, { oglas: izvori.oglas, podaci: podaci || {} }) } : v;
+}
+
+// ── tvrdnje o odsutnosti: "nema lifta", "parking nije u vlasništvu" smiju stajati samo ako ih oglas ili forma izričito kažu ──
+const TEME_NEGACIJE = [
+  { naziv: 'lift', re: /lift|dizal/, polje: 'lift' },
+  { naziv: 'parkirno mjesto', re: /parking|parkir/, polje: 'parking' },
+  { naziv: 'garažu', re: /gara[zž]/, polje: 'parking' },
+  { naziv: 'renovaciju', re: /renov|obnov|adapt|preured|sanir/, polje: null },
+  { naziv: 'energetski razred', re: /energet/, polje: null },
+];
+const NEGACIJA = /(^| )(nije|nisu|nema|nemaju|bez|nedostaje|ne postoji|ne posjeduje)( |$)/;
+// "nije navedena", "nema podataka" iskazuju nepoznanicu, ne odsutnost svojstva.
+const NEPOZNANICA = /^(naved|spomen|poznat|dostupn|vidljiv|razvidn|podat|informac)/;
+// Negacija i tema u istoj rečenici/zarezom odvojenom dijelu, u razmaku od najviše 6 riječi (oba smjera).
+function tvrdiOdsutnost(tekst, tema) {
+  for (const dio of String(tekst).toLowerCase().split(/[.;:!?,\n]/)) {
+    const rijeci = norm(dio).split(' ');
+    const neg = rijeci.flatMap((w, i) => ((NEGACIJA.test(` ${w} `) && !NEPOZNANICA.test(rijeci[i + 1] ?? '')) || (w === 'ne' && ['postoji', 'posjeduje'].includes(rijeci[i + 1])) ? [i] : []));
+    const tem = rijeci.flatMap((w, i) => (tema.re.test(w) ? [i] : []));
+    if (neg.some((a) => tem.some((b) => Math.abs(a - b) <= 6))) return true;
+  }
+  return false;
+}
+// Oglas ili forma izričito potvrđuju odsutnost teme (npr. "bez lifta", forma: lift = ne).
+function oglasPotvrdjuje(tema, { oglas = '', podaci = {} }) {
+  const v = tema.polje && podaci[tema.polje];
+  if (typeof v === 'string' && /^(ne|nema|bez)\b/i.test(v.trim())) return true;
+  if (v === false) return true;
+  return tvrdiOdsutnost(oglas, tema);
+}
+// Rizik s nepotvrđenom negacijom postaje "Oglas ne navodi ..."; adut s nepotvrđenom negacijom se odbacuje.
+export function ocistiNegacije(analiza, izvori) {
+  const nepotvrdjena = (tekst) => TEME_NEGACIJE.find((t) => tvrdiOdsutnost(tekst, t) && !oglasPotvrdjuje(t, izvori));
+  const rizici = analiza.rizici.map((r) => {
+    const t = nepotvrdjena(`${r.naslov}. ${r.opis}`);
+    return t ? { ...r, naslov: `Oglas ne navodi ${t.naziv}`.slice(0, 160), opis: `Oglas ne navodi ${t.naziv}; pitajte prodavatelja prije odluke.` } : r;
+  });
+  const aduti = analiza.pregovaranje.aduti.filter((a) => !nepotvrdjena(a));
+  return { ...analiza, rizici, pregovaranje: { ...analiza.pregovaranje, aduti } };
 }
 
 // ── izračuni (u kodu, ne u modelu) ──
