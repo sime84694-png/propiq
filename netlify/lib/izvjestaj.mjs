@@ -2,6 +2,10 @@
 // i izračuni koji se rade u kodu (nikad u modelu). Koristi ga netlify/functions/analiza.mjs.
 
 import izracuni from '../../public/assets/js/izracuni.js';
+import { obradiTekst, provjeriOmjere, provjeriPonudu, recenice } from './jezik.mjs';
+import { provjeriSazetak, omjerCijene, prvaRecenicaSazetka, iznosiIzOglasa, sazetakIzKoda } from './sazetak.mjs';
+
+export { cinjeniceSazetka, omjerCijene, prvaRecenicaSazetka, tekstCinjenicaSazetka, provjeriSazetak } from './sazetak.mjs';
 
 const PREPORUKE = ['povoljno', 'pregovaraj', 'oprez'];
 const POUZDANOSTI = ['niska', 'srednja', 'visoka'];
@@ -53,7 +57,7 @@ export const TOOL_PROCJENA = {
         items: {
           type: 'object', additionalProperties: false, required: ['razlog', 'postotak'],
           properties: {
-            razlog: { type: 'string', maxLength: FER.MAX_RAZLOG, description: `Kratko (do ${FER.MAX_RAZLOG} znakova), npr. "renovirano", "bez lifta", "parking".` },
+            razlog: { type: 'string', maxLength: FER.MAX_RAZLOG, description: `Najviše ${FER.CILJ_RAZLOG} znakova (dulje se siječe na ${FER.MAX_RAZLOG}), npr. "starost zgrade ~46 god., energetski", "renovirano", "bez lifta".` },
             postotak: { type: 'integer', minimum: -FER.MAX_KOREKCIJA, maximum: FER.MAX_KOREKCIJA, description: `Cijeli broj postotaka, −${FER.MAX_KOREKCIJA}…+${FER.MAX_KOREKCIJA}; negativan snižava, pozitivan povećava €/m².` },
           },
         },
@@ -95,7 +99,7 @@ export const TOOL = {
       // null samo kad cijena_eur nedostaje (bez tražene cijene nema investicijske ocjene)
       preporuka: { type: ['string', 'null'], enum: [...PREPORUKE, null] },
       ocjena: { type: ['integer', 'null'], minimum: 1, maximum: 10 },
-      sazetak: { type: 'string', description: 'Najviše 2 rečenice (do ~250 znakova).' },
+      sazetak: { type: 'string', description: 'Ako poruka kaže da prvu rečenicu slaže sustav: samo JEDNA rečenica obrazloženja (do ~150 znakova) bez brojki cijene, raspona i razlike. Inače najviše 2 rečenice (do ~250 znakova).' },
       prednosti: popis(4, 'Do 4 stavke, svaka kratka fraza (do ~80 znakova).'),
       rizici: {
         type: 'array', maxItems: 4,
@@ -116,6 +120,38 @@ export const TOOL = {
         },
       },
       nedostajuci_podaci: popis(5, 'Do 5 stavki, svaka kratka fraza (do ~60 znakova).'),
+    },
+  },
+};
+
+// Izvještaj se slaže iz dva dijela koji se traže istodobno (da cijela analiza stane u ~20 s):
+//  - "cijena" (nakon procjene): naslov, lokacija, cijena, preporuka, ocjena, sažetak, aduti — kratak izlaz;
+//  - "rizici" (odmah, bez procjene): prednosti, rizici, pitanja prodavatelju, što oglas ne navodi.
+export const TOOL_CIJENA_NAME = 'izvjestaj_cijena';
+export const TOOL_RIZICI_NAME = 'izvjestaj_rizici';
+const SV = TOOL.input_schema.properties;
+export const TOOL_CIJENA = {
+  name: TOOL_CIJENA_NAME,
+  description: 'Ključni dio izvještaja: naslov, lokacija, cijena, preporuka, ocjena, sažetak i aduti za pregovore. Jedini dopušteni oblik odgovora.',
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    required: ['naslov', 'lokacija', 'povrsina_m2', 'cijena_eur', 'preporuka', 'ocjena', 'sazetak', 'aduti'],
+    properties: {
+      naslov: SV.naslov, lokacija: SV.lokacija, povrsina_m2: SV.povrsina_m2, cijena_eur: SV.cijena_eur, preporuka: SV.preporuka, ocjena: SV.ocjena,
+      sazetak: { type: 'string', description: 'Ako poruka kaže da prvu rečenicu slaže sustav: samo JEDNA kratka rečenica obrazloženja (do ~120 znakova) bez brojki cijene, raspona i razlike. Inače najviše 2 kratke rečenice (do ~200 znakova).' },
+      aduti: SV.pregovaranje.properties.aduti,
+    },
+  },
+};
+export const TOOL_RIZICI = {
+  name: TOOL_RIZICI_NAME,
+  description: 'Rizici, prednosti, pitanja za prodavatelja i podaci koje oglas ne navodi. Jedini dopušteni oblik odgovora.',
+  input_schema: {
+    type: 'object', additionalProperties: false,
+    required: ['prednosti', 'rizici', 'pitanja_prodavatelju', 'nedostajuci_podaci'],
+    properties: {
+      prednosti: SV.prednosti, rizici: SV.rizici,
+      pitanja_prodavatelju: SV.pregovaranje.properties.pitanja_prodavatelju, nedostajuci_podaci: SV.nedostajuci_podaci,
     },
   },
 };
@@ -158,68 +194,6 @@ export function vremenskeCinjenice({ godinaGradnje = null, oglas = '', sada = ne
   const reno = godinaRenovacije(oglas, godina);
   if (reno !== null) redovi.push(`Renovacija prema oglasu: ${reno}. (${prije(godina - reno)}).`);
   return redovi.join('\n');
-}
-
-// ── sažetak: postotke i razlike u eurima računa kod, model ih samo prepisuje ──
-
-const eurHr = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-const postoHr = (p) => String(p).replace('.', ',');
-
-// Položaj tražene cijene prema fer rasponu: razlika je do najbliže granice raspona (u € i u % te granice).
-// null ako nema cijene ili raspona.
-export function cinjeniceSazetka(cijena, fer) {
-  if (!(typeof cijena === 'number' && cijena > 0) || !fer || typeof fer.min_eur !== 'number' || typeof fer.max_eur !== 'number') return null;
-  if (cijena > fer.max_eur) return { polozaj: 'iznad', razlika_eur: Math.round(cijena - fer.max_eur), posto: Math.round(((cijena - fer.max_eur) / fer.max_eur) * 1000) / 10 };
-  if (cijena < fer.min_eur) return { polozaj: 'ispod', razlika_eur: Math.round(fer.min_eur - cijena), posto: Math.round(((fer.min_eur - cijena) / fer.min_eur) * 1000) / 10 };
-  return { polozaj: 'unutar', razlika_eur: 0, posto: 0 };
-}
-
-function ponudaRedak(cilj) {
-  if (!cilj) return '';
-  return cilj.napomena
-    ? `- Ciljana ponuda: nema pregovora, ${cilj.napomena} (tražena cijena ${eurHr(cilj.ponuda_eur)} €); ne predlaži nižu ponudu.\n`
-    : `- Ciljana ponuda (izračunao sustav): ${eurHr(cilj.ponuda_eur)} €; smiješ je navesti u sažetku i adutima, ali samo ovaj iznos.\n`;
-}
-
-// Blok za poruku modela: gotovi brojevi za sažetak. cijenaZnana: cijena je potvrđena kodom (upisana u formu);
-// inače je model tek izvlači iz oglasa, pa brojke razlike ne dobiva i ne smije ih navoditi.
-export function tekstCinjenicaSazetka(cijena, fer, cijenaZnana) {
-  const pravilo = 'Sažetak: ne računaj postotke ni razlike u eurima; navedi isključivo brojke iz ovog bloka (prepiši ih točno) i nikakve druge postotke ni iznose.';
-  const c = cijenaZnana ? cinjeniceSazetka(cijena, fer) : null;
-  if (!c) return `Gotovi brojevi za sažetak:\n- Razlika cijene i raspona nije izračunata: u sažetku NE navodi postotke ni razlike u eurima prema rasponu, samo opisno (ispod/unutar/iznad raspona).\n${pravilo}`;
-  const cilj = izracuni.izracunajPonudu(cijena, fer.min_eur, fer.max_eur);
-  const razlika = c.polozaj === 'unutar' ? 'cijena je unutar raspona, nema razlike (ne navodi postotak ni razliku u eurima)'
-    : `${eurHr(c.razlika_eur)} € (${postoHr(c.posto)} % ${c.polozaj === 'iznad' ? 'iznad gornje' : 'ispod donje'} granice raspona)`;
-  return `Gotovi brojevi za sažetak (izračunao sustav):\n- Tražena cijena ${eurHr(cijena)} €, fer raspon ${eurHr(fer.min_eur)}–${eurHr(fer.max_eur)} €.\n- Položaj: ${c.polozaj} raspona.\n- Razlika: ${razlika}.\n${ponudaRedak(cilj)}${pravilo}`;
-}
-
-const BROJ_U_TEKSTU = String.raw`\d{1,3}(?:[.  ]\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?`;
-// broj + (tisuća)? + jedinica: % / posto, ili € / eur(a|o) koji NIJE €/m², €/mj, €/god
-const RE_BROJ_JEDINICA = new RegExp(`(${BROJ_U_TEKSTU})\\s*(tisu[ćc]a|tis\\.)?\\s*(%|posto(?![\\p{L}])|€(?!\\s*/)|eur(?:a|o)?(?![\\p{L}/]))`, 'giu');
-
-function brojIzTeksta(t) {
-  const s = t.replace(/[  ]/g, '');
-  if (s.includes(',')) return Number(s.replace(/\./g, '').replace(',', '.'));
-  return /^\d{1,3}(\.\d{3})+$/.test(s) ? Number(s.replace(/\./g, '')) : Number(s);
-}
-
-// Svaki postotak u sažetku mora biti izračunati postotak razlike, a svaki iznos u eurima (osim €/m², €/mj, €/god)
-// cijena, granica raspona ili izračunata razlika. Vraća razlog odbijanja ili null.
-export function provjeriSazetak(sazetak, cijena, fer) {
-  const c = cinjeniceSazetka(cijena, fer);
-  const cilj = fer ? izracuni.izracunajPonudu(cijena, fer.min_eur, fer.max_eur) : null;
-  const dopustenoEur = [cijena, fer && fer.min_eur, fer && fer.max_eur, c && c.razlika_eur > 0 ? c.razlika_eur : null, cilj && cilj.ponuda_eur].filter((v) => typeof v === 'number');
-  for (const m of String(sazetak).matchAll(RE_BROJ_JEDINICA)) {
-    const x = brojIzTeksta(m[1]) * (m[2] ? 1000 : 1);
-    if (!Number.isFinite(x)) continue;
-    if (/^(%|posto)/i.test(m[3])) {
-      const ok = c && c.posto > 0 && (Math.abs(x - c.posto) <= 0.051 || (Number.isInteger(x) && x === Math.round(c.posto)));
-      if (!ok) return `sazetak: postotak "${m[0].trim()}" ne odgovara izračunu${c && c.posto > 0 ? ` (${postoHr(c.posto)} %)` : ' (nema razlike prema rasponu)'}`;
-    } else if (!dopustenoEur.some((a) => Math.abs(x - a) <= 1)) {
-      return `sazetak: iznos "${m[0].trim()}" ne odgovara izračunu`;
-    }
-  }
-  return null;
 }
 
 // ── validacija ──
@@ -278,7 +252,7 @@ export function skratiObrazlozenje(t, max = MAX_OBRAZLOZENJE) {
   return `${prozor.slice(0, razmak > 0 ? razmak : max - 1).replace(/[\s,;:–-]+$/, '')}…`;
 }
 
-function validirajFer(f) {
+function validirajFer(f, log = []) {
   f = raspakiraj(f);
   if (!jeObjekt(f)) ne(`fer_vrijednost: očekivan objekt, stigao ${vrsta(f)}`);
   if (!POUZDANOSTI.includes(f.pouzdanost)) ne(`fer_vrijednost.pouzdanost: nedopuštena vrijednost (${vrsta(f.pouzdanost)})`);
@@ -291,6 +265,7 @@ function validirajFer(f) {
     if (!r) ne('fer_vrijednost.izracun: neispravni ulazi');
     return { min_eur: r.min_eur, max_eur: r.max_eur, pouzdanost: f.pouzdanost, obrazlozenje: izracuni.obrazlozenjeFer(r.izracun), izracun: r.izracun };
   }
+  if (typeof f.obrazlozenje === 'string') f = { ...f, obrazlozenje: obradiTekst(f.obrazlozenje, 'fer_vrijednost.obrazlozenje', log) };
   if (!nepraznaStr(f.obrazlozenje, 900)) ne(`fer_vrijednost.obrazlozenje: mora biti neprazan tekst do 900 znakova (${vrsta(f.obrazlozenje)}${typeof f.obrazlozenje === 'string' ? `, ${f.obrazlozenje.length} znakova` : ''})`);
   const min = broj(f.min_eur, 'fer_vrijednost.min_eur', { strogoPozitivan: true, max: 1e8 });
   const max = broj(f.max_eur, 'fer_vrijednost.max_eur', { strogoPozitivan: true, max: 1e8 });
@@ -311,11 +286,75 @@ function validirajNajam(n) {
   return najam;
 }
 
-// Vraća { ok: true, analiza } (očišćena kopija) ili { ok: false, razlog }.
-export function validirajAnalizu(ulaz) {
+// Jezična obrada svih tekstova koje je napisao model (ćirilica, ponovljene riječi, strani pojmovi); promjene idu u `log`.
+function jezicnaObrada(u, log) {
+  const o = (t, polje) => obradiTekst(t, polje, log);
+  const popis = (a, polje) => (Array.isArray(a) ? a.map((t, i) => o(t, `${polje}[${i}]`)) : a);
+  return {
+    ...u,
+    naslov: o(u.naslov, 'naslov'),
+    sazetak: o(u.sazetak, 'sazetak'),
+    prednosti: popis(u.prednosti, 'prednosti'),
+    rizici: Array.isArray(u.rizici) ? u.rizici.map((r, i) => (jeObjekt(r) ? { ...r, naslov: o(r.naslov, `rizici[${i}].naslov`), opis: o(r.opis, `rizici[${i}].opis`) } : r)) : u.rizici,
+    pregovaranje: jeObjekt(u.pregovaranje)
+      ? { ...u.pregovaranje, aduti: popis(u.pregovaranje.aduti, 'aduti'), pitanja_prodavatelju: popis(u.pregovaranje.pitanja_prodavatelju, 'pitanja') }
+      : u.pregovaranje,
+    nedostajuci_podaci: popis(u.nedostajuci_podaci, 'nedostajuci_podaci'),
+  };
+}
+
+// Svaki tekst izvještaja mora poštovati omjer iz koda i ne smije ciljanu ponudu zvati vrijednošću.
+function provjeriTekstove(a, cijena, fer) {
+  const omjer = omjerCijene(cijena, fer);
+  const cilj = fer ? izracuni.izracunajPonudu(cijena, fer.min_eur, fer.max_eur) : null;
+  const izuzeto = [cijena, fer && fer.min_eur, fer && fer.max_eur];
+  const tekstovi = [['sazetak', a.sazetak], ['naslov', a.naslov], ...a.prednosti.map((t, i) => [`prednosti[${i}]`, t]),
+    ...a.rizici.flatMap((r, i) => [[`rizici[${i}].naslov`, r.naslov], [`rizici[${i}].opis`, r.opis]]),
+    ...a.pregovaranje.aduti.map((t, i) => [`aduti[${i}]`, t]), ...a.pregovaranje.pitanja_prodavatelju.map((t, i) => [`pitanja[${i}]`, t]),
+    ...a.nedostajuci_podaci.map((t, i) => [`nedostajuci_podaci[${i}]`, t])];
+  for (const [polje, t] of tekstovi) {
+    const krivo = provjeriOmjere(t, omjer, polje) || provjeriPonudu(t, cilj && cilj.ponuda_eur, izuzeto, polje);
+    if (krivo) return krivo;
+  }
+  return null;
+}
+
+// Popravak umjesto odbijanja: tekstualna provjera brojki nikad ne smije srušiti cijelu analizu (ni potrošiti drugi
+// poziv modelu). Tvrdnje koje ne prolaze izbacuju se iz popisa, a sažetak se slaže kodom. Promjene idu u `obrada` (log).
+function popraviTekstove(a, cijena, fer, obrada) {
+  const omjer = omjerCijene(cijena, fer);
+  const cilj = fer ? izracuni.izracunajPonudu(cijena, fer.min_eur, fer.max_eur) : null;
+  const izuzeto = [cijena, fer && fer.min_eur, fer && fer.max_eur];
+  const los = (t, polje) => provjeriOmjere(t, omjer, polje) || provjeriPonudu(t, cilj && cilj.ponuda_eur, izuzeto, polje);
+  const filtriraj = (popis, polje) => popis.filter((t, i) => {
+    const krivo = los(t, `${polje}[${i}]`);
+    if (krivo) obrada.push(`izbačeno: ${krivo}`);
+    return !krivo;
+  });
+  a.prednosti = filtriraj(a.prednosti, 'prednosti');
+  a.pregovaranje.aduti = filtriraj(a.pregovaranje.aduti, 'aduti');
+  a.pregovaranje.pitanja_prodavatelju = filtriraj(a.pregovaranje.pitanja_prodavatelju, 'pitanja');
+  a.nedostajuci_podaci = filtriraj(a.nedostajuci_podaci, 'nedostajuci_podaci');
+  a.rizici = a.rizici.filter((r, i) => {
+    const krivo = los(r.naslov, `rizici[${i}].naslov`) || los(r.opis, `rizici[${i}].opis`);
+    if (krivo) obrada.push(`izbačeno: ${krivo}`);
+    return !krivo;
+  });
+  const krivo = los(a.sazetak, 'sazetak');
+  if (krivo) {
+    obrada.push(`sažetak složen kodom: ${krivo}`);
+    a.sazetak = sazetakIzKoda(cijena, fer);
+  }
+  return a;
+}
+
+// Vraća { ok: true, analiza, obrada } (očišćena kopija; obrada = jezične promjene za log) ili { ok: false, razlog }.
+// slozi: prvu rečenicu sažetka (cijena, raspon, razlika, %, omjer) slaže kod, a od modela se zadržava samo prva rečenica.
+export function validirajAnalizu(ulaz, { slozi = false, popravi = false, oglas = '' } = {}) {
+  const obrada = [];
   try {
     if (!jeObjekt(ulaz)) ne('korijen nije objekt');
-    const u = ulaz;
+    const u = jezicnaObrada(ulaz, obrada);
 
     if (!nepraznaStr(u.naslov, 160)) ne('naslov');
     if (!jeObjekt(u.lokacija)) ne('lokacija');
@@ -334,9 +373,16 @@ export function validirajAnalizu(ulaz) {
     }
     if (!nepraznaStr(u.sazetak, 900)) ne('sazetak');
 
-    const fer = validirajFer(u.fer_vrijednost);
-    const krivSazetak = provjeriSazetak(u.sazetak, cijena, fer);
-    if (krivSazetak) ne(krivSazetak);
+    const fer = validirajFer(u.fer_vrijednost, obrada);
+    const prva = slozi ? prvaRecenicaSazetka(cijena, fer) : null;
+    const sazetak = prva ? `${prva} ${recenice(u.sazetak.trim())[0]}` : u.sazetak.trim();
+    let sazetakKonacni = sazetak;
+    const krivSazetak = provjeriSazetak(sazetak, cijena, fer, iznosiIzOglasa(oglas));
+    if (krivSazetak) {
+      if (!popravi) ne(krivSazetak);
+      obrada.push(`sažetak složen kodom: ${krivSazetak}`);
+      sazetakKonacni = sazetakIzKoda(cijena, fer);
+    }
 
     const najam = validirajNajam(u.najam);
     if (!jeObjekt(u.pregovaranje)) ne('pregovaranje');
@@ -349,7 +395,7 @@ export function validirajAnalizu(ulaz) {
       cijena_eur: cijena,
       preporuka,
       ocjena,
-      sazetak: u.sazetak.trim(),
+      sazetak: sazetakKonacni,
       fer_vrijednost: fer,
       najam,
       prednosti: popisStr(u.prednosti, 'prednosti', 6),
@@ -363,7 +409,10 @@ export function validirajAnalizu(ulaz) {
       },
       nedostajuci_podaci: popisStr(u.nedostajuci_podaci, 'nedostajuci_podaci', 8),
     };
-    return { ok: true, analiza };
+    if (popravi) popraviTekstove(analiza, cijena, fer, obrada);
+    const krivTekst = provjeriTekstove(analiza, cijena, fer);
+    if (krivTekst) ne(krivTekst);
+    return { ok: true, analiza, obrada };
   } catch (err) {
     if (err instanceof NevaljanOdgovor) return { ok: false, razlog: err.message };
     throw err;
@@ -388,12 +437,13 @@ export function parsirajIValidirajProcjenu(jsonTekst, kontekst = {}) {
   try {
     if (!jeObjekt(obj)) ne('korijen nije objekt');
     const najam = validirajNajam(obj.najam);
+    const obrada = [];
     if (!(kontekst.medijan_eur_m2 > 0)) {
-      return { ok: true, procjena: { fer_vrijednost: { ...validirajFer(obj.fer_vrijednost), bez_reference: true }, najam } };
+      return { ok: true, procjena: { fer_vrijednost: { ...validirajFer(obj.fer_vrijednost, obrada), bez_reference: true }, najam }, obrada };
     }
     const odbaceno = [];
-    const fer = izracunajIzKorekcija(obj, kontekst, odbaceno);
-    return { ok: true, procjena: { fer_vrijednost: fer, najam }, ...(odbaceno.length ? { odbaceno } : {}) };
+    const fer = izracunajIzKorekcija(obj, kontekst, odbaceno, obrada);
+    return { ok: true, procjena: { fer_vrijednost: fer, najam }, obrada, ...(odbaceno.length ? { odbaceno } : {}) };
   } catch (err) {
     // sirovo: što je model stvarno vratio (za dijagnostiku u logu, nikad klijentu).
     if (err instanceof NevaljanOdgovor) return { ok: false, razlog: err.message, sirovo: jeObjekt(obj) ? (obj.korekcije ?? obj.fer_vrijednost) : obj };
@@ -417,11 +467,12 @@ export function jeKorekcijaLokacije(razlog, rijeci = []) {
     : rijeciRazloga.some((w) => w === r || (r.length >= 5 && w.startsWith(r.slice(0, -1))))));
 }
 
-function izracunajIzKorekcija(obj, { medijan_eur_m2, povrsina_m2 = null, najvisaPouzdanost = null, naziv = null, napomena = null, bezLokacije = false, lokacijaRijeci = [] }, odbaceno = []) {
+function izracunajIzKorekcija(obj, { medijan_eur_m2, povrsina_m2 = null, najvisaPouzdanost = null, naziv = null, napomena = null, bezLokacije = false, lokacijaRijeci = [] }, odbaceno = [], obrada = []) {
   if (!POUZDANOSTI.includes(obj.pouzdanost)) ne(`pouzdanost: nedopuštena vrijednost (${vrsta(obj.pouzdanost)})`);
   let kor = obj.korekcije;
   if (typeof kor === 'string') { try { kor = JSON.parse(kor); } catch { /* ostaje tekst: pada ispod */ } }
   if (!Array.isArray(kor)) ne(`korekcije: očekivan popis, stigao ${vrsta(kor)}`);
+  if (Array.isArray(kor)) kor = kor.map((k) => (jeObjekt(k) && typeof k.razlog === 'string' ? { ...k, razlog: obradiTekst(k.razlog, 'korekcija.razlog', obrada) } : k));
   let ociscene = izracuni.ocistiKorekcije(kor);
   if (ociscene === null) ne('korekcije: svaka stavka mora imati razlog (tekst) i postotak (broj)');
   if (bezLokacije) {
@@ -458,7 +509,7 @@ export function primijeniPreporuku(obj) {
 // podaci: što je korisnik upisao u formu — ti podaci imaju prednost pred onim što je izvukao model.
 // procjena: rezultat poziva 1; ako je zadan, fer_vrijednost i najam uvijek su iz njega (što god da je model
 // vratio), a preporuka se određuje iz odnosa cijene i tog raspona.
-export function parsirajIValidiraj(jsonTekst, podaci, procjena) {
+export function parsirajIValidiraj(jsonTekst, podaci, procjena, { oglas = '', popravi = false } = {}) {
   let obj;
   try {
     obj = JSON.parse(jsonTekst);
@@ -469,7 +520,38 @@ export function parsirajIValidiraj(jsonTekst, podaci, procjena) {
   if (procjena && jeObjekt(obj)) {
     obj = primijeniPreporuku({ ...obj, fer_vrijednost: procjena.fer_vrijednost, najam: procjena.najam });
   }
-  return validirajAnalizu(obj);
+  return validirajAnalizu(obj, { slozi: !!podaci && 'cijena_eur' in podaci, oglas, popravi });
+}
+
+// Dio izvještaja: "cijena" → { ok, analiza } (puni izvještaj s praznim popisima koje piše dio "rizici");
+// "rizici" → { ok, rizici: { prednosti, rizici, pitanja_prodavatelju, nedostajuci_podaci } }. Ista validacija,
+// jezična obrada i popravak kao za cijeli izvještaj. Prihvaća i oblik cijelog izvještaja (pregovaranje.aduti).
+export function parsirajIValidirajDio(dio, jsonTekst, podaci, procjena, opcije = {}) {
+  let o;
+  try {
+    o = JSON.parse(jsonTekst);
+  } catch {
+    return { ok: false, razlog: 'JSON nije valjan (moguće odrezan)' };
+  }
+  if (!jeObjekt(o)) return { ok: false, razlog: 'korijen nije objekt' };
+  const preg = jeObjekt(o.pregovaranje) ? o.pregovaranje : {};
+  if (dio === 'cijena') {
+    const { aduti, pregovaranje, prednosti, rizici, pitanja_prodavatelju, nedostajuci_podaci, ...ostalo } = o;
+    const obj = { ...ostalo, prednosti: [], rizici: [], nedostajuci_podaci: [], pregovaranje: { aduti: Array.isArray(aduti) ? aduti : (preg.aduti ?? []), pitanja_prodavatelju: [] } };
+    return parsirajIValidiraj(JSON.stringify(obj), podaci, procjena, opcije);
+  }
+  const stub = {
+    naslov: '-', lokacija: { grad: null, kvart: null }, povrsina_m2: null, cijena_eur: null, preporuka: null, ocjena: null, sazetak: '-',
+    fer_vrijednost: { min_eur: null, max_eur: null, pouzdanost: 'niska', obrazlozenje: '-' },
+    najam: { dugorocni_mj_eur: null, turisticki_godisnje_eur: null },
+    prednosti: o.prednosti, rizici: o.rizici,
+    pregovaranje: { aduti: [], pitanja_prodavatelju: o.pitanja_prodavatelju ?? preg.pitanja_prodavatelju },
+    nedostajuci_podaci: o.nedostajuci_podaci,
+  };
+  const v = validirajAnalizu(stub, { popravi: opcije.popravi, oglas: opcije.oglas });
+  if (!v.ok) return v;
+  const a = v.analiza;
+  return { ok: true, obrada: v.obrada, rizici: { prednosti: a.prednosti, rizici: a.rizici, pitanja_prodavatelju: a.pregovaranje.pitanja_prodavatelju, nedostajuci_podaci: a.nedostajuci_podaci } };
 }
 
 // ── izračuni (u kodu, ne u modelu) ──

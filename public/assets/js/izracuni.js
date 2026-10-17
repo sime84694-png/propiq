@@ -17,7 +17,8 @@
     MAX_KOREKCIJA: 15,            // svaka pojedina korekcija: −15…+15 (%)
     MAX_STAVKI: 6,                // najviše korekcija po procjeni
     MAX_ZBROJ: 30,                // zbroj korekcija: −30…+30 (%)
-    MAX_RAZLOG: 40,               // znakova po razlogu korekcije
+    MAX_RAZLOG: 40,               // znakova po razlogu korekcije (tvrdi rez)
+    CILJ_RAZLOG: 35,              // koliko model smije tražiti, da rez na MAX_RAZLOG ne odsiječe smisao
     SIRINA_POSTO: { visoka: 5, srednja: 7, niska: 10 }, // ± oko središnje €/m², po pouzdanosti
     ZAOKRUZENJE_EUR: 5000,        // ukupni € zaokružen na ovaj korak
   };
