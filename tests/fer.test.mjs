@@ -259,3 +259,54 @@ test('sažetak s krivim postotkom ili iznosom pada validaciju; točne brojke pro
   assert.match(v.razlog, /postotak "25 %"/);
   assert.equal(validirajAnalizu({ ...osnova, sazetak: 'Cijena je 40,4 % iznad raspona.' }).ok, true);
 });
+
+// ── izvor korekcije: korekcija bez citata iz oglasa / polja forme odbacuje se ──
+import { provjeriIzvorKorekcije } from '../netlify/lib/izvjestaj.mjs';
+
+const ZADAR_OGLAS = 'Stan u Zadru, Relja, 64 m², izgrađen 1963., 2. kat. Potpuno namješten i odmah useljiv. Javni parking u blizini.';
+const izvori = { oglas: ZADAR_OGLAS, podaci: { grad: 'Zadar', kvart: 'Relja', povrsina_m2: 64 } };
+const kor = (razlog, izvor, postotak = -3) => ({ razlog, postotak, izvor });
+
+test('izvor korekcije: izmišljeni lift, "renovirano" iz "namješten i useljiv" i vlasništvo parkinga se odbacuju', () => {
+  assert.equal(provjeriIzvorKorekcije(kor('bez lifta', 'stara zgrada bez lifta'), izvori), false, 'citata nema u oglasu');
+  assert.equal(provjeriIzvorKorekcije(kor('bez lifta', 'izgrađen 1963'), izvori), false, 'citat postoji, ali ne govori o liftu');
+  assert.equal(provjeriIzvorKorekcije(kor('renovirano', 'Potpuno namješten i odmah useljiv', 8), izvori), false, 'namješten nije renovirano');
+  assert.equal(provjeriIzvorKorekcije(kor('bez parkinga u vlasništvu', 'Javni parking u blizini'), izvori), true, 'javni parking jest u oglasu i govori o parkingu (nije izmišljeno)');
+  assert.equal(provjeriIzvorKorekcije(kor('bez parkinga u vlasništvu', 'parking nije u vlasništvu'), izvori), false, 'tvrdnja o vlasništvu nije u oglasu');
+  assert.equal(provjeriIzvorKorekcije(kor('2. kat', ''), izvori), false, 'prazan izvor');
+  assert.equal(provjeriIzvorKorekcije({ razlog: '2. kat', postotak: -2 }, izvori), false, 'bez izvora');
+});
+
+test('izvor korekcije: točan citat iz oglasa (neosjetljiv na velika slova i dijakritike) i polje forme prolaze', () => {
+  assert.equal(provjeriIzvorKorekcije(kor('starost zgrade 1963.', 'IZGRAĐEN 1963.'), izvori), true);
+  assert.equal(provjeriIzvorKorekcije(kor('2. kat', '2. kat'), izvori), true);
+  assert.equal(provjeriIzvorKorekcije(kor('veličina', 'forma: povrsina_m2'), izvori), true);
+  assert.equal(provjeriIzvorKorekcije(kor('veličina', 'forma: godina_gradnje'), izvori), false, 'polje nije upisano u formu');
+  const sLiftom = { ...izvori, podaci: { ...izvori.podaci, lift: 'ne' } };
+  assert.equal(provjeriIzvorKorekcije(kor('bez lifta', 'forma: lift'), sLiftom), true);
+  assert.equal(provjeriIzvorKorekcije(kor('bez lifta', 'forma: lift'), izvori), false, 'lift nije upisan u formu');
+  assert.equal(provjeriIzvorKorekcije(kor('bez lifta', 'forma: kat'), sLiftom), false, 'krivo polje za temu lifta');
+  const samoForma = { oglas: '', podaci: { lift: 'da' } };
+  assert.equal(provjeriIzvorKorekcije(kor('lift', 'lift'), samoForma), false, 'bez teksta oglasa citat ne može stajati');
+  assert.equal(provjeriIzvorKorekcije(kor('lift', 'forma: lift', 3), samoForma), true);
+});
+
+test('parsirajIValidirajProcjenu s izvorima: korekcije bez izvora ne ulaze u račun, ostale ostaju; uzrok je u rezultat.odbaceno', () => {
+  const tijelo = (korekcije) => JSON.stringify({ korekcije, pouzdanost: 'niska', povrsina_m2: 64, najam });
+  const ctx = { medijan_eur_m2: 3117, povrsina_m2: 64, naziv: 'Zadar', izvori };
+  const d = parsirajIValidirajProcjenu(tijelo([
+    kor('bez lifta', 'stara zgrada bez lifta'), kor('renovirano', 'Potpuno namješten i odmah useljiv', 8),
+    kor('bez parkinga u vlasništvu', 'parking nije u vlasništvu', -3), kor('starost zgrade 1963.', 'izgrađen 1963.', -4),
+  ]), ctx);
+  assert.equal(d.ok, true);
+  assert.deepEqual(d.procjena.fer_vrijednost.izracun.korekcije, [{ razlog: 'starost zgrade 1963.', postotak: -4 }]);
+  assert.equal(d.procjena.fer_vrijednost.izracun.zbroj_posto, -4);
+  assert.deepEqual(d.odbaceno.map((k) => k.razlog), ['bez lifta', 'renovirano', 'bez parkinga u vlasništvu']);
+  assert.ok(d.odbaceno.every((k) => /izvor/.test(k.uzrok)));
+  // sve odbačeno → bez korekcija, polazište = medijan
+  const nista = parsirajIValidirajProcjenu(tijelo([kor('bez lifta', 'nema lifta')]), ctx);
+  assert.equal(nista.procjena.fer_vrijednost.izracun.sredina_m2, 3117);
+  // bez zadanih izvora ponašanje je kao prije (nema provjere)
+  const stari = parsirajIValidirajProcjenu(tijelo([{ razlog: 'bez lifta', postotak: -3 }]), { medijan_eur_m2: 3117, povrsina_m2: 64 });
+  assert.equal(stari.procjena.fer_vrijednost.izracun.korekcije.length, 1);
+});

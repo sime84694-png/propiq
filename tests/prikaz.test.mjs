@@ -219,6 +219,17 @@ test('napomena o referenci pod fer vrijednošću: realizirani medijan usklađen 
   assert.match(html, /preracunajSCijenom\(a, polje\.value, greska, uneseno, referenca\)/, 'napomena ostaje i nakon ručnog unosa cijene');
 });
 
+test('napomena o gradskom medijanu prikazuje se samo jednom (u obrazloženju), ne i u referenci', () => {
+  const napomena = 'Procjena se temelji na medijanu cijelog grada. Za kvart Relja nemamo podatke o cijenama, pa lokacija unutar grada nije uračunata.';
+  const fer = zajednicki.izracunajFer({ medijan_eur_m2: 3117, korekcije: [{ razlog: 'starost zgrade', postotak: -4 }], pouzdanost: 'niska', povrsina_m2: 60, naziv: 'Zadar', napomena });
+  const a = validirajAnalizu(puno).analiza;
+  a.fer_vrijednost = { min_eur: fer.min_eur, max_eur: fer.max_eur, pouzdanost: 'niska', obrazlozenje: zajednicki.obrazlozenjeFer(fer.izracun), izracun: fer.izracun };
+  const ref = { razina: 'grad', naziv: 'Zadar', napomena_kvart: napomena, realizirana, trazena: null };
+  const t = ctx.izgradi(a, izracunaj(a), undefined, undefined, ref).textContent;
+  assert.equal(t.split('Procjena se temelji na medijanu cijelog grada').length - 1, 1, t);
+  assert.ok(t.includes('Referenca: medijan stvarno plaćenih cijena'), 'referenca i izvori ostaju');
+});
+
 test('najam: napomena da je AI procjena bez referentnog izvora, uz pouzdanost koju je postavio poslužitelj', () => {
   const kartica = (najam) => {
     const a = validirajAnalizu({ ...puno, najam }).analiza;

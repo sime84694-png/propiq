@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { odrediReferencu, tekstReference } from '../netlify/lib/trziste.mjs';
-import { TOOL, TOOL_PROCJENA, TOOL_PROCJENA_BEZ_REFERENCE, MAX_OBRAZLOZENJE, skratiObrazlozenje, danasZagreb, godinaRenovacije, vremenskeCinjenice, validirajAnalizu, provjeriSazetak, tekstCinjenicaSazetka, parsirajIValidirajProcjenu, primijeniPreporuku, preporukaIzRaspona, parsirajIValidiraj, izracunaj, parsirajCijenu, validirajPodatke, mozeAnaliza, primijeniPodatke } from '../netlify/lib/izvjestaj.mjs';
+import { TOOL, TOOL_PROCJENA, TOOL_PROCJENA_BEZ_REFERENCE, MAX_OBRAZLOZENJE, skratiObrazlozenje, danasZagreb, godinaRenovacije, vremenskeCinjenice, validirajAnalizu, provjeriSazetak, tekstCinjenicaSazetka, parsirajIValidirajProcjenu, primijeniPreporuku, preporukaIzRaspona, parsirajIValidiraj, izracunaj, parsirajCijenu, validirajPodatke, mozeAnaliza, primijeniPodatke, ocistiNegacije } from '../netlify/lib/izvjestaj.mjs';
 import zajednicki from '../public/assets/js/izracuni.js';
 
 const osnova = () => ({
@@ -483,4 +483,39 @@ test('shema analize: kratki limiti polja (brzina poziva 2)', () => {
   assert.equal(p.pregovaranje.properties.pitanja_prodavatelju.maxItems, 4);
   assert.equal(p.nedostajuci_podaci.maxItems, 5);
   assert.match(p.rizici.items.properties.opis.description, /2 kratke rečenice/);
+});
+
+// ── tvrdnje o odsutnosti bez potvrde u oglasu ──
+const OGLAS_JAVNI_PARKING = 'Prodaje se stan od 58 m² na trećem katu. U blizini je javni parking i tramvajska stanica.';
+const sNegacijama = () => ({
+  ...osnova(),
+  rizici: [
+    { naslov: 'Parking nije u vlasništvu', opis: 'Privatno parkirno mjesto uz stan nije uključeno.', razina: 'srednji' },
+    { naslov: 'Oglas ne spominje vlastito parkirno mjesto', opis: 'Pitajte prodavatelja.', razina: 'nizak' },
+    { naslov: 'Stara instalacija', opis: 'Godina obnove nije navedena.', razina: 'srednji' },
+  ],
+  pregovaranje: { ciljana_ponuda_eur: 162000, aduti: ['Parking nije u vlasništvu — kupac snosi rizik bez pravne garancije', 'Cijena iznad fer raspona', 'Stan je bez lifta'], pitanja_prodavatelju: ['Ima li stan parkirno mjesto?'] },
+});
+
+test('negacija parkinga/lifta bez potvrde u oglasu: rizik postaje "Oglas ne navodi", adut se odbacuje', () => {
+  const v = ocistiNegacije(sNegacijama(), { oglas: OGLAS_JAVNI_PARKING, podaci: {} });
+  assert.equal(v.rizici[0].naslov, 'Oglas ne navodi parkirno mjesto');
+  assert.ok(!/nije u vlasni|nije uklju/.test(JSON.stringify(v.rizici[0])));
+  assert.equal(v.rizici[1].naslov, 'Oglas ne spominje vlastito parkirno mjesto', 'dopuštena formulacija ostaje');
+  assert.equal(v.rizici[2].naslov, 'Stara instalacija', 'negacija izvan teme (obnova nije navedena) ostaje');
+  assert.deepEqual(v.pregovaranje.aduti, ['Cijena iznad fer raspona']);
+});
+
+test('negacija ostaje kad je oglas ili forma izričito potvrđuju', () => {
+  const o = sNegacijama();
+  assert.equal(ocistiNegacije(o, { oglas: 'Stan bez lifta, parking nije u cijeni. Bez vlastitog parkirnog mjesta.', podaci: {} }).rizici[0].naslov, 'Parking nije u vlasništvu');
+  assert.ok(ocistiNegacije(o, { oglas: 'Stan.', podaci: { parking: 'ne', lift: 'ne' } }).pregovaranje.aduti.length === 3);
+});
+
+test('parsirajIValidiraj s izvorima čisti negacije; bez izvora ne dira izvještaj', () => {
+  const json = JSON.stringify(sNegacijama());
+  const s = parsirajIValidiraj(json, {}, null, { oglas: OGLAS_JAVNI_PARKING });
+  assert.ok(s.ok, s.razlog);
+  assert.equal(s.analiza.rizici[0].naslov, 'Oglas ne navodi parkirno mjesto');
+  assert.equal(parsirajIValidiraj(json, {}, null).analiza.rizici[0].naslov, 'Parking nije u vlasništvu');
 });

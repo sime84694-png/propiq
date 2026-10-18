@@ -811,9 +811,9 @@
       if (!x || !jeBroj(x.uskladeno_eur_m2)) return 'Nema referentnih tržišnih podataka za ovu lokaciju';
       const tromjesecje = `${x.indeks_razdoblje}${x.privremeno ? ' (privremeni podaci)' : ''}`;
       const podrucje = r.ko ? `k.o. ${r.ko} (${r.naziv})` : r.naziv;
-      const napomena = r.napomena_kvart ? ` ${r.napomena_kvart}` : '';
+      // Napomena o gradskom medijanu (r.napomena_kvart) već je u obrazloženju fer vrijednosti pa se ovdje ne ponavlja.
       return `Referenca: medijan stvarno plaćenih cijena stanova za ${podrucje} ${x.godina}. (${NF.format(x.broj_prodaja)} prodaja), ` +
-        `usklađen DZS indeksom na ${tromjesecje}: ${NF.format(x.uskladeno_eur_m2)} €/m².${napomena} ${IZVORI_REFERENCE}`;
+        `usklađen DZS indeksom na ${tromjesecje}: ${NF.format(x.uskladeno_eur_m2)} €/m². ${IZVORI_REFERENCE}`;
     }
     // Najam nema referentnog izvora po m²: procjena je AI procjena s ograničenom pouzdanošću (postavlja je poslužitelj).
     function najamTekst(najam) {

@@ -175,7 +175,7 @@
       min_eur: minEur,
       max_eur: maxEur,
       izracun: {
-        naziv, napomena: typeof napomena === 'string' && napomena.trim() ? napomena.trim().slice(0, 120) : null,
+        naziv, napomena: typeof napomena === 'string' && napomena.trim() ? napomena.trim().slice(0, 200) : null,
         polaziste_m2: polaziste, korekcije: popis,
         zbroj_posto: zbroj, zbroj_primijenjen_posto: zbrojPrimijenjen,
         sredina_m2: sredina, sirina_posto: sirina, raspon_m2: { min: minM2, max: maxM2 },
