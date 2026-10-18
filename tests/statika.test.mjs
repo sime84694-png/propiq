@@ -136,7 +136,7 @@ test('index.html: četiri kartice (Free / Paket / Standard / Pro) s cijenama i S
   const html = fs.readFileSync(javno('index.html'), 'utf8');
   const kartice = [...html.matchAll(/<div class="plan-tier">(\w+)<\/div>\s*<div class="plan-price-wrap">\s*<div class="plan-price">([\d,]+)<sup>€<\/sup>/g)].map((m) => [m[1], m[2]]);
   assert.deepEqual(kartice, [['Free', '0'], ['Paket', '12'], ['Standard', '24,99'], ['Pro', '49,99']]);
-  for (const [plan, link] of Object.entries(cjenik.LINKOVI)) assert.ok(html.includes(`href="${link}"`), `link za ${plan}`);
+  for (const [plan, link] of Object.entries(cjenik.LINKOVI)) assert.ok(html.includes(`data-stripe-href="${link}"`), `link za ${plan}`);
   assert.ok(!/buy\.stripe\.com\/(9B69AU4Sp3YT2moaQqbwk00|7sY3cw2Kh671e56gaKbwk01)/.test(html), 'stari linkovi su maknuti');
   assert.match(html, /5 analiza/); assert.match(html, /Vrijedi 90 dana od kupnje/); assert.match(html, /Bez pretplate/);
   assert.deepEqual(cjenik.LIMITI, { FREE_UKUPNO: 3, PAKET_ANALIZA: 5, PAKET_DANA: 90, STANDARD_MJESECNO: 10 });
@@ -185,4 +185,46 @@ test('uvjeti korištenja: Paket (90 dana, neiskorištene propadaju) i razumna up
   assert.match(html, /nisu iskorištene propadaju/);
   assert.match(html, /razumnu uporabu/);
   assert.match(html, /<!-- PROVJERITI S PRAVNIKOM/);
+});
+
+// ── prekidač plaćanja (assets/js/placanje.js) ──
+function lazniDokument() {
+  const gumbi = ['paket', 'standard', 'pro'].map((p) => {
+    const a = { attrs: { 'data-stripe-href': `https://buy.stripe.com/${p}`, 'data-oznaka': `Kupi ${p}`, 'aria-disabled': 'true' }, textContent: 'Uskoro' };
+    a.getAttribute = (k) => (k in a.attrs ? a.attrs[k] : null);
+    a.setAttribute = (k, v) => { a.attrs[k] = v; };
+    a.removeAttribute = (k) => { delete a.attrs[k]; };
+    return a;
+  });
+  const napomena = { hidden: false };
+  return { gumbi, napomena, querySelectorAll: () => gumbi, getElementById: () => napomena };
+}
+
+test('plaćanje isključeno: zastavica je false, a na stranici nema klikabilnog linka na buy.stripe.com', async () => {
+  const { default: p } = await import('../public/assets/js/placanje.js');
+  assert.equal(p.PLACANJE_UKLJUCENO, false);
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  assert.ok(!/(?<![\w-])href\s*=\s*["']?https?:\/\/buy\.stripe\.com/i.test(html), 'statički HTML nema href na buy.stripe.com');
+  const d = lazniDokument();
+  p.primijeni(d); // zadana zastavica
+  for (const a of d.gumbi) {
+    assert.equal(a.getAttribute('href'), null, 'bez href-a');
+    assert.equal(a.textContent, 'Uskoro');
+    assert.equal(a.getAttribute('aria-disabled'), 'true');
+  }
+  assert.equal(d.napomena.hidden, false);
+  assert.match(html, /Plaćeni planovi uskoro\. Prve 3 analize su besplatne\./);
+});
+
+test('plaćanje uključeno: gumbi se vraćaju na Stripe linkove i izvorne oznake, napomena nestaje', async () => {
+  const { default: p } = await import('../public/assets/js/placanje.js');
+  const d = lazniDokument();
+  p.primijeni(d, true);
+  for (const a of d.gumbi) {
+    assert.equal(a.getAttribute('href'), a.getAttribute('data-stripe-href'));
+    assert.match(a.getAttribute('href'), /^https:\/\/buy\.stripe\.com\//);
+    assert.match(a.textContent, /^Kupi /);
+    assert.equal(a.getAttribute('aria-disabled'), null);
+  }
+  assert.equal(d.napomena.hidden, true);
 });

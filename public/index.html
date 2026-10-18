@@ -13,6 +13,7 @@
   <script src="assets/js/tracking-config.js"></script>
   <script src="assets/js/consent.js"></script>
   <script src="assets/js/izracuni.js"></script>
+  <script src="assets/js/placanje.js"></script>
   <title>PropIQ — AI analiza oglasa nekretnina</title>
 
   <!-- SEO -->
@@ -972,6 +973,9 @@
 
     .plan.featured .btn-dark:hover { opacity: 0.85; transform: translateY(-2px); }
 
+    .plan [aria-disabled="true"] { opacity: 0.5; cursor: default; pointer-events: none; }
+    .placanje-napomena { text-align: center; margin-top: 24px; font-size: 0.9rem; color: var(--cream-40); }
+
     /* ─── FAQ ─── */
     .faq {
       padding: 120px 48px;
@@ -1923,7 +1927,7 @@
           <li>Za kupce koji traže jedan stan</li>
         </ul>
         <div class="plan-btn-wrap">
-          <a href="https://buy.stripe.com/6oU6oI5WtgLFf9aaQqbwk02" class="btn-outline-sm">Kupi Paket</a>
+          <a data-stripe-href="https://buy.stripe.com/6oU6oI5WtgLFf9aaQqbwk02" data-oznaka="Kupi Paket" aria-disabled="true" class="btn-outline-sm">Uskoro</a>
         </div>
       </div>
       <div class="plan fade-in" style="transition-delay:0.2s">
@@ -1939,7 +1943,7 @@
           <li>Spremi kao PDF (ispis)</li>
         </ul>
         <div class="plan-btn-wrap">
-          <a href="https://buy.stripe.com/8x27sMfx38f9f9a2jUbwk03" class="btn-outline-sm">Odaberi Standard</a>
+          <a data-stripe-href="https://buy.stripe.com/8x27sMfx38f9f9a2jUbwk03" data-oznaka="Odaberi Standard" aria-disabled="true" class="btn-outline-sm">Uskoro</a>
         </div>
       </div>
       <div class="plan featured fade-in" style="transition-delay:0.3s">
@@ -1956,10 +1960,11 @@
           <li>Prioritetna podrška: odgovaram osobno, brže</li>
         </ul>
         <div class="plan-btn-wrap">
-          <a href="https://buy.stripe.com/fZueVe0C9gLFf9af6Gbwk04" class="btn-dark">Odaberi Pro</a>
+          <a data-stripe-href="https://buy.stripe.com/fZueVe0C9gLFf9af6Gbwk04" data-oznaka="Odaberi Pro" aria-disabled="true" class="btn-dark">Uskoro</a>
         </div>
       </div>
     </div>
+    <p class="placanje-napomena" id="placanje-napomena">Plaćeni planovi uskoro. Prve 3 analize su besplatne.</p>
   </section>
 
   <!-- FAQ -->
@@ -2261,6 +2266,9 @@
       });
       return src;
     })();
+
+    // Plaćanje uključeno/isključeno: zastavica PLACANJE_UKLJUCENO u assets/js/placanje.js
+    PropIQPlacanje.primijeni(document);
 
     // Stripe Payment Links: client_reference_id = izvor, da se vidi u Stripeu
     document.querySelectorAll('a[href^="https://buy.stripe.com/"]').forEach(a => {
