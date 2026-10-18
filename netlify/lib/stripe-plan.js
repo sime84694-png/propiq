@@ -10,11 +10,9 @@
 // Sada plan ovisi samo o upisanom emailu: tko zna email plaćenog korisnika, može
 // koristiti njegov plan. Magic link potvrđuje da je osoba vlasnik emaila.
 
-// Price ID-jevi; u test modu postavi env STRIPE_PRICE_STANDARD / STRIPE_PRICE_PRO na test cijene.
-const PRICE_STANDARD = process.env.STRIPE_PRICE_STANDARD || 'price_1UBFCYLx6rQfmJyZJR0AiqCR';
-const PRICE_PRO = process.env.STRIPE_PRICE_PRO || 'price_1UBFDaLx6rQfmJyZEJFQLicR';
+// Price ID-jevi su u netlify/lib/cjenik.js (stari i novi vrijede za pretplate).
+const { PLAN_BY_PRICE } = require('./cjenik');
 
-const PLAN_BY_PRICE = { [PRICE_STANDARD]: 'standard', [PRICE_PRO]: 'pro' };
 const RANK = { standard: 1, pro: 2 };
 const ACTIVE = new Set(['active', 'trialing']);
 
@@ -63,4 +61,4 @@ async function activePlanForEmail(email, secretKey) {
   return best;
 }
 
-module.exports = { activePlanForEmail, stripeGet, PLAN_BY_PRICE };
+module.exports = { activePlanForEmail, stripeGet };

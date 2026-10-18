@@ -6,6 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const root = path.resolve(import.meta.dirname, '..');
 const toml = fs.readFileSync(path.join(root, 'netlify.toml'), 'utf8');
@@ -115,8 +116,134 @@ test('index.html: polja forme imaju maxlength jednak ograničenjima na poslužit
   const src = fs.readFileSync(path.join(root, 'netlify/functions/analiza.mjs'), 'utf8');
   const lim = (n) => Number(src.match(new RegExp(`const ${n} = (\\d+);`))[1]);
   const maxlength = (id) => Number(html.match(new RegExp(`id="${id}"[^>]*maxlength="(\\d+)"`))[1]);
-  assert.equal(maxlength('ime'), lim('MAX_IME'));
-  assert.equal(maxlength('agencija'), lim('MAX_AGENCIJA'));
+  assert.ok(!/id="ime"|id="agencija"/.test(html), 'forma više ne traži ime ni agenciju');
   assert.equal(maxlength('email'), lim('MAX_EMAIL'));
   assert.equal(maxlength('oglas_tekst'), lim('MAX_OGLAS'));
+});
+
+// ── tvrdnje na stranici moraju odgovarati proizvodu ──
+test('index.html: nema tvrdnji koje proizvod ne ispunjava (par sekundi, instant, integracija, brendiranje, trendovi)', () => {
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  for (const zabranjeno of [/par sekundi/i, /instant/i, /Njuškalo integracija/, /poznaje hrvatsko tržište/i, /znanja AI modela/i, /[Bb]rendiran/, /tržišn\w+ prosjek/, /kupi, pregovaraj ili preskoči/, /ROI kalkulator/]) {
+    assert.ok(!zabranjeno.test(html), `index.html ne smije sadržavati ${zabranjeno}`);
+  }
+  assert.match(html, /oko pola minute/);
+  assert.match(html, /stvarno plaćenih cijena/);
+});
+
+// ── cjenik na stranici = cjenik u kodu; samo istina ──
+test('index.html: četiri kartice (Free / Paket / Standard / Pro) s cijenama i Stripe linkovima iz netlify/lib/cjenik.js', async () => {
+  const { default: cjenik } = await import('../netlify/lib/cjenik.js');
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  const kartice = [...html.matchAll(/<div class="plan-tier">(\w+)<\/div>\s*<div class="plan-price-wrap">\s*<div class="plan-price">([\d,]+)<sup>€<\/sup>/g)].map((m) => [m[1], m[2]]);
+  assert.deepEqual(kartice, [['Free', '0'], ['Paket', '12'], ['Standard', '24,99'], ['Pro', '49,99']]);
+  for (const [plan, link] of Object.entries(cjenik.LINKOVI)) assert.ok(html.includes(`data-stripe-href="${link}"`), `link za ${plan}`);
+  assert.ok(!/buy\.stripe\.com\/(9B69AU4Sp3YT2moaQqbwk00|7sY3cw2Kh671e56gaKbwk01)/.test(html), 'stari linkovi su maknuti');
+  assert.match(html, /5 analiza/); assert.match(html, /Vrijedi 90 dana od kupnje/); assert.match(html, /Bez pretplate/);
+  assert.deepEqual(cjenik.LIMITI, { FREE_UKUPNO: 3, PAKET_ANALIZA: 5, PAKET_DANA: 90, STANDARD_MJESECNO: 10 });
+});
+
+test('index.html: planovi se razlikuju samo po broju analiza (+ prioritetna podrška na Pro)', () => {
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  const cijene = html.slice(html.indexOf('id="cijene"'), html.indexOf('id="faq"'));
+  for (const laz of ['Puna dubina analize', 'Osnovna tržišna izvješća', 'Web izvješće', 'PDF export']) assert.ok(!cijene.includes(laz), laz);
+  assert.equal((cijene.match(/Puni izvještaj/g) || []).length, 4);
+  assert.equal((cijene.match(/Spremi kao PDF \(ispis\)/g) || []).length, 4);
+  assert.equal((cijene.match(/Prioritetna podrška/g) || []).length, 1);
+  assert.match(cijene, /Neograničeno uz razumnu uporabu/);
+});
+
+test('index.html: primjer analize je označen kao primjer i odgovara izračunu (Središće, 130,45 m²)', async () => {
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  const sirovo = html.slice(html.indexOf('id="primjer"'), html.indexOf('id="analiza"'));
+  // Broj i jedinica (€, %, m²) povezani su neprelomivim razmakom; za usporedbu teksta svodimo ga na običan razmak.
+  assert.ok(!/\d (€|%|m²)/.test(sirovo.replace(/<[^>]+>/g, '')), 'razmak između broja i jedinice mora biti neprelomiv');
+  assert.ok(!/monospace|class="mono"/.test(sirovo), 'brojke nisu u monospace fontu');
+  const primjer = sirovo.replace(/&nbsp;|[\u00A0\u202F]/g, ' ');
+  assert.match(primjer, /Primjer analize/);
+  for (const t of ['Zagreb, Središće, 130,45 m²', '694.896 €', '410.000', '470.000 €', '3.142', '3.614 €/m²', 'OPREZ', '1/10', 'Zaprudski Otok', '3.345 €/m²', 'MPGI/DZS', '440.000 €']) assert.ok(primjer.includes(t), t);
+  for (const k of ['+8 %', '−7 %', '+4 %', '+2 %', '−4 %', '−2 %']) assert.ok(primjer.includes(k), k);
+  // isti brojevi iz zajedničkog koda
+  const { default: z } = await import('../public/assets/js/izracuni.js');
+  const kor = [8, -7, 4, 2, -4, -2].map((postotak, i) => ({ razlog: `k${i}`, postotak }));
+  const fer = z.izracunajFer({ medijan_eur_m2: 3345, korekcije: kor, pouzdanost: 'srednja', povrsina_m2: 130.45, naziv: 'k.o. Zaprudski Otok' });
+  assert.deepEqual([fer.min_eur, fer.max_eur, fer.izracun.raspon_m2.min, fer.izracun.raspon_m2.max], [410000, 470000, 3142, 3614]);
+  assert.equal(z.izracunajPonudu(694896, fer.min_eur, fer.max_eur).ponuda_eur, 440000);
+});
+
+test('index.html: meta keywords bez "tržišni trendovi", nema mrtvog koda detectRecommendation, trajanje bez točne brojke', () => {
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  assert.ok(!/<meta name="keywords"[^>]*tržišni trendovi/.test(html));
+  assert.ok(!html.includes('detectRecommendation'));
+  assert.ok(!/27 s(ekund)?/.test(html));
+  assert.match(html, /obično stiže za oko pola minute/);
+});
+
+test('uvjeti korištenja: Paket (90 dana, neiskorištene propadaju) i razumna uporaba za Pro; napomena za pravnika', () => {
+  const html = fs.readFileSync(javno('uvjeti-koristenja.html'), 'utf8');
+  assert.match(html, /Paket<\/strong> je jednokratna kupnja/);
+  assert.match(html, /90 dana od dana kupnje/);
+  assert.match(html, /nisu iskorištene propadaju/);
+  assert.match(html, /razumnu uporabu/);
+  assert.match(html, /<!-- PROVJERITI S PRAVNIKOM/);
+});
+
+// ── prekidač plaćanja (assets/js/placanje.js) ──
+function lazniDokument() {
+  const gumbi = ['paket', 'standard', 'pro'].map((p) => {
+    const a = { attrs: { 'data-stripe-href': `https://buy.stripe.com/${p}`, 'data-oznaka': `Kupi ${p}`, 'aria-disabled': 'true' }, textContent: 'Uskoro' };
+    a.getAttribute = (k) => (k in a.attrs ? a.attrs[k] : null);
+    a.setAttribute = (k, v) => { a.attrs[k] = v; };
+    a.removeAttribute = (k) => { delete a.attrs[k]; };
+    return a;
+  });
+  const napomena = { hidden: false };
+  return { gumbi, napomena, querySelectorAll: () => gumbi, getElementById: () => napomena };
+}
+
+test('plaćanje isključeno: zastavica je false, a na stranici nema klikabilnog linka na buy.stripe.com', async () => {
+  const { default: p } = await import('../public/assets/js/placanje.js');
+  assert.equal(p.PLACANJE_UKLJUCENO, false);
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  assert.ok(!/(?<![\w-])href\s*=\s*["']?https?:\/\/buy\.stripe\.com/i.test(html), 'statički HTML nema href na buy.stripe.com');
+  const d = lazniDokument();
+  p.primijeni(d); // zadana zastavica
+  for (const a of d.gumbi) {
+    assert.equal(a.getAttribute('href'), null, 'bez href-a');
+    assert.equal(a.textContent, 'Uskoro');
+    assert.equal(a.getAttribute('aria-disabled'), 'true');
+  }
+  assert.equal(d.napomena.hidden, false);
+  assert.match(html, /Plaćeni planovi uskoro\. Prve 3 analize su besplatne\./);
+});
+
+test('plaćanje uključeno: gumbi se vraćaju na Stripe linkove i izvorne oznake, napomena nestaje', async () => {
+  const { default: p } = await import('../public/assets/js/placanje.js');
+  const d = lazniDokument();
+  p.primijeni(d, true);
+  for (const a of d.gumbi) {
+    assert.equal(a.getAttribute('href'), a.getAttribute('data-stripe-href'));
+    assert.match(a.getAttribute('href'), /^https:\/\/buy\.stripe\.com\//);
+    assert.match(a.textContent, /^Kupi /);
+    assert.equal(a.getAttribute('aria-disabled'), null);
+  }
+  assert.equal(d.napomena.hidden, true);
+});
+
+test('svaka lokalna skripta iz index.html postoji i commitana je u git (assets/ je u .git/info/exclude, pa git add -A tiho preskače nove datoteke)', () => {
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  const skripte = [...html.matchAll(/<script[^>]+src="(?!https?:)([^"]+)"/g)].map((m) => m[1]);
+  assert.ok(skripte.includes('assets/js/placanje.js'));
+  let pracene = null;
+  try { pracene = execFileSync('git', ['ls-files', 'public'], { cwd: root, encoding: 'utf8' }).split('\n'); } catch { /* nije git repozitorij */ }
+  for (const s of skripte) {
+    assert.ok(fs.existsSync(javno(s)), `public/${s} postoji`);
+    if (pracene) assert.ok(pracene.includes(`public/${s}`), `public/${s} je praćen u gitu (git add -f)`);
+  }
+});
+
+test('index.html: poziv skripte plaćanja je u try/catch, pa njezina greška ne ruši reveal animacije', () => {
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  assert.match(html, /try\s*\{\s*PropIQPlacanje\.primijeni\(document\);?\s*\}\s*catch/);
+  assert.ok(!/^\s*PropIQPlacanje\.primijeni/m.test(html), 'nema nezaštićenog poziva');
 });
