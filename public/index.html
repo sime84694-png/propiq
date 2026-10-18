@@ -2268,7 +2268,8 @@
     })();
 
     // Plaćanje uključeno/isključeno: zastavica PLACANJE_UKLJUCENO u assets/js/placanje.js
-    PropIQPlacanje.primijeni(document);
+    // U try/catch: greška u dijelu za plaćanje ne smije prekinuti ostatak skripte (reveal animacije, forma...).
+    try { PropIQPlacanje.primijeni(document); } catch (e) { console.error('placanje.js:', e); }
 
     // Stripe Payment Links: client_reference_id = izvor, da se vidi u Stripeu
     document.querySelectorAll('a[href^="https://buy.stripe.com/"]').forEach(a => {

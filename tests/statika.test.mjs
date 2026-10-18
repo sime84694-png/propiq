@@ -6,6 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const root = path.resolve(import.meta.dirname, '..');
 const toml = fs.readFileSync(path.join(root, 'netlify.toml'), 'utf8');
@@ -227,4 +228,22 @@ test('plaćanje uključeno: gumbi se vraćaju na Stripe linkove i izvorne oznake
     assert.equal(a.getAttribute('aria-disabled'), null);
   }
   assert.equal(d.napomena.hidden, true);
+});
+
+test('svaka lokalna skripta iz index.html postoji i commitana je u git (assets/ je u .git/info/exclude, pa git add -A tiho preskače nove datoteke)', () => {
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  const skripte = [...html.matchAll(/<script[^>]+src="(?!https?:)([^"]+)"/g)].map((m) => m[1]);
+  assert.ok(skripte.includes('assets/js/placanje.js'));
+  let pracene = null;
+  try { pracene = execFileSync('git', ['ls-files', 'public'], { cwd: root, encoding: 'utf8' }).split('\n'); } catch { /* nije git repozitorij */ }
+  for (const s of skripte) {
+    assert.ok(fs.existsSync(javno(s)), `public/${s} postoji`);
+    if (pracene) assert.ok(pracene.includes(`public/${s}`), `public/${s} je praćen u gitu (git add -f)`);
+  }
+});
+
+test('index.html: poziv skripte plaćanja je u try/catch, pa njezina greška ne ruši reveal animacije', () => {
+  const html = fs.readFileSync(javno('index.html'), 'utf8');
+  assert.match(html, /try\s*\{\s*PropIQPlacanje\.primijeni\(document\);?\s*\}\s*catch/);
+  assert.ok(!/^\s*PropIQPlacanje\.primijeni/m.test(html), 'nema nezaštićenog poziva');
 });
