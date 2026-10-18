@@ -114,31 +114,6 @@
       box-shadow: 0 0 10px #d4af37;
     }
 
-    /* ─── SPECULAR GLARE REFLECTION ─── */
-    .feature-card::after, .plan::after, .testimonial::after, .how-step::after {
-      content: '';
-      position: absolute;
-      inset: -100%;
-      background: linear-gradient(
-        115deg,
-        transparent 35%,
-        rgba(240, 236, 228, 0.12) 48%,
-        rgba(255, 255, 255, 0.28) 50%,
-        rgba(240, 236, 228, 0.12) 52%,
-        transparent 65%
-      );
-      opacity: 0;
-      transform: translate(-30%, -30%) rotate(0deg);
-      transition: opacity 0.4s ease, transform 0.4s ease;
-      pointer-events: none;
-      z-index: 3;
-    }
-
-    .feature-card:hover::after, .plan:hover::after, .testimonial:hover::after, .how-step:hover::after {
-      opacity: 1;
-      transform: translate(30%, 30%) rotate(15deg);
-    }
-
     /* ─── NAV ─── */
     nav {
       position: fixed;
