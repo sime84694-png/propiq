@@ -9,7 +9,7 @@ import path from 'node:path';
 import {
   normaliziraj, nadjiGradPoImenu, nadjiKvartPoImenu, gradIzTeksta, kvartIzTeksta, uskladiMedijan, odrediReferencu,
   tekstReference, ogranicitiPouzdanost, ogranicitiNajam, referencaZaKlijenta,
-  nadjiKo, rjecnikKo, napomenaKvarta, nazivPolazista, MIN_PRODAJA_KO, granicaPouzdanosti,
+  nadjiKo, rjecnikKo, napomenaKvarta, bezPodatakaZaKvart, nazivPolazista, MIN_PRODAJA_KO, granicaPouzdanosti,
 } from '../netlify/lib/trziste.mjs';
 
 const sirovo = fs.readFileSync(path.join(import.meta.dirname, '../data/trziste.json'), 'utf8');
@@ -144,22 +144,23 @@ test('k.o.: nepoznat kvart → gradski medijan s oznakom; dvosmislen kvart → g
   const nepoznat = ZG('Utrine');
   assert.deepEqual([nepoznat.ko, nepoznat.razina, nepoznat.kvartStatus], [null, 'grad', 'nepoznat']);
   assert.equal(nepoznat.realizirana.uskladeno_eur_m2, 3312, 'gradski medijan');
-  assert.equal(napomenaKvarta(nepoznat), 'Kvart „Utrine” nije mapiran na k.o.: gradski medijan.');
-  assert.match(tekstReference(nepoznat), /Grad Zagreb: medijan[\s\S]*Napomena: Kvart „Utrine” nije mapiran/);
+  assert.equal(napomenaKvarta(nepoznat), 'Procjena se temelji na medijanu cijelog grada. Za kvart Utrine nemamo podatke o cijenama, pa lokacija unutar grada nije uračunata.');
+  assert.match(tekstReference(nepoznat), /Grad Zagreb: medijan[\s\S]*Napomena: Procjena se temelji na medijanu cijelog grada\. Za kvart Utrine nemamo podatke/);
   assert.equal(nazivPolazista(nepoznat), 'Zagreb');
   const dvosmisleno = ZG('Trešnjevka');
   assert.deepEqual([dvosmisleno.ko, dvosmisleno.kvartStatus, dvosmisleno.realizirana.uskladeno_eur_m2], [null, 'dvosmisleno', 3312]);
-  assert.match(napomenaKvarta(dvosmisleno), /obuhvaća više k\.o\.: gradski medijan/);
-  // bez upisanog kvarta nema oznake (kao prije)
+  assert.match(napomenaKvarta(dvosmisleno), /Za kvart Trešnjevka nemamo podatke o cijenama, pa lokacija unutar grada nije uračunata/);
+  // bez upisanog kvarta: gradski medijan, napomena bez imena kvarta
   const bez = ZG(undefined);
-  assert.deepEqual([bez.ko, bez.kvartStatus, napomenaKvarta(bez)], [null, null, null]);
+  assert.deepEqual([bez.ko, bez.kvartStatus, napomenaKvarta(bez)], [null, null,
+    'Procjena se temelji na medijanu cijelog grada. Podatke o cijenama po kvartovima nemamo, pa lokacija unutar grada nije uračunata.']);
 });
 
 test('k.o. s premalo prodaja (< 30) → gradski medijan s oznakom; prag je konstanta', () => {
   assert.equal(MIN_PRODAJA_KO, 30);
   const malo = ZG('Lučko'); // 24 prodaje
   assert.deepEqual([malo.ko, malo.kvartStatus, malo.kvartKo, malo.realizirana.uskladeno_eur_m2], [null, 'malo_prodaja', 'Lučko', 3312]);
-  assert.match(napomenaKvarta(malo), /K\.o\. Lučko ima manje od 30 prodaja: gradski medijan\./);
+  assert.match(napomenaKvarta(malo), /Za kvart Lučko nemamo podatke o cijenama/);
   // prag je granični: točno 31 prodaja prolazi (Gornji Stenjevec ima 31)
   assert.equal(ZG('Gornji Stenjevec').ko, 'Gornji Stenjevec');
 });
@@ -173,7 +174,7 @@ test('k.o. u referenci za klijenta: naziv k.o. i napomena kad je korišten grads
   assert.ok(!('napomena_kvart' in k));
   const g = referencaZaKlijenta(ZG('Utrine'));
   assert.ok(!('ko' in g));
-  assert.equal(g.napomena_kvart, 'Kvart „Utrine” nije mapiran na k.o.: gradski medijan.');
+  assert.equal(g.napomena_kvart, 'Procjena se temelji na medijanu cijelog grada. Za kvart Utrine nemamo podatke o cijenama, pa lokacija unutar grada nije uračunata.');
 });
 
 test('normalizacija: dijakritici, đ, velika slova, crtice i razmaci', () => {
@@ -297,13 +298,16 @@ test('aliasi kvartova (uz tražene cijene po zonama): Središće → Novi Zagreb
   assert.equal(kvartIzTeksta('Zagreb', 'Stan u Središću'), null);
 });
 
-test('pouzdanost: grad → najviše srednja; bez reference → niska; kvart (tražene cijene) → visoka dopuštena', () => {
+test('pouzdanost: grad (kvart bez podataka) → niska; k.o. → najviše srednja; bez reference → niska; kvart (tražene cijene) → visoka dopuštena', () => {
   const p = (pouzdanost) => ({ fer_vrijednost: { min_eur: 1, max_eur: 2, pouzdanost, obrazlozenje: 'x' }, najam: {} });
   const grad = odrediReferencu({ grad: 'Zagreb' }, '');
   const nista = odrediReferencu({}, '');
   const kvart = odrediReferencu({ grad: 'Zagreb', kvart: 'Trnje' }, '', bazaSTrazenim);
-  assert.equal(ogranicitiPouzdanost(p('visoka'), grad).fer_vrijednost.pouzdanost, 'srednja');
-  assert.equal(ogranicitiPouzdanost(p('srednja'), grad).fer_vrijednost.pouzdanost, 'srednja');
+  const ko = ZG('Središće');
+  assert.equal(ogranicitiPouzdanost(p('visoka'), grad).fer_vrijednost.pouzdanost, 'niska');
+  assert.equal(ogranicitiPouzdanost(p('srednja'), grad).fer_vrijednost.pouzdanost, 'niska');
+  assert.equal(ogranicitiPouzdanost(p('visoka'), ko).fer_vrijednost.pouzdanost, 'srednja');
+  assert.equal(ogranicitiPouzdanost(p('srednja'), ko).fer_vrijednost.pouzdanost, 'srednja');
   assert.equal(ogranicitiPouzdanost(p('niska'), grad).fer_vrijednost.pouzdanost, 'niska');
   assert.equal(ogranicitiPouzdanost(p('visoka'), nista).fer_vrijednost.pouzdanost, 'niska');
   assert.equal(ogranicitiPouzdanost(p('srednja'), nista).fer_vrijednost.pouzdanost, 'niska');
@@ -325,6 +329,20 @@ test('referenca za klijenta: usklađena realizirana vrijednost, null bez referen
   assert.equal(referencaZaKlijenta(odrediReferencu({ grad: 'Pazin' }, '')), null);
   assert.deepEqual(referencaZaKlijenta(odrediReferencu({ grad: 'Zadar' }, '')), {
     razina: 'grad', naziv: 'Zadar', trazena: null,
+    napomena_kvart: 'Procjena se temelji na medijanu cijelog grada. Podatke o cijenama po kvartovima nemamo, pa lokacija unutar grada nije uračunata.',
     realizirana: { godina: 2025, medijan_eur_m2: 2874, broj_prodaja: 707, uskladeno_eur_m2: 3117, indeks_razdoblje: 'II. tromjesečje 2026.', privremeno: true },
   });
+});
+
+test('bezPodatakaZaKvart: Zadar/Relja i Zagreb bez mapiranog kvarta da; Zagreb s mapiranim k.o., tražene cijene za kvart i bez reference ne', () => {
+  const relja = odrediReferencu({ grad: 'Zadar', kvart: 'Relja' }, '');
+  assert.equal(relja.razina, 'grad');
+  assert.equal(bezPodatakaZaKvart(relja), true);
+  assert.equal(granicaPouzdanosti(relja), 'niska');
+  assert.equal(napomenaKvarta(relja), 'Procjena se temelji na medijanu cijelog grada. Za kvart Relja nemamo podatke o cijenama, pa lokacija unutar grada nije uračunata.');
+  assert.equal(bezPodatakaZaKvart(ZG('Utrine')), true);
+  assert.equal(bezPodatakaZaKvart(ZG('Središće')), false);
+  assert.equal(napomenaKvarta(ZG('Središće')), null);
+  assert.equal(bezPodatakaZaKvart(odrediReferencu({ grad: 'Zagreb', kvart: 'Trnje' }, '', bazaSTrazenim)), false);
+  assert.equal(bezPodatakaZaKvart(odrediReferencu({}, '')), false);
 });

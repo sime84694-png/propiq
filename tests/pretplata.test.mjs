@@ -6,7 +6,7 @@
 import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import zajednickiIzracuni from '../public/assets/js/izracuni.js';
-import { odrediReferencu } from '../netlify/lib/trziste.mjs';
+import { odrediReferencu, napomenaKvarta } from '../netlify/lib/trziste.mjs';
 
 // ── lažni Netlify Blobs (u memoriji) ──
 const blobs = new Map();
@@ -60,17 +60,19 @@ const PROCJENA = {
 };
 // Poziv 1 kad grad IMA medijan: model vraća samo korekcije + pouzdanost + površinu + najam; raspon računa kod.
 const PROCJENA_KOR = {
-  korekcije: [{ razlog: 'zadnji kat bez lifta', postotak: -15 }, { razlog: 'stanje za obnovu', postotak: -15 }],
+  korekcije: [{ razlog: 'tip stana', postotak: -15, izvor: 'Stan u Splitu' }, { razlog: 'veličina', postotak: -15, izvor: 'Stan u Splitu' }],
   pouzdanost: 'srednja',
   povrsina_m2: 72,
   najam: PROCJENA.najam,
 };
 const medijanGrada = (grad) => odrediReferencu({ grad }, '').realizirana.uskladeno_eur_m2;
 // Očekivana fer_vrijednost za PROCJENA_KOR (Split, 72 m²) — računa se istim zajedničkim kodom.
+// Grad bez podataka za kvart: pouzdanost je najviše "niska" (±10 %) i obrazloženje nosi napomenu da lokacija nije uračunata.
 const ocekivanaFer = (grad = 'Split', promjene = {}) => {
   const m = { ...PROCJENA_KOR, ...promjene };
-  const r = zajednickiIzracuni.izracunajFer({ medijan_eur_m2: medijanGrada(grad), korekcije: m.korekcije, pouzdanost: m.pouzdanost, povrsina_m2: m.povrsina_m2, naziv: grad });
-  return { min_eur: r.min_eur, max_eur: r.max_eur, pouzdanost: m.pouzdanost, obrazlozenje: zajednickiIzracuni.obrazlozenjeFer(r.izracun), izracun: r.izracun };
+  const napomena = napomenaKvarta(odrediReferencu({ grad }, ''));
+  const r = zajednickiIzracuni.izracunajFer({ medijan_eur_m2: medijanGrada(grad), korekcije: m.korekcije, pouzdanost: 'niska', povrsina_m2: m.povrsina_m2, naziv: grad, napomena });
+  return { min_eur: r.min_eur, max_eur: r.max_eur, pouzdanost: 'niska', obrazlozenje: zajednickiIzracuni.obrazlozenjeFer(r.izracun), izracun: r.izracun };
 };
 const { fer_vrijednost: _fer, najam: _najam, ...IZVJESTAJ_BEZ_PROCJENE } = IZVJESTAJ;
 const izvjestajJson = (promjene = {}) => JSON.stringify({ ...IZVJESTAJ_BEZ_PROCJENE, ...promjene });
@@ -749,7 +751,7 @@ test('model ne može prepisati fer raspon ni najam: u izvještaju je procjena iz
   const { analiza } = r.body.rezultat;
   const ocek = ocekivanaFer('Split');
   assert.deepEqual(analiza.fer_vrijednost, ocek);
-  assert.deepEqual(analiza.najam, { ...PROCJENA.najam, pouzdanost: 'srednja' }, 'najam iz poziva 1; pouzdanost postavlja kod');
+  assert.deepEqual(analiza.najam, { ...PROCJENA.najam, pouzdanost: 'niska' }, 'najam iz poziva 1; pouzdanost postavlja kod (nikad viša od fer vrijednosti)');
   assert.equal(analiza.cijena_eur, 240000);
   assert.equal(analiza.preporuka, 240000 > ocek.max_eur ? 'oprez' : 240000 < ocek.min_eur ? 'povoljno' : 'pregovaraj', 'preporuka iz odnosa cijene i izračunatog raspona');
   assert.notEqual(analiza.fer_vrijednost.max_eur, 250000, 'raspon modela iz poziva 2 se ignorira');
@@ -870,6 +872,7 @@ test('poziv 1 dobiva usklađeni medijan realiziranih cijena s izvorima; cijena i
   assert.ok(!referencaPoruka(pozivi[1].poruke), 'poziv 2 ne dobiva referentni blok');
   assert.deepEqual(r.body.rezultat.referenca, {
     razina: 'grad', naziv: 'Zagreb', trazena: null,
+    napomena_kvart: 'Procjena se temelji na medijanu cijelog grada. Podatke o cijenama po kvartovima nemamo, pa lokacija unutar grada nije uračunata.',
     realizirana: { godina: 2025, medijan_eur_m2: 2917, broj_prodaja: 7616, uskladeno_eur_m2: 3312, indeks_razdoblje: 'II. tromjesečje 2026.', privremeno: true },
   });
   const sustav = pozivi[0].sustav;
@@ -916,7 +919,7 @@ test('bez reference (nepoznat grad, Pazin bez regije): poruka to kaže, referenc
   }
 });
 
-test('pouzdanost: razina grada najviše srednja, bez podatka niska — model ne može zaobići; najam najviše srednja', async () => {
+test('pouzdanost: grad bez podataka za kvart i bez podatka niska, samo mapirani k.o. srednja — model ne može zaobići; najam nikad viša', async () => {
   const slucaj = async (email, tijelo, pouzdanost) => {
     mockFetch({});
     procjenaOdgovor = (t) => claudeStream(t.tools[0].input_schema.required.includes('korekcije')
@@ -926,7 +929,8 @@ test('pouzdanost: razina grada najviše srednja, bez podatka niska — model ne 
     return [a.fer_vrijednost.pouzdanost, a.najam.pouzdanost];
   };
   assert.deepEqual(await slucaj('p1@primjer.hr', { oglas_tekst: 'Stan', podaci: { grad: 'Zagreb', kvart: 'Trnje' } }, 'visoka'), ['srednja', 'srednja']);
-  assert.deepEqual(await slucaj('p2@primjer.hr', { oglas_tekst: 'Stan', podaci: { grad: 'Zagreb' } }, 'srednja'), ['srednja', 'srednja']);
+  assert.deepEqual(await slucaj('p2@primjer.hr', { oglas_tekst: 'Stan', podaci: { grad: 'Zagreb' } }, 'srednja'), ['niska', 'niska']);
+  assert.deepEqual(await slucaj('p5@primjer.hr', { oglas_tekst: 'Stan', podaci: { grad: 'Zagreb', kvart: 'Utrine' } }, 'visoka'), ['niska', 'niska']);
   assert.deepEqual(await slucaj('p3@primjer.hr', { oglas_tekst: 'Stan', podaci: { grad: 'Zagreb' } }, 'niska'), ['niska', 'niska']);
   assert.deepEqual(await slucaj('p4@primjer.hr', { oglas_tekst: 'Stan', podaci: { grad: 'Makarska' } }, 'srednja'), ['niska', 'niska']);
 });
@@ -954,16 +958,17 @@ test('prompt: poziv 1 i 2 dobivaju današnji datum i gotovu starost zgrade i ren
   }
 });
 
+const NAPOMENA_UTRINE = 'Procjena se temelji na medijanu cijelog grada. Za kvart Utrine nemamo podatke o cijenama, pa lokacija unutar grada nije uračunata.';
 // ── kvart iz podataka: medijan k.o. umjesto gradskog; korekcija lokacije se odbacuje ──
 test('Središće s tipfelerom: polazište je medijan k.o. Zaprudski Otok; korekcija za lokaciju koju model vrati se odbacuje', async () => {
   mockFetch({});
   const pozivi = bilježiPozive();
   procjenaOdgovor = () => claudeStream(korekcijeJson({
-    korekcije: [{ razlog: 'Središće', postotak: 5 }, { razlog: 'dobra mikrolokacija', postotak: 4 }, { razlog: 'renovirano', postotak: 8 }, { razlog: 'bez parkinga', postotak: -5 }],
+    korekcije: [{ razlog: 'Središće', postotak: 5, izvor: 'Središće' }, { razlog: 'dobra mikrolokacija', postotak: 4, izvor: 'Središće' }, { razlog: 'renovirano', postotak: 8, izvor: 'renoviran 2020' }, { razlog: 'bez parkinga', postotak: -5, izvor: 'bez parkinga' }],
     povrsina_m2: 130.45,
   }));
   const r = await pozovi({
-    email: 'ko1@primjer.hr', oglas_tekst: 'Stan, Središće.', podaci: { grad: 'Zagreb', kvart: 'sredušće', povrsina_m2: 130.45 },
+    email: 'ko1@primjer.hr', oglas_tekst: 'Stan, Središće, renoviran 2020., bez parkinga.', podaci: { grad: 'Zagreb', kvart: 'sredušće', povrsina_m2: 130.45 },
   });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const ref = referencaPoruka(pozivi[0].poruke);
@@ -978,18 +983,102 @@ test('Središće s tipfelerom: polazište je medijan k.o. Zaprudski Otok; korekc
   assert.equal(r.body.rezultat.referenca.ko, 'Zaprudski Otok');
 });
 
-test('nepoznat kvart: gradski medijan, model dobiva ranije upute (kvart smije korigirati), obrazloženje nosi oznaku', async () => {
+test('nepoznat kvart (Zagreb): gradski medijan, korekcija kvarta se odbacuje, pouzdanost niska, obrazloženje nosi napomenu', async () => {
   mockFetch({});
   const pozivi = bilježiPozive();
-  procjenaOdgovor = () => claudeStream(korekcijeJson({ korekcije: [{ razlog: 'kvart', postotak: 3 }], povrsina_m2: 72 }));
-  const r = await pozovi({ email: 'ko2@primjer.hr', oglas_tekst: 'Stan.', podaci: { grad: 'Zagreb', kvart: 'Utrine', povrsina_m2: 72 } });
+  procjenaOdgovor = () => claudeStream(korekcijeJson({ korekcije: [{ razlog: 'kvart', postotak: 3, izvor: 'Utrine' }, { razlog: 'Utrine', postotak: 3, izvor: 'Utrine' }, { razlog: 'renovirano', postotak: 4, izvor: 'potpuno renovirano' }], pouzdanost: 'visoka', povrsina_m2: 72 }));
+  const r = await pozovi({ email: 'ko2@primjer.hr', oglas_tekst: 'Stan, Utrine, potpuno renovirano.', podaci: { grad: 'Zagreb', kvart: 'Utrine', povrsina_m2: 72 } });
   assert.equal(r.status, 200);
-  assert.match(pozivi[0].sustav, /kvart i mikrolokaciju \(medijan cijelog grada/);
+  assert.doesNotMatch(pozivi[0].sustav, /kvart i mikrolokaciju \(medijan cijelog grada/);
+  assert.match(pozivi[0].sustav, /NEMAMO podataka o cijenama\. NE vraćaj nikakvu korekciju za lokaciju unutar grada/);
   const fer = r.body.rezultat.analiza.fer_vrijednost;
   assert.equal(fer.izracun.polaziste_m2, 3312);
-  assert.deepEqual(fer.izracun.korekcije, [{ razlog: 'kvart', postotak: 3 }]);
-  assert.ok(fer.obrazlozenje.includes('Kvart „Utrine” nije mapiran na k.o.: gradski medijan.'), fer.obrazlozenje);
-  assert.equal(r.body.rezultat.referenca.napomena_kvart, 'Kvart „Utrine” nije mapiran na k.o.: gradski medijan.');
+  assert.deepEqual(fer.izracun.korekcije, [{ razlog: 'renovirano', postotak: 4 }]);
+  assert.equal(fer.pouzdanost, 'niska');
+  assert.equal(fer.izracun.sirina_posto, 10);
+  assert.ok(fer.obrazlozenje.includes(NAPOMENA_UTRINE), fer.obrazlozenje);
+  assert.equal(r.body.rezultat.referenca.napomena_kvart, NAPOMENA_UTRINE);
+});
+
+// ── Zadar / Relja: grad bez podataka po kvartovima ──
+const NAPOMENA_RELJA = 'Procjena se temelji na medijanu cijelog grada. Za kvart Relja nemamo podatke o cijenama, pa lokacija unutar grada nije uračunata.';
+test('Zadar, Relja: nula korekcija lokacije, pouzdanost niska (±10 %), napomena u izvještaju; korekcije zgrade i stana ostaju', async () => {
+  mockFetch({});
+  const pozivi = bilježiPozive();
+  procjenaOdgovor = () => claudeStream(korekcijeJson({
+    korekcije: [
+      { razlog: 'Relja −5% ispodprosječan kvart', postotak: -5, izvor: 'Relja' }, { razlog: 'mikrolokacija', postotak: 3, izvor: 'Relja' }, { razlog: 'centar Zadra', postotak: 4, izvor: 'Zadar' },
+      { razlog: 'blizina mora', postotak: 2, izvor: 'Zadar' }, { razlog: 'starost zgrade 1963.', postotak: -4, izvor: 'izgrađena 1963' }, { razlog: '2. kat bez lifta', postotak: -3, izvor: '2. kat, bez lifta' },
+    ],
+    pouzdanost: 'visoka', povrsina_m2: 64,
+  }));
+  const r = await pozovi({ email: 'zadar@primjer.hr', oglas_tekst: 'Stan, Relja, Zadar, 64 m², izgrađena 1963., 2. kat, bez lifta.', podaci: { grad: 'Zadar', kvart: 'Relja', povrsina_m2: 64 } });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.match(pozivi[0].sustav, /Polazište je medijan CIJELOG grada/);
+  const fer = r.body.rezultat.analiza.fer_vrijednost;
+  assert.equal(fer.izracun.polaziste_m2, 3117);
+  assert.deepEqual(fer.izracun.korekcije, [{ razlog: 'starost zgrade 1963.', postotak: -4 }, { razlog: '2. kat bez lifta', postotak: -3 }]);
+  assert.equal(fer.pouzdanost, 'niska');
+  assert.equal(fer.izracun.sirina_posto, 10);
+  assert.ok(fer.obrazlozenje.includes(NAPOMENA_RELJA), fer.obrazlozenje);
+  assert.equal(r.body.rezultat.referenca.napomena_kvart, NAPOMENA_RELJA);
+  assert.equal(r.body.rezultat.analiza.najam.pouzdanost, 'niska');
+});
+
+// ── Zadar / Relja: izmišljena svojstva stana (lift, renovacija, vlasništvo parkinga) ──
+const OGLAS_RELJA = 'Stan u Zadru, Relja, 64 m², izgrađen 1963., 2. kat. Potpuno namješten i odmah useljiv. Javni parking u blizini.';
+test('Zadar, Relja: korekcije za lift, renovaciju i vlasništvo parkinga bez izvora u oglasu se odbacuju; zakon starosti i kata ostaje', async () => {
+  mockFetch({});
+  const pozivi = bilježiPozive();
+  procjenaOdgovor = () => claudeStream(korekcijeJson({
+    korekcije: [
+      { razlog: 'bez lifta', postotak: -3, izvor: 'stara zgrada bez lifta' },
+      { razlog: 'renovirano', postotak: 8, izvor: 'potpuno namješten i odmah useljiv' },
+      { razlog: 'bez parkinga u vlasništvu', postotak: -3, izvor: 'parking nije u vlasništvu' },
+      { razlog: 'starost zgrade 1963.', postotak: -4, izvor: 'izgrađen 1963' },
+    ],
+    povrsina_m2: 64,
+  }));
+  const r = await pozovi({ email: 'relja2@primjer.hr', oglas_tekst: OGLAS_RELJA, podaci: { grad: 'Zadar', kvart: 'Relja', povrsina_m2: 64 } });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const fer = r.body.rezultat.analiza.fer_vrijednost;
+  assert.deepEqual(fer.izracun.korekcije, [{ razlog: 'starost zgrade 1963.', postotak: -4 }]);
+  assert.ok(!/lift|renovir|vlasništv/i.test(fer.obrazlozenje), fer.obrazlozenje);
+  // alat traži izvor uz svaku korekciju, a prompt zabranjuje korekciju za nenavedeno svojstvo
+  const stavka = pozivi[0].tijelo.tools[0].input_schema.properties.korekcije.items;
+  assert.ok(stavka.required.includes('izvor') && 'izvor' in stavka.properties);
+  assert.match(pozivi[0].sustav, /KOREKCIJA SMIJE POSTOJATI SAMO za svojstvo koje je IZRIČITO navedeno u tekstu oglasa ili u poljima forme/);
+  assert.match(pozivi[0].sustav, /lift, parking, renovacija\/obnova, energetski razred, stanje instalacija\.\.\.\), NEMA korekcije/);
+  assert.match(pozivi[0].sustav, /Namješten, opremljen, useljiv ili "odmah useljiv" NIJE renovirano/);
+});
+
+test('poziv 2: nepoznat podatak samo kao nepoznanica i pitanje prodavatelju, nikad kao činjenica', async () => {
+  mockFetch({});
+  const pozivi = bilježiPozive();
+  const r = await pozovi({ email: 'relja3@primjer.hr', oglas_tekst: OGLAS_RELJA, podaci: { grad: 'Zadar', kvart: 'Relja', povrsina_m2: 64 } });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const sustav = pozivi.find((p) => p.alat === 'izvjestaj').sustav;
+  assert.match(sustav, /Nepoznat podatak \(lift, parking i vlasništvo parkinga, renovacija[^)]*\)[^.]*SAMO kao nepoznanicu \("oglas ne navodi lift"\), NIKAD kao činjenicu \("nema lift"/);
+  assert.match(sustav, /pitanje prodavatelju/);
+  assert.match(sustav, /Javni parking u blizini ne znači da stan nema svoje mjesto/);
+  assert.match(sustav, /ako oglas ne navodi da nešto NE postoji, to se ne smije tvrditi/);
+  assert.match(sustav, /Dopušteno: "Oglas ne spominje vlastito parkirno mjesto"/);
+});
+
+test('poziv 2: bez podataka za kvart zabranjuje tvrdnje o kvartu (samo činjenice iz oglasa); s mapiranim k.o. toga nema', async () => {
+  const sustavPoziva2 = async (email, podaci) => {
+    mockFetch({});
+    const pozivi = bilježiPozive();
+    const r = await pozovi({ email, oglas_tekst: 'Stan, 3 min do plaže.', podaci });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    return pozivi[1].sustav;
+  };
+  const bez = await sustavPoziva2('zadar2@primjer.hr', { grad: 'Zadar', kvart: 'Relja' });
+  assert.match(bez, /za kvart "Relja" NEMAMO podataka o cijenama/);
+  assert.match(bez, /NE smiješ tvrditi ništa o kvaliteti, ugledu ni potražnji u tom kvartu, ni o razini ili kretanju cijena/);
+  assert.match(bez, /SAMO činjenice koje stoje u oglasu \(npr\. "3 min do plaže"/);
+  const s = await sustavPoziva2('zagreb2@primjer.hr', { grad: 'Zagreb', kvart: 'Središće' });
+  assert.doesNotMatch(s, /NEMAMO podataka o cijenama/);
 });
 
 // ── sažetak: gotovi brojevi od koda, validacija krivih brojki ──
