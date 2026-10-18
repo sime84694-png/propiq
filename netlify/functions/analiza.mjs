@@ -1,13 +1,16 @@
 // PropIQ — proxy prema Claude API za analizu nekretnina (Netlify Functions API v2).
-// Poziva se s POST-om iz rezultat.html, u DVA zasebna zahtjeva (svaki unutar Netlify limita sinkrone
-// funkcije od 60 s, a oba vraćaju običan JSON — bez streama, pa prekid veze usred analize ne može
-// "odrezati" izvještaj; klijent svaki korak može jednom ponoviti):
-//   A) { korak: "procjena", ... }                   → { procjena_id, procjena } — poziv 1; procjena se sprema
-//      u Netlify Blobs pod nasumičnim ID-jem (vrijedi 1 h) i veže uz hash emaila i teksta oglasa.
-//   B) { korak: "analiza", procjena_id, ... }       → { rezultat: { analiza, izracuni, uneseno, referenca } }
-//      — poziv 2; procjenu čita iz Blobsa (klijentu se ne vjeruje; nepoznat/tuđi ID → 404, istekao → 410).
-// Greške su JSON { error } s HTTP statusom (5xx klijent jednom ponavlja). Limit i statistika bilježe se
-// tek nakon uspješnog B (ponavljanje istog zahtjeva se ne broji dvaput — vidi request_id niže).
+// Poziva se s POST-om iz rezultat.html, u TRI zasebna zahtjeva (svaki unutar Netlify limita sinkrone funkcije,
+// a svi vraćaju običan JSON — bez streama, pa prekid veze usred analize ne može "odrezati" izvještaj):
+//   A) { korak: "procjena", ... }                   → { procjena_id, procjena } — poziv 1. Rezervira jedinicu kvote,
+//      izdaje ID analize i sprema procjenu u Netlify Blobs (vrijedi 1 h; vezana uz hash emaila i teksta oglasa).
+//   B1) { korak: "cijena", procjena_id, ... }       → { rezultat: { analiza, izracuni, uneseno, referenca } } — poziv 2;
+//      procjenu čita iz Blobsa (klijentu se ne vjeruje; nepoznat/tuđi ID → 404, istekao → 410).
+//   B2) { korak: "rizici", procjena_id, ... }       → { rizici } — prednosti, rizici, pitanja; kreće istodobno s B1.
+// Greške su JSON { error } s HTTP statusom (5xx klijent jednom ponavlja).
+// Zaštita od zloupotrebe: CORS samo za vlastitu domenu, rate limit po IP-u (netlify/lib/zastita.mjs) i kvota koja se
+// REZERVIRA već u koraku A. B1 i B2 rade samo uz ID izdan na poslužitelju, a svaki korak se za isti ID može pozvati
+// najviše dvaput (poziv + jedan ponovni pokušaj). Ako analiza padne prije B1, rezervirana jedinica se vraća.
+// Statistika se bilježi nakon uspješnog B1.
 // Dva sekvencijalna poziva (anti-"anchoring"):
 //   1) slijepa procjena fer vrijednosti i najma — oglas BEZ ikakvih cijena (netlify/lib/redakcija.mjs);
 //   2) analiza s punim tekstom i cijenom; rezultat poziva 1 dobiva kao FIKSAN podatak, a fer vrijednost
@@ -22,7 +25,10 @@ import { getStore } from '@netlify/blobs';
 // Plan (Standard/Pro) se određuje isključivo prema aktivnoj Stripe pretplati za upisani email.
 import stripePlan from '../lib/stripe-plan.js';
 import cjenik from '../lib/cjenik.js';
-import { krediti, potrosiKredit, aktivirajPaket } from '../lib/paket.mjs';
+import { krediti, rezervirajKredit, vratiKredit, aktivirajPaket } from '../lib/paket.mjs';
+import {
+  corsZaglavlja, dopustenOrigin, ipKlijenta, jakiStore, azurirajCas, rezervirajBrojac, vratiBrojac, potrosiLimitIp, porukaRateLimita,
+} from '../lib/zastita.mjs';
 import {
   TOOL, TOOL_NAME, TOOL_CIJENA, TOOL_RIZICI, parsirajIValidirajDio, TOOL_PROCJENA, TOOL_PROCJENA_BEZ_REFERENCE, TOOL_PROCJENA_NAME, FER, parsirajIValidiraj, parsirajIValidirajProcjenu,
   izracunaj, validirajPodatke, mozeAnaliza, vremenskeCinjenice, tekstCinjenicaSazetka,
@@ -34,12 +40,6 @@ const RE_BEZ_POREZA = /(pdv\s+(je\s+)?uklju[čc]en|ne\s+pla[ćc]a\s+(se\s+)?pore
 import { POJMOVNIK_TEKST } from '../lib/jezik.mjs';
 import { odrediReferencu, tekstReference, ogranicitiPouzdanost, granicaPouzdanosti, ogranicitiNajam, referencaZaKlijenta, nazivPolazista, napomenaKvarta, imenaZaKo, bezPodatakaZaKvart } from '../lib/trziste.mjs';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-
 // Ograničenja ulaza (ulaze u prompt i u ključeve Bloba). Ista ograničenja su i kao maxlength u index.html.
 const MAX_OGLAS = 15000;
 const MAX_IME = 100;
@@ -47,9 +47,6 @@ const MAX_AGENCIJA = 100;
 const MAX_EMAIL = 254;
 const PLANOVI_URL = 'https://propiq-hr.netlify.app/#cijene';
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const json = (status, body) =>
-  new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 const SYSTEM_PROMPT = `Ti si PropIQ — AI alat za analizu oglasa nekretnina na hrvatskom tržištu.
 Nikad sebe ne nazivaš savjetnikom i ne daješ investicijski savjet: izvještaj je informativna analiza oglasa, ne preporuka za ulaganje, a u tekstu ne koristi formulacije poput "savjetujemo" ili "preporučujemo da uložite".
@@ -178,16 +175,15 @@ async function incrementStats(source, plan) {
   }
 }
 
-// Isti zahtjev (request_id iz index.html) ponovljen zbog F5 dok analiza traje broji se u limitu
-// samo jednom. Zapis čuva samo hash emaila, hash teksta oglasa, vrijeme i broj ponavljanja
-// (bez emaila i bez same analize). Ponavljanje vrijedi samo za isti tekst, unutar 10 min i
-// najviše 2 puta, da se isti request_id ne može koristiti za besplatne analize.
-// Ključ: {hashEmaila}:{request_id}:{vrijeme nastanka}; zapisi stariji od 24 h brišu se pri svakom upisu.
-const PONAVLJANJE_PROZOR_MS = 10 * 60 * 1000;
-const PONAVLJANJE_MAX = 2;
-const ZAHTJEVI_CUVANJE_MS = 24 * 60 * 60 * 1000;
-// Procjena iz koraka A: zapis {e: hash emaila, h: hash teksta, p: procjena}, ključ {id}:{vrijeme}.
+// Zapis analize (store propiq-procjene), ključ {id}:{vrijeme nastanka}; zapisi stariji od 1 h brišu se pri svakom upisu.
+// Nastaje u koraku procjena, PRIJE poziva Anthropica, zajedno s rezervacijom kvote. Sadrži samo hashove (bez emaila i teksta):
+//   e: hash emaila, h: hash teksta i podataka, p: procjena (tek kad je poziv 1 uspio),
+//   i: izvor kvote (pro|standard|paket|free), m: mjesec Standard brojača, kk: ključ kredita (hash), r: je li jedinica
+//   trenutno rezervirana (ključ brojača se ne sprema jer sadrži email: izvodi se iz emaila zahtjeva),
+//   z: analiza je isporučena (cijena uspjela; više se ne vraća), a: broj poziva po koraku.
 const PROCJENE_CUVANJE_MS = 60 * 60 * 1000;
+// Svaki korak za isti ID: poziv + jedan ponovni pokušaj (klijent ponavlja jednom na 5xx ili prekid veze).
+const MAX_POKUSAJA_KORAKA = 2;
 const PROCJENA_ID_FORMAT = /^[0-9a-f]{32}$/;
 
 // Sol: ZAHTJEVI_SALT, a bez nje ANTHROPIC_API_KEY (funkcija bez njega ionako ne radi).
@@ -219,13 +215,6 @@ async function zapisiBlob(store, key, vrijednost, cuvanjeMs) {
   } catch (err) {
     console.error('Brisanje starih zapisa nije uspjelo:', err);
   }
-}
-
-const zapisiZahtjev = (store, key, zapis) => zapisiBlob(store, key, { h: zapis.h, d: zapis.d }, ZAHTJEVI_CUVANJE_MS);
-
-function jePonavljanje(zapis, tekstHash) {
-  return !!zapis && zapis.h === tekstHash &&
-    Date.now() - zapis.t < PONAVLJANJE_PROZOR_MS && (zapis.d || 0) < PONAVLJANJE_MAX;
 }
 
 // Čita Anthropicov SSE stream i slaže JSON ulaz tool poziva (input_json_delta).
@@ -266,9 +255,71 @@ async function procitajClaudeStream(body) {
   return { tekst, stopReason, izlazniTokeni };
 }
 
+// Rezervira jednu jedinicu kvote prema redoslijedu: aktivna Pro (bez kvote) → Standard (10/mj) → kredit iz paketa
+// (prvi koji istječe) → Free (3 ukupno; samo bez aktivne pretplate). Rezervacija je atomična (netlify/lib/zastita.mjs).
+// Vraća { ok: true, izvor, qk, kk } ili { ok: false, status, error }.
+async function rezervirajJedinicu(email, verificiraniPlan, stripeNedostupan) {
+  const LIM = cjenik.LIMITI;
+  if (verificiraniPlan === 'pro') return { ok: true, izvor: 'pro' };
+  let porukaLimita = null;
+  if (verificiraniPlan === 'standard') {
+    const qk = `${email}:${new Date().toISOString().slice(0, 7)}`; // npr. "2026-09"
+    if (await rezervirajBrojac(jakiStore('propiq-standard-quota'), qk, LIM.STANDARD_MJESECNO)) return { ok: true, izvor: 'standard', qk };
+    porukaLimita = { status: 403, error: `Iskorištenih je svih ${LIM.STANDARD_MJESECNO} analiza za ovaj mjesec u Standard planu. Nadogradi na Pro za neograničene analize ili pričekaj sljedeći obračunski ciklus.` };
+  }
+  const k = await krediti(hashEmaila(email));
+  for (const kredit of k.aktivni) {
+    if (await rezervirajKredit(kredit.key)) return { ok: true, izvor: 'paket', kk: kredit.key };
+  }
+  if (k.ikadaKupljen && !porukaLimita) {
+    porukaLimita = { status: 403, error: `Paket je istekao ili su sve analize iz njega iskorištene. Odaberi plan za daljnje analize: ${PLANOVI_URL}` };
+  }
+  if (verificiraniPlan !== 'standard') {
+    // Free: 3 analize ukupno po emailu (ne i za aktivnog Standard pretplatnika s iscrpljenim mjesečnim limitom).
+    // Poruka o isteklom paketu ima prednost pred porukom o besplatnom limitu.
+    if (await rezervirajBrojac(jakiStore('propiq-free-quota'), email, LIM.FREE_UKUPNO)) return { ok: true, izvor: 'free', qk: email };
+    if (!porukaLimita) {
+      porukaLimita = stripeNedostupan
+        ? { status: 503, error: 'Trenutno ne možemo provjeriti tvoju pretplatu. Pokušaj ponovo za minutu ili nam se javi na sime.zubcic23@gmail.com.' }
+        : { status: 403, error: `Iskorištene su sve ${LIM.FREE_UKUPNO} besplatne analize. Ako je plaćen Standard, Pro ili Paket, upiši email s kojim je plaćeno. Inače odaberi plan za daljnje analize: ${PLANOVI_URL}` };
+    }
+  }
+  return { ok: false, ...porukaLimita };
+}
+
+// Vraća rezerviranu jedinicu u izvor iz kojeg je uzeta (analiza nije isporučena).
+// Ključ brojača kvote iz izvora i emaila (sirovi email se ne sprema u zapis analize).
+const kljucBrojaca = (izvor, email, mjesec) => (izvor === 'standard' ? `${email}:${mjesec}` : email);
+
+async function vratiJedinicu({ izvor, qk, kk }) {
+  if (izvor === 'paket') await vratiKredit(kk);
+  else if (izvor === 'standard') await vratiBrojac(jakiStore('propiq-standard-quota'), qk);
+  else if (izvor === 'free') await vratiBrojac(jakiStore('propiq-free-quota'), qk);
+}
+
+// Ponovno rezervira jedinicu iz istog izvora (cijena se ponavlja nakon što je prvi pokušaj pao i jedinica vraćena).
+async function rezervirajIzIzvora({ izvor, qk, kk }) {
+  const LIM = cjenik.LIMITI;
+  if (izvor === 'paket') return rezervirajKredit(kk);
+  if (izvor === 'standard') return rezervirajBrojac(jakiStore('propiq-standard-quota'), qk, LIM.STANDARD_MJESECNO);
+  if (izvor === 'free') return rezervirajBrojac(jakiStore('propiq-free-quota'), qk, LIM.FREE_UKUPNO);
+  return true;
+}
+
 export default async (req, context) => {
+  const origin = req.headers.get('origin');
+  const cors = corsZaglavlja(origin);
+  const json = (status, body, dodatno = {}) =>
+    new Response(JSON.stringify(body), { status, headers: { ...cors, ...dodatno, 'Content-Type': 'application/json' } });
+
+  // Preglednik na tuđoj stranici uvijek šalje Origin: takav se zahtjev odbija (CORS sam samo skriva odgovor, a "jednostavni"
+  // POST bi se ipak izvršio). Zahtjevi bez Origina (skripte) prolaze ovdje; njih ograničava rate limit po IP-u.
+  if (origin && !dopustenOrigin(origin)) {
+    return json(403, { error: 'Zahtjev s ove adrese nije dopušten.' });
+  }
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: CORS });
+    return new Response(null, { status: 204, headers: cors });
   }
 
   if (req.method !== 'POST') {
@@ -282,6 +333,20 @@ export default async (req, context) => {
 
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
+  // Rate limit po IP-u (satni prozor). Ako se brojač ne može provjeriti, zahtjev se odbija: bolje 503 nego neograničen trošak.
+  const ipHash = hashEmaila(`ip:${ipKlijenta(req, context)}`);
+  const ogranici = async (vrsta) => {
+    try {
+      const r = await potrosiLimitIp(ipHash, vrsta);
+      return r.ok ? null : json(429, { error: porukaRateLimita(r.ponovnoZaS) }, { 'Retry-After': String(r.ponovnoZaS) });
+    } catch (err) {
+      console.error('Rate limit nije provjeren:', err);
+      return json(503, { error: 'Provjera ograničenja trenutno nije dostupna. Pokušaj ponovo za minutu.' });
+    }
+  };
+  const odbijenKoraci = await ogranici('koraci');
+  if (odbijenKoraci) return odbijenKoraci;
+
   let data;
   try {
     data = JSON.parse((await req.text()) || '{}');
@@ -292,14 +357,17 @@ export default async (req, context) => {
   const korak = data.korak;
   // Aktivacija paketa nakon plaćanja (?plan=paket&session_id=...): kupnju potvrđuje Stripe, ne klijent.
   if (korak === 'paket') {
+    const odbijenPaket = await ogranici('paket');
+    if (odbijenPaket) return odbijenPaket;
     const r = await aktivirajPaket(String(data.session_id || '').trim(), stripeSecretKey, hashEmaila);
     return json(r.status, r.body);
   }
   if (korak !== 'procjena' && korak !== 'cijena' && korak !== 'rizici') {
     return json(400, { error: 'Nepoznat korak analize. Osvježi stranicu i pokušaj ponovo.' });
   }
+  // ID analize izdaje poslužitelj u koraku procjena; rizici i cijena rade samo uz njega.
   const procjenaId = String(data.procjena_id || '');
-  if (korak === 'cijena' && !PROCJENA_ID_FORMAT.test(procjenaId)) {
+  if (korak !== 'procjena' && !PROCJENA_ID_FORMAT.test(procjenaId)) {
     return json(404, { error: 'Procjena nije pronađena. Pokreni analizu ponovo.' });
   }
 
@@ -337,100 +405,110 @@ export default async (req, context) => {
     return json(400, { error: 'Neispravna email adresa.' });
   }
 
-  // Plan se NE čita iz URL-a (?plan=, session_id) — samo iz aktivne pretplate na Stripeu
-  // za upisani email. Ako Stripe nije dostupan, korisnik se privremeno tretira kao besplatni.
-  let verificiraniPlan = null;
-  let stripeNedostupan = false;
-  try {
-    verificiraniPlan = await stripePlan.activePlanForEmail(email, stripeSecretKey);
-  } catch (err) {
-    stripeNedostupan = true;
-    console.error('Provjera pretplate na Stripeu nije uspjela:', err.message);
-  }
-
-  // Redoslijed: aktivna Pro → aktivna Standard (10/mj) → kredit iz paketa (prvi koji istječe) → Free (3 ukupno; samo bez aktivne pretplate).
-  // `izvor` je ono što ova analiza troši; null samo za ponovljeni zahtjev (ne troši ništa).
-  const LIM = cjenik.LIMITI;
-  let izvor = verificiraniPlan === 'pro' ? 'pro' : null;
-  let store;
-  let trenutnoIskoristeno = 0;
-  let quotaKey = '';
-  let kreditKey = '';
-  let porukaLimita = null;
-
-  // Ponavljanje se prepoznaje po request_id iz forme; ako ga nema, korak B ima ID procjene (isti za ponovni pokušaj).
-  const requestId = /^[A-Za-z0-9-]{8,64}$/.test(String(data.request_id || '')) ? String(data.request_id) : (korak === 'cijena' ? procjenaId : '');
   const imaPodataka = Object.keys(podaci).length > 0;
   const tekstHash = crypto.createHash('sha256').update(imaPodataka ? `${oglasTekst}\n${JSON.stringify(podaci)}` : oglasTekst).digest('hex');
-  let zahtjevi = null;
-  let zahtjevPrefix = '';
-  let ponovljeno = false;
-  if (requestId) {
-    zahtjevi = getStore('propiq-zahtjevi');
-    zahtjevPrefix = `${hashEmaila(email)}:${requestId}:`;
-    const zapis = await procitajZahtjev(zahtjevi, zahtjevPrefix);
-    if (jePonavljanje(zapis, tekstHash)) {
-      ponovljeno = true;
-      // Ponavljanja troši samo korak "cijena" (koraci istog zahtjeva ne smiju dvaput potrošiti isto ponavljanje).
-      if (korak === 'cijena') await zapisiZahtjev(zahtjevi, zapis.key, { h: zapis.h, d: (zapis.d || 0) + 1 });
+  const procjene = jakiStore('propiq-procjene');
+
+  // Stanje analize: u koraku procjena nastaje (s rezervacijom kvote), u ostalima se čita i provjerava.
+  let rez = null; // rezervirana jedinica: { izvor, qk, kk }
+  let analizaId = '';
+  let analizaKey = '';
+  let zapis = null; // zapis analize za korake rizici i cijena
+
+  if (korak === 'procjena') {
+    const odbijenStart = await ogranici('start');
+    if (odbijenStart) return odbijenStart;
+
+    // Plan se NE čita iz URL-a (?plan=, session_id) — samo iz aktivne pretplate na Stripeu
+    // za upisani email. Ako Stripe nije dostupan, korisnik se privremeno tretira kao besplatni.
+    let verificiraniPlan = null;
+    let stripeNedostupan = false;
+    try {
+      verificiraniPlan = await stripePlan.activePlanForEmail(email, stripeSecretKey);
+    } catch (err) {
+      stripeNedostupan = true;
+      console.error('Provjera pretplate na Stripeu nije uspjela:', err.message);
+    }
+
+    // Jedinica se rezervira prije poziva Anthropica (a vraća se ako analiza ne stigne do cijene).
+    const r = await rezervirajJedinicu(email, verificiraniPlan, stripeNedostupan);
+    if (!r.ok) return json(r.status, { error: r.error });
+    rez = { izvor: r.izvor, qk: r.qk, kk: r.kk };
+
+    analizaId = crypto.randomBytes(16).toString('hex');
+    analizaKey = `${analizaId}:${Date.now()}`;
+    try {
+      await zapisiBlob(procjene, analizaKey,
+        { e: hashEmaila(email), h: tekstHash, i: rez.izvor, m: rez.izvor === 'standard' ? rez.qk.slice(-7) : undefined, kk: rez.kk, r: true, z: false, a: { rizici: 0, cijena: 0 } },
+        PROCJENE_CUVANJE_MS);
+    } catch (err) {
+      console.error('Zapis analize nije spremljen:', err);
+      try { await vratiJedinicu(rez); } catch (e2) { console.error('Vraćanje jedinice nije uspjelo:', e2); }
+      return json(500, { error: 'Došlo je do greške pri spremanju procjene. Pokušaj ponovo — ova analiza se ne broji u limit.' });
+    }
+  } else {
+    // Nepoznat i tuđi ID daju isti odgovor (404), da se ID-jevi ne mogu provjeravati.
+    zapis = await procitajZahtjev(procjene, `${procjenaId}:`);
+    if (!zapis || zapis.e !== hashEmaila(email)) {
+      return json(404, { error: 'Procjena nije pronađena. Pokreni analizu ponovo.' });
+    }
+    if (Date.now() - zapis.t >= PROCJENE_CUVANJE_MS) {
+      return json(410, { error: 'Procjena je istekla. Pokreni analizu ponovo.' });
+    }
+    if (zapis.h !== tekstHash) {
+      return json(400, { error: 'Procjena ne pripada ovom oglasu. Pokreni analizu ponovo.' });
+    }
+    if (!zapis.p) {
+      return json(409, { error: 'Procjena još nije gotova. Pokreni analizu ponovo.' });
+    }
+    // Svaki korak za isti ID: najviše MAX_POKUSAJA_KORAKA poziva (poziv + jedan ponovni pokušaj).
+    analizaKey = zapis.key;
+    analizaId = procjenaId;
+    const pokusaj = await azurirajCas(procjene, analizaKey, (v) => {
+      const z = JSON.parse(v || '{}');
+      const a = z.a || {};
+      if ((a[korak] || 0) >= MAX_POKUSAJA_KORAKA) return undefined;
+      const nova = { ...z, a: { ...a, [korak]: (a[korak] || 0) + 1 } };
+      return { nova: JSON.stringify(nova), rezultat: nova };
+    });
+    if (!pokusaj.ok) {
+      return json(409, { error: 'Ovaj korak analize je već iskorišten. Pokreni novu analizu.' });
+    }
+    zapis = { ...zapis, ...pokusaj.rezultat };
+    // Cijena se ponavlja nakon što je prethodni pokušaj pao i jedinica je vraćena: ponovno je rezerviraj.
+    if (korak === 'cijena' && !zapis.r && !zapis.z) {
+      const ponovno = await rezervirajIzIzvora({ izvor: zapis.i, qk: kljucBrojaca(zapis.i, email, zapis.m), kk: zapis.kk });
+      if (!ponovno) {
+        return json(403, { error: `Iskorištene su sve analize u tvom planu. Odaberi plan za daljnje analize: ${PLANOVI_URL}` });
+      }
+      const postavljeno = await azurirajCas(procjene, analizaKey, (v) => {
+        const z = JSON.parse(v || '{}');
+        return z.r ? undefined : { nova: JSON.stringify({ ...z, r: true }), rezultat: true };
+      });
+      if (!postavljeno.ok) await vratiJedinicu({ izvor: zapis.i, qk: kljucBrojaca(zapis.i, email, zapis.m), kk: zapis.kk }); // istodobni zahtjev već je rezervirao
     }
   }
 
-  if (!izvor && verificiraniPlan === 'standard') {
-    store = getStore('propiq-standard-quota');
-    quotaKey = `${email}:${new Date().toISOString().slice(0, 7)}`; // npr. "2026-09"
-    trenutnoIskoristeno = parseInt((await store.get(quotaKey)) || '0', 10);
-    if (trenutnoIskoristeno < LIM.STANDARD_MJESECNO) izvor = 'standard';
-    else porukaLimita = { status: 403, error: `Iskorištenih je svih ${LIM.STANDARD_MJESECNO} analiza za ovaj mjesec u Standard planu. Nadogradi na Pro za neograničene analize ili pričekaj sljedeći obračunski ciklus.` };
-  }
-  if (!izvor) {
-    const k = await krediti(hashEmaila(email));
-    if (k.aktivni.length) {
-      izvor = 'paket';
-      kreditKey = k.aktivni[0].key;
-    } else if (k.ikadaKupljen && !porukaLimita) {
-      porukaLimita = { status: 403, error: `Paket je istekao ili su sve analize iz njega iskorištene. Odaberi plan za daljnje analize: ${PLANOVI_URL}` };
+  // Analiza nije isporučena (pala je prije cijene): rezervirana jedinica se vraća, i to samo jednom.
+  async function vratiRezervaciju() {
+    try {
+      const vraceno = await azurirajCas(procjene, analizaKey, (v) => {
+        const z = JSON.parse(v || '{}');
+        return z.r && !z.z ? { nova: JSON.stringify({ ...z, r: false }), rezultat: { izvor: z.i, qk: kljucBrojaca(z.i, email, z.m), kk: z.kk } } : undefined;
+      });
+      if (vraceno.ok) await vratiJedinicu(vraceno.rezultat);
+    } catch (err) {
+      console.error('Vraćanje rezervirane jedinice nije uspjelo:', err);
     }
   }
-  if (!izvor && verificiraniPlan !== 'standard') {
-    // Free: 3 analize ukupno po emailu (ne i za aktivnog Standard pretplatnika s iscrpljenim mjesečnim limitom).
-    // Poruka o isteklom paketu ima prednost pred porukom o besplatnom limitu.
-    store = getStore('propiq-free-quota');
-    quotaKey = email;
-    trenutnoIskoristeno = parseInt((await store.get(quotaKey)) || '0', 10);
-    if (trenutnoIskoristeno < LIM.FREE_UKUPNO) {
-      izvor = 'free';
-    } else if (!porukaLimita) {
-      porukaLimita = stripeNedostupan
-        ? { status: 503, error: 'Trenutno ne možemo provjeriti tvoju pretplatu. Pokušaj ponovo za minutu ili nam se javi na sime.zubcic23@gmail.com.' }
-        : { status: 403, error: `Iskorištene su sve ${LIM.FREE_UKUPNO} besplatne analize. Ako je plaćen Standard, Pro ili Paket, upiši email s kojim je plaćeno. Inače odaberi plan za daljnje analize: ${PLANOVI_URL}` };
-    }
-  }
-  if (!izvor && !ponovljeno) return json(porukaLimita.status, { error: porukaLimita.error });
 
-  // Broji analizu u limit i statistiku — poziva se tek kad je korak B uspješno završio.
+  // Analiza je isporučena (cijena uspjela): označi je (jedinica ostaje potrošena) i zabilježi statistiku, jednom po analizi.
   async function zabiljeziUspjeh() {
-    // Paralelni poziv istog zahtjeva (F5 dok je prvi još trajao) koji je već izbrojan
-    // također se ne broji ponovo.
-    let izbrojati = !ponovljeno;
-    if (izbrojati && zahtjevi) {
-      const zapis = await procitajZahtjev(zahtjevi, zahtjevPrefix);
-      if (jePonavljanje(zapis, tekstHash)) {
-        izbrojati = false;
-        await zapisiZahtjev(zahtjevi, zapis.key, { h: zapis.h, d: (zapis.d || 0) + 1 });
-      } else {
-        await zapisiZahtjev(zahtjevi, zahtjevPrefix + Date.now(), { h: tekstHash, d: 0 });
-      }
-    }
-
-    if (izbrojati) {
-      if (izvor === 'paket') {
-        await potrosiKredit(kreditKey);
-      } else if (izvor === 'standard' || izvor === 'free') {
-        await store.set(quotaKey, String(trenutnoIskoristeno + 1));
-      }
-      await incrementStats(source, izvor);
-    }
+    const oznaceno = await azurirajCas(procjene, analizaKey, (v) => {
+      const z = JSON.parse(v || '{}');
+      return z.z ? undefined : { nova: JSON.stringify({ ...z, z: true }), rezultat: z.i };
+    });
+    if (oznaceno.ok) await incrementStats(source, oznaceno.rezultat);
   }
 
   const opisPodataka = (p) => [
@@ -574,10 +652,9 @@ export default async (req, context) => {
   const logObrade = (naziv, v) => { if (v.ok && v.obrada && v.obrada.length) console.log(`Jezična obrada (${naziv}):`, JSON.stringify(v.obrada)); };
   const logTrajanje = (naziv) => console.log(`Trajanje poziva: ${naziv} ${Date.now() - pocetak} ms; izlazni tokeni: ${trajanja[`${naziv}Tokeni`] ?? '-'}.`);
 
-  const procjene = getStore('propiq-procjene');
-
-  // ── Korak A: slijepa procjena (poziv 1). Rezultat se sprema na poslužitelju pod nasumičnim ID-jem ──
+  // ── Korak A: slijepa procjena (poziv 1). Jedinica kvote je već rezervirana, a ID analize izdan (gore). ──
   if (korak === 'procjena') {
+    let isporuceno = false;
     try {
       // Pouzdanost ograničava kod prema referenci (kvart → visoka, grad → srednja, ništa → niska), što god model vratio.
       // Najam nema referentnog izvora pa mu kod uvijek postavlja pouzdanost (najviše srednja).
@@ -600,23 +677,27 @@ export default async (req, context) => {
       if (!procjena) {
         return json(502, { error: 'Procjena nije uspjela. Pokušaj ponovo — ova analiza se ne broji u limit.' });
       }
-      const id = crypto.randomBytes(16).toString('hex');
       try {
-        await zapisiBlob(procjene, `${id}:${Date.now()}`, { e: hashEmaila(email), h: tekstHash, p: procjena.procjena }, PROCJENE_CUVANJE_MS);
+        await azurirajCas(procjene, analizaKey, (v) => ({ nova: JSON.stringify({ ...JSON.parse(v || '{}'), p: procjena.procjena }), rezultat: true }));
       } catch (err) {
         console.error('Procjena nije spremljena:', err);
         return json(500, { error: 'Došlo je do greške pri spremanju procjene. Pokušaj ponovo — ova analiza se ne broji u limit.' });
       }
-      return json(200, { procjena_id: id, procjena: procjena.procjena });
+      isporuceno = true;
+      return json(200, { procjena_id: analizaId, procjena: procjena.procjena });
     } catch (err) {
       return greskaKoraka('procjena', err);
     } finally {
       clearTimeout(timeout);
+      if (!isporuceno) {
+        await vratiRezervaciju();
+        try { await procjene.delete(analizaKey); } catch (err) { console.error('Brisanje zapisa analize nije uspjelo:', err); }
+      }
     }
   }
 
-  // ── Korak "rizici": prednosti, rizici, pitanja, nedostajući podaci. Ne ovisi o procjeni pa ga klijent šalje odmah,
-  // istodobno s korakom A. Ne troši kvotu (broji je korak "cijena"); email i kvota provjereni su gore, kao za sve korake. ──
+  // ── Korak "rizici": prednosti, rizici, pitanja, nedostajući podaci. Traži važeći ID analize (izdan u koraku procjena),
+  // a klijent ga šalje istodobno s korakom "cijena". Ne troši kvotu: jedinica je rezervirana u koraku procjena. ──
   if (korak === 'rizici') {
     try {
       const v = await izvrsi('rizici', pozivRizika, (tekst) => { const r = parsirajIValidirajDio('rizici', tekst, podaci, null, { oglas: oglasTekst, popravi: true }); logObrade('rizici', r); return r; }, MIN_ZA_ANALIZU_MS);
@@ -633,35 +714,27 @@ export default async (req, context) => {
   }
 
   // ── Korak "cijena": sažetak, preporuka, aduti (poziv 2). Procjenu čita iz Blobsa — klijentu se ne vjeruje ──
-  // Nepoznat i tuđi ID daju isti odgovor (404), da se ID-jevi ne mogu provjeravati.
+  let isporuceno = false;
   try {
-    const zapis = await procitajZahtjev(procjene, `${procjenaId}:`);
-    if (!zapis || zapis.e !== hashEmaila(email)) {
-      return json(404, { error: 'Procjena nije pronađena. Pokreni analizu ponovo.' });
-    }
-    if (Date.now() - zapis.t >= PROCJENE_CUVANJE_MS) {
-      return json(410, { error: 'Procjena je istekla. Pokreni analizu ponovo.' });
-    }
-    if (zapis.h !== tekstHash) {
-      return json(400, { error: 'Procjena ne pripada ovom oglasu. Pokreni analizu ponovo.' });
-    }
     const v = await izvrsi('cijena', () => pozivCijene(zapis.p), (tekst) => { const v = parsirajIValidirajDio('cijena', tekst, podaci, zapis.p, { oglas: oglasTekst, popravi: true }); logObrade('cijena', v); return v; }, MIN_ZA_ANALIZU_MS);
     logTrajanje('cijena');
     if (!v) {
       return json(502, { error: 'Analiza nije uspjela složiti izvještaj. Pokušaj ponovo — ova analiza se ne broji u limit.' });
     }
     const rezultat = { analiza: v.analiza, izracuni: izracunaj(v.analiza), uneseno: podaci, referenca: referencaZaKlijenta(referenca), bez_poreza_na_promet: RE_BEZ_POREZA.test(oglasTekst) };
-    // Kvota se broji ovdje, kad je uspio dio s cijenom i preporukom (srž izvještaja); dio s rizicima je dopuna.
+    // Jedinica je rezervirana još u koraku procjena; ovdje se analiza samo označava isporučenom (i broji u statistiku).
     // Greška pri bilježenju (npr. Blobs) ne smije poništiti analizu koju je korisnik već dobio.
     try {
       await zabiljeziUspjeh();
     } catch (err) {
       console.error('Bilježenje uspješne analize nije uspjelo:', err);
     }
+    isporuceno = true;
     return json(200, { rezultat, mjerenje: { ms: Date.now() - pocetak, izlazni_tokeni: trajanja.cijenaTokeni ?? null } });
   } catch (err) {
     return greskaKoraka('cijena', err);
   } finally {
     clearTimeout(timeout);
+    if (!isporuceno) await vratiRezervaciju();
   }
 };

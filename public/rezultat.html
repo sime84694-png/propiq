@@ -691,6 +691,7 @@
       try {
         sessionStorage.removeItem('propiq_analiza_data');
         sessionStorage.removeItem('propiq_analiza_rezultat');
+        sessionStorage.removeItem('propiq_analiza_id');
       } catch {}
     });
 
@@ -1088,6 +1089,24 @@
       }
     }
 
+    // ID analize koji je izdao poslužitelj, vezan uz request_id forme (da F5 ne troši novu jedinicu limita).
+    function procitajSpremljeniId(requestId) {
+      if (!requestId) return null;
+      try {
+        const sp = JSON.parse(sessionStorage.getItem('propiq_analiza_id') || 'null');
+        return sp && sp.request_id === requestId && typeof sp.id === 'string' ? sp.id : null;
+      } catch {
+        return null;
+      }
+    }
+    function spremiId(requestId, id) {
+      if (!requestId) return;
+      try {
+        if (id) sessionStorage.setItem('propiq_analiza_id', JSON.stringify({ request_id: requestId, id }));
+        else sessionStorage.removeItem('propiq_analiza_id');
+      } catch {}
+    }
+
     async function loadAnaliza() {
       let raw;
       try {
@@ -1124,37 +1143,41 @@
       }
 
       try {
-        // Rizici (B2) ne ovise o procjeni: kreću odmah, istodobno s procjenom (A). Svaki dio ima vlastito ponavljanje.
+        // Zahtjev A: slijepa procjena. Poslužitelj rezervira jedinicu limita, izdaje ID analize i sprema procjenu.
+        // ID se pamti u sessionStorageu: F5 dok analiza traje nastavlja s istim ID-jem (bez nove rezervacije).
         loadingTekstEl.textContent = FAZE.procjena;
-        const rizikaZahtjev = izvrsiKorak({ ...data, korak: 'rizici' });
-        // Zahtjev A: slijepa procjena. Poslužitelj je sprema i vraća ID.
-        const a = await izvrsiKorak({ ...data, korak: 'procjena' });
-        if (!a.ok || !a.payload.procjena_id) {
-          console.error('Korak A nije uspio:', a.status, Object.keys(a.payload));
-          showError(porukaGreskeKoraka(a), a.status === 403);
-          return;
+        let procjenaId = procitajSpremljeniId(data.request_id);
+        if (!procjenaId) {
+          const a = await izvrsiKorak({ ...data, korak: 'procjena' });
+          if (!a.ok || !a.payload.procjena_id) {
+            console.error('Korak A nije uspio:', a.status, Object.keys(a.payload));
+            showError(porukaGreskeKoraka(a), a.status === 403);
+            return;
+          }
+          procjenaId = a.payload.procjena_id;
+          spremiId(data.request_id, procjenaId);
         }
 
-        // Zahtjev B1: preporuka na temelju spremljene procjene. Limit se troši tek kad B1 uspije.
+        // Rizici (B2) i preporuka (B1) traže ID analize pa kreću tek sad, istodobno. Svaki ima jedno ponavljanje.
         loadingTekstEl.textContent = FAZE.cijena;
-        const b = await izvrsiKorak({ ...data, korak: 'cijena', procjena_id: a.payload.procjena_id });
+        const rizikaZahtjev = izvrsiKorak({ ...data, korak: 'rizici', procjena_id: procjenaId });
+        const b = await izvrsiKorak({ ...data, korak: 'cijena', procjena_id: procjenaId });
         const rezultat = b.payload.rezultat;
         if (!b.ok || !jeRezultat(rezultat)) {
           console.error('Korak B1 nije uspio:', b.status, Object.keys(b.payload));
+          // Istekao ili nepoznat ID: spremljeni ID više ne vrijedi, sljedeći pokušaj kreće ispočetka.
+          if (b.status === 404 || b.status === 410) spremiId(data.request_id, null);
           showError(porukaGreskeKoraka(b), b.status === 403);
           return;
         }
         loadingTekstEl.textContent = FAZE.rizici;
         const r = await rizikaZahtjev;
         const analiza = rezultat;
+        // Rizici su dopuna: ako nisu stigli ni nakon ponavljanja, kartica to kaže. Ponovni ručni pokušaj nema smisla
+        // jer poslužitelj za isti ID prima najviše dva poziva po koraku.
         rizikaNedostaju = !spojiRizike(analiza, r);
         if (rizikaNedostaju) {
           console.error('Dio s rizicima nije stigao:', r.status, Object.keys(r.payload));
-          ponoviRizike = async () => {
-            const ponovno = await izvrsiKorak({ ...data, korak: 'rizici' });
-            rizikaNedostaju = !spojiRizike(analiza, ponovno);
-            prikaziAnalizu(analiza);
-          };
         }
 
         try {
