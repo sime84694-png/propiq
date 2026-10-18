@@ -298,30 +298,35 @@ test('izvrsiKorak: 4xx (limit, istekla procjena) se ne ponavlja', async () => {
   }
 });
 
-test('rezultat.html: rizici kreću odmah s procjenom (A), preporuka (B1) nakon A s ID-jem iz A, nema više SSE čitanja', () => {
+test('rezultat.html: procjena (A) prva, pa rizici i preporuka (B1) istodobno s ID-jem analize iz A, nema više SSE čitanja', () => {
   assert.ok(!/text\/event-stream|procitajDogadjaje/.test(skripta));
-  assert.match(skripta, /rizikaZahtjev = izvrsiKorak\(\{ \.\.\.data, korak: 'rizici' \}\)[\s\S]*korak: 'procjena'[\s\S]*FAZE\.cijena[\s\S]*korak: 'cijena', procjena_id: a\.payload\.procjena_id[\s\S]*FAZE\.rizici/);
+  assert.match(skripta, /korak: 'procjena'[\s\S]*FAZE\.cijena[\s\S]*rizikaZahtjev = izvrsiKorak\(\{ \.\.\.data, korak: 'rizici', procjena_id: procjenaId \}\)[\s\S]*korak: 'cijena', procjena_id: procjenaId[\s\S]*FAZE\.rizici/);
 });
 
 // ── Tok iz forme u 2 koraka → rezultat.html (loadAnaliza): podaci iz sessionStoragea i mapiranje grešaka ──
 // odgovori: { rizici: [...], procjena: [...], cijena: [...] } — odgovor se bira prema koraku zahtjeva (dijelovi idu istodobno).
-const pokreniLoadAnaliza = async (spremljeno, odgovori) => {
-  const poruke = [], zahtjevi = [], prikazano = [];
+const pokreniLoadAnaliza = async (spremljeno, odgovori, spremljeniId = null) => {
+  const poruke = [], zahtjevi = [], prikazano = [], pohrana = {};
+  if (spremljeniId) pohrana.propiq_analiza_id = JSON.stringify(spremljeniId);
   const el = () => ({ style: {}, classList: { add() {}, remove() {}, toggle() {} }, textContent: '' });
   const elementi = {};
   const lazniDoc = { getElementById: (id) => (elementi[id] ??= el()) };
   const lazniFetch = async (url, opts) => { const z = JSON.parse(opts.body); zahtjevi.push(z); return odgovori[z.korak].shift(); };
   const kod = skripta.match(/const FAZE = .*\n/)[0] + skripta.match(/const PONOVNO_TEKST[\s\S]*?\n    }\n/)[0]
-    + 'let rizikaNedostaju = false; let ponoviRizike = null;\n'
+    + 'let rizikaNedostaju = false;\n'
+    + skripta.match(/function procitajSpremljeniId[\s\S]*?\n    }\n    function spremiId[\s\S]*?\n    }\n/)[0]
     + skripta.match(/function spojiRizike[\s\S]*?\n    }\n/)[0]
     + skripta.match(/const GRESKA_VEZE[\s\S]*?function procitajSpremljeniRezultat/)[0].replace(/function procitajSpremljeniRezultat$/, '')
     + skripta.slice(skripta.indexOf('async function loadAnaliza'), skripta.indexOf('loadAnaliza();\n'));
   const f = new Function('fetch', 'document', 'sessionStorage', 'loadingTekstEl', 'showError', 'procitajSpremljeniRezultat', 'prikaziAnalizu', 'hide', 'loadingEl', 'analizaEl',
-    `${kod}; return { loadAnaliza, stanje: () => ({ rizikaNedostaju, ponoviRizike }) };`);
-  const { loadAnaliza, stanje } = f(lazniFetch, lazniDoc, { getItem: () => JSON.stringify(spremljeno), setItem() {}, removeItem() {} }, { textContent: '' },
+    `${kod}; return { loadAnaliza, stanje: () => ({ rizikaNedostaju }) };`);
+  const { loadAnaliza, stanje } = f(lazniFetch, lazniDoc, {
+      getItem: (k) => (k === 'propiq_analiza_data' ? JSON.stringify(spremljeno) : pohrana[k] ?? null),
+      setItem: (k, v) => { pohrana[k] = v; }, removeItem: (k) => { delete pohrana[k]; },
+    }, { textContent: '' },
     (m) => poruke.push(m), () => null, (r) => prikazano.push(JSON.parse(JSON.stringify(r))), () => {}, {}, {});
   await loadAnaliza();
-  return { poruke, zahtjevi, prikazano, stanje };
+  return { poruke, zahtjevi, prikazano, stanje, pohrana };
 };
 const spremljenoIzForme = {
   email: 'sime@primjer.hr', oglas_tekst: 'Stan 130,45 m2, Središće', podaci: { cijena_eur: 694896, grad: 'Zagreb', kvart: 'Središće' },
@@ -330,15 +335,16 @@ const spremljenoIzForme = {
 const RIZICI_OK = { rizici: { prednosti: ['P'], rizici: [{ naslov: 'R', opis: 'O', razina: 'nizak' }], pitanja_prodavatelju: ['Q?'], nedostajuci_podaci: ['N'] } };
 const REZULTAT_B1 = () => ({ rezultat: { analiza: { naslov: 'N', prednosti: [], rizici: [], pregovaranje: { aduti: ['A'], pitanja_prodavatelju: [] }, nedostajuci_podaci: [] }, izracuni: {} } });
 
-test('tok forme u 2 koraka: rizici kreću odmah s A, B1 nakon A; svi dobivaju email, ključne podatke i request_id; nema ime/agencija/undefined', async () => {
+test('tok forme: A prvi, pa rizici i B1 s ID-jem analize; svi dobivaju email, ključne podatke i request_id; nema ime/agencija/undefined', async () => {
   const { zahtjevi, prikazano, stanje } = await pokreniLoadAnaliza(spremljenoIzForme, {
     rizici: [jsonOdgovor(200, RIZICI_OK)],
     procjena: [jsonOdgovor(200, { procjena_id: 'p1', procjena: {} })],
     cijena: [jsonOdgovor(200, REZULTAT_B1())],
   });
-  assert.deepEqual(zahtjevi.map((z) => z.korak), ['rizici', 'procjena', 'cijena'], 'rizici i procjena kreću zajedno, preporuka tek nakon procjene');
+  assert.deepEqual(zahtjevi.map((z) => z.korak), ['procjena', 'rizici', 'cijena'], 'rizici i preporuka traže ID koji izdaje procjena, pa kreću tek nakon nje');
+  assert.ok(!('procjena_id' in zahtjevi[0]), 'procjena ne šalje ID, izdaje ga poslužitelj');
+  assert.equal(zahtjevi[1].procjena_id, 'p1');
   assert.equal(zahtjevi[2].procjena_id, 'p1');
-  assert.ok(!('procjena_id' in zahtjevi[0]), 'rizici ne ovise o procjeni');
   for (const z of zahtjevi) {
     assert.equal(z.email, 'sime@primjer.hr');
     assert.deepEqual(z.podaci, { cijena_eur: 694896, grad: 'Zagreb', kvart: 'Središće' });
@@ -375,9 +381,9 @@ test('rizici padnu, pa uspiju iz ponavljanja: potpun izvještaj', async () => {
   assert.deepEqual(prikazano[0].analiza.prednosti, ['P']);
 });
 
-test('rizici padnu i nakon ponavljanja: prikazuje se što je stiglo (preporuka), uz oznaku da dio nedostaje i ponudu ponovnog pokušaja', async () => {
-  const { prikazano, stanje, poruke } = await pokreniLoadAnaliza(spremljenoIzForme, {
-    rizici: [jsonOdgovor(502, { error: 'x' }), jsonOdgovor(502, { error: 'x' }), jsonOdgovor(200, RIZICI_OK)],
+test('rizici padnu i nakon ponavljanja: prikazuje se što je stiglo (preporuka), uz oznaku da dio nedostaje; bez trećeg poziva', async () => {
+  const { prikazano, stanje, poruke, zahtjevi } = await pokreniLoadAnaliza(spremljenoIzForme, {
+    rizici: [jsonOdgovor(502, { error: 'x' }), jsonOdgovor(502, { error: 'x' })],
     procjena: [jsonOdgovor(200, { procjena_id: 'p1', procjena: {} })],
     cijena: [jsonOdgovor(200, REZULTAT_B1())],
   });
@@ -385,11 +391,34 @@ test('rizici padnu i nakon ponavljanja: prikazuje se što je stiglo (preporuka),
   assert.equal(prikazano.length, 1);
   assert.deepEqual(prikazano[0].analiza.rizici, []);
   assert.equal(stanje().rizikaNedostaju, true);
-  assert.equal(typeof stanje().ponoviRizike, 'function');
-  await stanje().ponoviRizike();
-  assert.equal(stanje().rizikaNedostaju, false);
-  assert.equal(prikazano.length, 2, 'nakon ponovnog pokušaja izvještaj se ponovno prikazuje s rizicima');
-  assert.deepEqual(prikazano[1].analiza.rizici.map((r) => r.naslov), ['R']);
+  assert.equal(zahtjevi.filter((z) => z.korak === 'rizici').length, 2, 'poslužitelj prima najviše dva poziva po koraku za isti ID');
+});
+
+test('F5 dok analiza traje: spremljeni ID analize se nastavlja, procjena se ne šalje ponovo (nema nove rezervacije)', async () => {
+  const { zahtjevi, prikazano } = await pokreniLoadAnaliza(spremljenoIzForme, {
+    rizici: [jsonOdgovor(200, RIZICI_OK)],
+    cijena: [jsonOdgovor(200, REZULTAT_B1())],
+  }, { request_id: 'r-1', id: 'a'.repeat(32) });
+  assert.deepEqual(zahtjevi.map((z) => z.korak), ['rizici', 'cijena']);
+  assert.ok(zahtjevi.every((z) => z.procjena_id === 'a'.repeat(32)));
+  assert.equal(prikazano.length, 1);
+});
+
+test('ID analize se sprema nakon procjene; istekao ili nepoznat ID (404/410) se briše da sljedeći pokušaj krene ispočetka', async () => {
+  const uspjeh = await pokreniLoadAnaliza(spremljenoIzForme, {
+    rizici: [jsonOdgovor(200, RIZICI_OK)],
+    procjena: [jsonOdgovor(200, { procjena_id: 'p1', procjena: {} })],
+    cijena: [jsonOdgovor(200, REZULTAT_B1())],
+  });
+  assert.deepEqual(JSON.parse(uspjeh.pohrana.propiq_analiza_id), { request_id: 'r-1', id: 'p1' });
+  for (const status of [404, 410]) {
+    const r = await pokreniLoadAnaliza(spremljenoIzForme, {
+      rizici: [jsonOdgovor(404, { error: 'x' })],
+      cijena: [jsonOdgovor(status, { error: 'Procjena je istekla.' })],
+    }, { request_id: 'r-1', id: 'b'.repeat(32) });
+    assert.ok(!('propiq_analiza_id' in r.pohrana), String(status));
+    assert.equal(r.poruke.length, 1);
+  }
 });
 
 test('porukaGreskeKoraka: poslužiteljeva poruka, prekid veze, 5xx bez JSON-a, 4xx i nepotpun odgovor', () => {

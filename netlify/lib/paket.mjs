@@ -7,6 +7,7 @@
 import { getStore } from '@netlify/blobs';
 import cjenik from './cjenik.js';
 import stripePlan from './stripe-plan.js';
+import { azurirajCas, jakiStore } from './zastita.mjs';
 
 const { PRICE_PAKET, LIMITI } = cjenik;
 const DAN_MS = 24 * 60 * 60 * 1000;
@@ -30,12 +31,24 @@ export async function krediti(hashEmaila) {
   return { aktivni, ikadaKupljen: svi.length > 0 };
 }
 
-// Oduzima jednu analizu od zadanog kredita (poziva se tek nakon uspješnog koraka B).
-export async function potrosiKredit(key) {
-  const s = store();
-  const z = JSON.parse((await s.get(key)) || '{}');
-  if (!(z.preostalo > 0)) return;
-  await s.set(key, JSON.stringify({ ...z, preostalo: z.preostalo - 1 }));
+// Rezervira jednu analizu iz zadanog kredita (atomično: dva istovremena zahtjeva ne mogu potrošiti istu zadnju analizu).
+// Vraća true ako je rezervirano; false ako je kredit potrošen ili istekao.
+export async function rezervirajKredit(key) {
+  const r = await azurirajCas(jakiStore('propiq-paketi'), key, (v) => {
+    const z = JSON.parse(v || '{}');
+    if (!(z.preostalo > 0) || !(z.istek > Date.now())) return undefined;
+    return { nova: JSON.stringify({ ...z, preostalo: z.preostalo - 1 }), rezultat: true };
+  });
+  return r.ok;
+}
+
+// Vraća rezerviranu analizu u kredit (analiza nije isporučena).
+export async function vratiKredit(key) {
+  await azurirajCas(jakiStore('propiq-paketi'), key, (v) => {
+    if (!v) return undefined;
+    const z = JSON.parse(v);
+    return { nova: JSON.stringify({ ...z, preostalo: (z.preostalo || 0) + 1 }), rezultat: true };
+  });
 }
 
 const maskiraj = (email) => email.replace(/^(.).*(@.*)$/, '$1***$2');
