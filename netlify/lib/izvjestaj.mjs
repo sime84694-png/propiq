@@ -4,6 +4,7 @@
 import izracuni from '../../public/assets/js/izracuni.js';
 import { obradiTekst, provjeriOmjere, provjeriPonudu, recenice } from './jezik.mjs';
 import { provjeriSazetak, omjerCijene, prvaRecenicaSazetka, iznosiIzOglasa, sazetakIzKoda } from './sazetak.mjs';
+import { CINJENICE_SHEMA, skupiCinjenice, korekcijeIzCinjenica } from './korekcije.mjs';
 
 export { cinjeniceSazetka, omjerCijene, prvaRecenicaSazetka, tekstCinjenicaSazetka, provjeriSazetak } from './sazetak.mjs';
 
@@ -42,29 +43,17 @@ const NAJAM_SHEMA = {
   properties: { dugorocni_mj_eur: brojIliNull, turisticki_godisnje_eur: brojIliNull },
 };
 
-// Poziv 1 (slijepa procjena) kad POSTOJI usklađeni medijan: model vraća samo korekcije u postocima i pouzdanost;
-// raspon (€/m² i ukupni €) i tekst obrazloženja računa kod (izracunajFer). Model NE vraća min_eur/max_eur.
+// Poziv 1 (slijepa procjena) kad POSTOJI usklađeni medijan: model vraća samo ČINJENICE iz oglasa (lift, kat, parking...) uz
+// doslovne citate. Postotke korekcija određuje kod iz tablice (korekcije.mjs), pouzdanost proizlazi iz razine reference, a raspon
+// (€/m² i ukupni €) i tekst obrazloženja računa izracunajFer. Model NE vraća postotke, pouzdanost ni min_eur/max_eur.
 export const { FER } = izracuni;
-const MAX_IZVOR = 80;
 export const TOOL_PROCJENA = {
   name: TOOL_PROCJENA_NAME,
-  description: 'Korekcije usklađenog medijana za ovu nekretninu, pouzdanost i najam. Raspon vrijednosti računa sustav.',
+  description: 'Činjenice iz oglasa (lift, kat, parking, stanje...) uz doslovne citate, površina i najam. Korekcije i raspon vrijednosti računa sustav.',
   input_schema: {
-    type: 'object', additionalProperties: false, required: ['korekcije', 'pouzdanost', 'povrsina_m2', 'najam'],
+    type: 'object', additionalProperties: false, required: ['cinjenice', 'povrsina_m2', 'najam'],
     properties: {
-      korekcije: {
-        type: 'array', maxItems: FER.MAX_STAVKI,
-        description: `Najviše ${FER.MAX_STAVKI} korekcija usklađenog medijana (€/m²) za ovu nekretninu; svaka je zaseban čimbenik.`,
-        items: {
-          type: 'object', additionalProperties: false, required: ['razlog', 'postotak', 'izvor'],
-          properties: {
-            razlog: { type: 'string', maxLength: FER.MAX_RAZLOG, description: `Najviše ${FER.CILJ_RAZLOG} znakova (dulje se siječe na ${FER.MAX_RAZLOG}), npr. "starost zgrade ~46 god., energetski", "renovirano", "bez lifta".` },
-            izvor: { type: 'string', maxLength: MAX_IZVOR, description: `DOSLOVNI kratki citat iz teksta oglasa (do ${MAX_IZVOR} znakova) koji izričito navodi to svojstvo, ili "forma: <polje>" (lift, parking, kat, godina_gradnje, povrsina_m2) za podatak iz forme. Korekcija bez izvora odbacuje se.` },
-            postotak: { type: 'integer', minimum: -FER.MAX_KOREKCIJA, maximum: FER.MAX_KOREKCIJA, description: `Cijeli broj postotaka, −${FER.MAX_KOREKCIJA}…+${FER.MAX_KOREKCIJA}; negativan snižava, pozitivan povećava €/m².` },
-          },
-        },
-      },
-      pouzdanost: { type: 'string', enum: POUZDANOSTI },
+      cinjenice: CINJENICE_SHEMA,
       povrsina_m2: { type: ['number', 'null'], description: 'Stambena površina u m² prepisana iz oglasa/podataka; null ako nije navedena. Ne računaj ništa.' },
       najam: NAJAM_SHEMA,
     },
@@ -422,14 +411,16 @@ export function validirajAnalizu(ulaz, { slozi = false, popravi = false, oglas =
 }
 
 // Rezultat poziva 1 (slijepa procjena): { ok: true, procjena: { fer_vrijednost, najam } } ili { ok: false, razlog }.
-// kontekst.medijan_eur_m2 (usklađeni medijan grada): ako postoji, model je vratio korekcije i raspon računa kod;
+// kontekst.medijan_eur_m2 (usklađeni medijan grada): ako postoji, model je vratio činjenice, korekcije daje tablica i raspon računa kod;
 // ako ne, model je sam dao ukupni raspon (raniji oblik) i rezultat se označava bez_reference.
 // kontekst.povrsina_m2: površina iz forme (ima prednost pred onom koju je model prepisao iz oglasa).
-// kontekst.najvisaPouzdanost: gornja granica pouzdanosti prema referenci (utječe na širinu raspona).
-// kontekst.bezLokacije (polazište je medijan k.o.): korekcije za lokaciju/kvart odbacuju se u kodu (rezultat.odbaceno);
+// kontekst.najvisaPouzdanost: pouzdanost procjene = najviša dopuštena za razinu reference (određuje širinu raspona); bez nje "niska".
+// kontekst.bezLokacije (polazište je medijan k.o. ili grada): sigurnosna mreža, korekcije lokacije/kvarta odbacuju se (rezultat.odbaceno);
 // kontekst.lokacijaRijeci: imena kvarta/k.o./grada čije spominjanje u razlogu znači korekciju lokacije.
+// kontekst.sada: trenutak za starost zgrade i obnove (zadano: sada).
 // kontekst.napomena: zašto nije korišten medijan k.o. (ulazi u obrazloženje).
-// kontekst.izvori { oglas, podaci }: ako je zadan, korekcija bez izvora (citat iz oglasa / polje forme) odbacuje se (rezultat.odbaceno).
+// kontekst.izvori { oglas, podaci }: tekst oglasa (bez cijena) i polja forme; činjenica bez citata u oglasu i bez polja forme je "nepoznato" (rezultat.odbaceno).
+// rezultat.cinjenice: konačne činjenice s izvorom (forma/kod/model), za dijagnostiku u logu.
 export function parsirajIValidirajProcjenu(jsonTekst, kontekst = {}) {
   let obj;
   try {
@@ -445,38 +436,14 @@ export function parsirajIValidirajProcjenu(jsonTekst, kontekst = {}) {
       return { ok: true, procjena: { fer_vrijednost: { ...validirajFer(obj.fer_vrijednost, obrada), bez_reference: true }, najam }, obrada };
     }
     const odbaceno = [];
-    const fer = izracunajIzKorekcija(obj, kontekst, odbaceno, obrada);
-    return { ok: true, procjena: { fer_vrijednost: fer, najam }, obrada, ...(odbaceno.length ? { odbaceno } : {}) };
+    const rezultat = {};
+    const fer = izracunajIzCinjenica(obj, kontekst, odbaceno, rezultat);
+    return { ok: true, procjena: { fer_vrijednost: fer, najam }, obrada, cinjenice: rezultat.cinjenice, ...(odbaceno.length ? { odbaceno } : {}) };
   } catch (err) {
     // sirovo: što je model stvarno vratio (za dijagnostiku u logu, nikad klijentu).
-    if (err instanceof NevaljanOdgovor) return { ok: false, razlog: err.message, sirovo: jeObjekt(obj) ? (obj.korekcije ?? obj.fer_vrijednost) : obj };
+    if (err instanceof NevaljanOdgovor) return { ok: false, razlog: err.message, sirovo: jeObjekt(obj) ? (obj.cinjenice ?? obj.fer_vrijednost) : obj };
     throw err;
   }
-}
-
-// ── izvor korekcije: svaka korekcija mora se temeljiti na tekstu oglasa ili polju forme ──
-// Model ne smije izmisliti svojstvo (lift, parking, renovacija...) koje oglas ne navodi. Zato svaka stavka nosi "izvor":
-// doslovni citat iz oglasa (provjerava se da stvarno stoji u tekstu) ili "forma: <polje>" (provjerava se da je polje upisano).
-// Uz to, za teme sklone izmišljanju razlog i izvor moraju govoriti o istome (npr. "namješten, useljiv" nije izvor za "renovirano").
-const POLJA_FORME = [[/\bgodin/, 'godina_gradnje'], [/\bpovrsin/, 'povrsina_m2'], [/\blift/, 'lift'], [/\bparking/, 'parking'], [/\bkat\b/, 'kat'], [/\bkvart/, 'kvart'], [/\bgrad\b/, 'grad']];
-const TEME_KOREKCIJA = [
-  { razlog: /lift|dizal/, oglas: /lift|dizal/, polje: 'lift' },
-  { razlog: /parking|parkir|garaz/, oglas: /parking|parkir|garaz/, polje: 'parking' },
-  { razlog: /renov|obnov|adapt|preured|sanir|rekonstru|novouredj/, oglas: /renov|obnov|adapt|preured|sanir|rekonstru|novouredj/, polje: null },
-  { razlog: /energet/, oglas: /energet/, polje: null },
-  { razlog: /instalacij|vodovod|elektro/, oglas: /instalacij|vodovod|elektro|struj/, polje: null },
-];
-export function provjeriIzvorKorekcije(k, { oglas = '', podaci = {} } = {}) {
-  if (!jeObjekt(k) || typeof k.razlog !== 'string') return true; // oblik provjerava ocistiKorekcije
-  const izvor = typeof k.izvor === 'string' ? norm(k.izvor) : '';
-  if (izvor.length < 3) return false;
-  const teme = TEME_KOREKCIJA.filter((t) => t.razlog.test(norm(k.razlog)));
-  if (/^forma\b/.test(izvor)) {
-    const polje = (POLJA_FORME.find(([re]) => re.test(izvor.replace(/^forma\s*/, ''))) || [])[1];
-    return !!polje && polje in podaci && teme.every((t) => t.polje === polje);
-  }
-  if (!` ${norm(oglas)} `.includes(` ${izvor} `)) return false;
-  return teme.every((t) => t.oglas.test(izvor));
 }
 
 // ── korekcija za lokaciju kad je polazište medijan k.o. (lokacija je već u njemu) ──
@@ -495,30 +462,28 @@ export function jeKorekcijaLokacije(razlog, rijeci = []) {
     : rijeciRazloga.some((w) => w === r || (r.length >= 5 && w.startsWith(r.slice(0, -1))))));
 }
 
-function izracunajIzKorekcija(obj, { medijan_eur_m2, povrsina_m2 = null, najvisaPouzdanost = null, naziv = null, napomena = null, bezLokacije = false, lokacijaRijeci = [], izvori = null }, odbaceno = [], obrada = []) {
-  if (!POUZDANOSTI.includes(obj.pouzdanost)) ne(`pouzdanost: nedopuštena vrijednost (${vrsta(obj.pouzdanost)})`);
-  let kor = obj.korekcije;
-  if (typeof kor === 'string') { try { kor = JSON.parse(kor); } catch { /* ostaje tekst: pada ispod */ } }
-  if (!Array.isArray(kor)) ne(`korekcije: očekivan popis, stigao ${vrsta(kor)}`);
-  // Kad su poznati izvori (oglas, polja forme), korekcija bez provjerljivog izvora se odbacuje prije čišćenja (ono briše polje "izvor").
-  if (izvori && Array.isArray(kor)) {
-    const bezIzvora = kor.filter((k) => !provjeriIzvorKorekcije(k, izvori));
-    odbaceno.push(...bezIzvora.map((k) => ({ razlog: k.razlog, postotak: k.postotak, uzrok: 'bez izvora u oglasu ili formi' })));
-    kor = kor.filter((k) => !bezIzvora.includes(k));
-  }
-  if (Array.isArray(kor)) kor = kor.map((k) => (jeObjekt(k) && typeof k.razlog === 'string' ? { ...k, razlog: obradiTekst(k.razlog, 'korekcija.razlog', obrada) } : k));
-  let ociscene = izracuni.ocistiKorekcije(kor);
-  if (ociscene === null) ne('korekcije: svaka stavka mora imati razlog (tekst) i postotak (broj)');
-  if (bezLokacije) {
-    odbaceno.push(...ociscene.filter((k) => jeKorekcijaLokacije(k.razlog, lokacijaRijeci)));
-    ociscene = ociscene.filter((k) => !jeKorekcijaLokacije(k.razlog, lokacijaRijeci));
-  }
+// Raspon iz činjenica: činjenice skuplja kod (forma > kod > model uz citat), postotke daje tablica, pouzdanost je najviša
+// dopuštena za razinu reference (ne bira je model), a izracunajFer zbraja i ograničava na ±FER.MAX_ZBROJ.
+function izracunajIzCinjenica(obj, { medijan_eur_m2, povrsina_m2 = null, najvisaPouzdanost = null, naziv = null, napomena = null, bezLokacije = false, lokacijaRijeci = [], izvori = null, sada = new Date() }, odbaceno = [], rezultat = {}) {
+  const model = raspakiraj(obj.cinjenice);
+  if (!jeObjekt(model)) ne(`cinjenice: očekivan objekt, stigao ${vrsta(model)}`);
+  const godina = danasZagreb(sada).godina;
   const modelPovrsina = broj(obj.povrsina_m2 ?? null, 'povrsina_m2', { strogoPozitivan: true, max: 100000 });
-  // Pouzdanost ograničena prema referenci prije računanja (širina raspona ovisi o njoj).
-  const idx = (p) => POUZDANOSTI.indexOf(p);
-  const pouzdanost = najvisaPouzdanost && idx(obj.pouzdanost) > idx(najvisaPouzdanost) ? najvisaPouzdanost : obj.pouzdanost;
-  const r = izracuni.izracunajFer({ medijan_eur_m2, korekcije: ociscene, pouzdanost, povrsina_m2: povrsina_m2 ?? modelPovrsina, naziv, napomena });
+  const { cinjenice, odbaceno: odbaceneCinjenice } = skupiCinjenice({
+    model, oglas: izvori ? izvori.oglas : '', podaci: { ...(izvori ? izvori.podaci : {}), ...(povrsina_m2 > 0 ? { povrsina_m2 } : {}) }, godina, povrsinaModel: modelPovrsina,
+  });
+  odbaceno.push(...odbaceneCinjenice);
+  let korekcije = korekcijeIzCinjenica(cinjenice, { godina });
+  // Sigurnosna mreža: tablica nema pravila za lokaciju, ali se ista provjera kao prije primjenjuje na svaku stavku.
+  if (bezLokacije) {
+    odbaceno.push(...korekcije.filter((k) => jeKorekcijaLokacije(k.razlog, lokacijaRijeci)));
+    korekcije = korekcije.filter((k) => !jeKorekcijaLokacije(k.razlog, lokacijaRijeci));
+  }
+  const pouzdanost = najvisaPouzdanost || 'niska';
+  if (!POUZDANOSTI.includes(pouzdanost)) ne(`pouzdanost: nedopuštena vrijednost (${vrsta(pouzdanost)})`);
+  const r = izracuni.izracunajFer({ medijan_eur_m2, korekcije, pouzdanost, povrsina_m2: povrsina_m2 ?? modelPovrsina, naziv, napomena });
   if (!r) ne('fer_vrijednost: izračun nije moguć');
+  rezultat.cinjenice = cinjenice;
   return { min_eur: r.min_eur, max_eur: r.max_eur, pouzdanost, obrazlozenje: izracuni.obrazlozenjeFer(r.izracun), izracun: r.izracun };
 }
 

@@ -11,6 +11,10 @@ import {
 
 const { FER, izracunajFer, ocistiKorekcije, obrazlozenjeFer } = I;
 const najam = { dugorocni_mj_eur: 1400, turisticki_godisnje_eur: null };
+const SADA = new Date('2026-06-15T12:00:00Z'); // fiksno "danas": starost zgrade i obnove ne smiju ovisiti o satu testa
+const NEP = { vrijednost: 'nepoznato', citat: '' };
+const NULA = { vrijednost: null, citat: '' };
+const bezCinjenica = (promjene = {}) => ({ lift: NEP, kat: NULA, godina_gradnje: NULA, parking: NEP, stanje: NEP, energetski_razred: NEP, pogled_na_more: NEP, ...promjene });
 
 // Slučaj iz izvještaja o grešci: Zagreb, Središće, 130,45 m², usklađeni medijan 3312 €/m², zbroj +7%.
 const SREDISCE = [
@@ -47,13 +51,14 @@ test('isti popis korekcija uvijek daje isti raspon (deterministično, neovisno o
   const prvi = JSON.stringify(izracunajFer(ulaz()));
   for (let i = 0; i < 50; i++) assert.equal(JSON.stringify(izracunajFer(ulaz())), prvi);
   // i kroz cijeli put validacije (poziv 1)
-  const tijelo = JSON.stringify({ korekcije: SREDISCE, pouzdanost: 'srednja', povrsina_m2: 130.45, najam });
-  const kontekst = { medijan_eur_m2: 3312, naziv: 'Zagreb' };
+  const tijelo = JSON.stringify({ cinjenice: bezCinjenica(), povrsina_m2: 130.45, najam });
+  const kontekst = { medijan_eur_m2: 3312, povrsina_m2: 130.45, najvisaPouzdanost: 'srednja', naziv: 'Zagreb', sada: SADA };
   const a = parsirajIValidirajProcjenu(tijelo, kontekst);
   const b = parsirajIValidirajProcjenu(tijelo, kontekst);
   assert.equal(a.ok, true);
   assert.deepEqual(a, b);
-  assert.deepEqual([a.procjena.fer_vrijednost.min_eur, a.procjena.fer_vrijednost.max_eur], [430000, 495000]);
+  // 130,45 m² → −4 %: sredina 3180 €/m², raspon ±7 % = 2957–3403 €/m²
+  assert.deepEqual([a.procjena.fer_vrijednost.min_eur, a.procjena.fer_vrijednost.max_eur], [385000, 445000]);
 });
 
 test('pojedina korekcija je ograničena na −15…+15, cijela i s najviše 6 stavki', () => {
@@ -77,16 +82,17 @@ test('pojedina korekcija je ograničena na −15…+15, cijela i s najviše 6 st
   assert.deepEqual(ocistiKorekcije(o), o);
 });
 
-test('zbroj korekcija je ograničen na −30…+30', () => {
+test('zbroj korekcija je ograničen na −15…+15', () => {
   const sve = (p) => Array.from({ length: 6 }, (_, i) => ({ razlog: `k${i}`, postotak: p }));
-  const gore = izracunajFer(ulaz({ korekcije: sve(15) })).izracun; // zbroj 90 → 30
+  assert.equal(FER.MAX_ZBROJ, 15);
+  const gore = izracunajFer(ulaz({ korekcije: sve(15) })).izracun; // zbroj 90 → 15
   assert.equal(gore.zbroj_posto, 90);
-  assert.equal(gore.zbroj_primijenjen_posto, 30);
-  assert.equal(gore.sredina_m2, Math.round(3312 * 1.3));
+  assert.equal(gore.zbroj_primijenjen_posto, 15);
+  assert.equal(gore.sredina_m2, Math.round(3312 * 1.15));
   const dolje = izracunajFer(ulaz({ korekcije: sve(-15) })).izracun;
-  assert.equal(dolje.zbroj_primijenjen_posto, -30);
-  assert.equal(dolje.sredina_m2, Math.round(3312 * 0.7));
-  assert.match(obrazlozenjeFer(gore), /zbroj \+30% \(ograničen s \+90% na \+30%\)/);
+  assert.equal(dolje.zbroj_primijenjen_posto, -15);
+  assert.equal(dolje.sredina_m2, Math.round(3312 * 0.85));
+  assert.match(obrazlozenjeFer(gore), /zbroj \+15% \(ograničen s \+90% na \+15%\)/);
   assert.equal(izracunajFer(ulaz({ korekcije: [] })).izracun.sredina_m2, 3312, 'bez korekcija = medijan');
 });
 
@@ -120,7 +126,7 @@ test('obrazloženje se slaže iz istih brojeva: polazište → korekcije → zbr
   const r = izracunajFer(ulaz());
   assert.equal(obrazlozenjeFer(r.izracun),
     'Polazište: usklađeni medijan Zagreb 3.312 €/m². ' +
-    'Korekcije: +5% Središće, +8% renovacija, −5% parking, −3% veliki stan, +2% lift/kat; zbroj +7%. ' +
+    'Korekcije (pravila PropIQ-a): +5% Središće, +8% renovacija, −5% parking, −3% veliki stan, +2% lift/kat; zbroj +7%. ' +
     'Središnja 3.544 €/m², raspon ±7%: 3.296–3.792 €/m².');
   // brojke u tekstu su upravo one iz izračuna (min nikad iznad max)
   const brojevi = obrazlozenjeFer(r.izracun).match(/(\d\.\d{3})–(\d\.\d{3}) €\/m²/);
@@ -128,30 +134,37 @@ test('obrazloženje se slaže iz istih brojeva: polazište → korekcije → zbr
   assert.match(obrazlozenjeFer(izracunajFer(ulaz({ korekcije: [] })).izracun), /bez korekcija; zbroj 0%/);
 });
 
-test('poziv 1: model ne vraća raspon; kod ga računa, površina iz forme ima prednost, pouzdanost je ograničena referencom', () => {
-  const tijelo = (promjene = {}) => JSON.stringify({ korekcije: SREDISCE, pouzdanost: 'visoka', povrsina_m2: 100, najam, ...promjene });
-  // površina iz forme (130,45) pobjeđuje onu koju je model prepisao (100)
-  const a = parsirajIValidirajProcjenu(tijelo(), { medijan_eur_m2: 3312, povrsina_m2: 130.45, najvisaPouzdanost: 'srednja', naziv: 'Zagreb' });
+test('poziv 1: model vraća samo činjenice; kod računa korekcije i raspon, površina iz forme ima prednost, pouzdanost je iz reference', () => {
+  const OGLAS = 'Stan 100 m2, izgrađen 2024., bez lifta, 5. kat.';
+  const tijelo = (promjene = {}) => JSON.stringify({ cinjenice: bezCinjenica(), povrsina_m2: 100, najam, ...promjene });
+  const ctx = { medijan_eur_m2: 3312, najvisaPouzdanost: 'srednja', naziv: 'Zagreb', izvori: { oglas: OGLAS, podaci: {} }, sada: SADA };
+  // površina iz forme (130,45) pobjeđuje onu koju je model prepisao (100); pouzdanost je granica reference, što god model rekao
+  const a = parsirajIValidirajProcjenu(tijelo({ pouzdanost: 'visoka' }), { ...ctx, povrsina_m2: 130.45 });
   assert.equal(a.ok, true);
   const f = a.procjena.fer_vrijednost;
-  assert.equal(f.pouzdanost, 'srednja', 'visoka → srednja prije računanja širine');
+  assert.equal(f.pouzdanost, 'srednja');
   assert.equal(f.izracun.sirina_posto, 7);
   assert.equal(f.izracun.povrsina_m2, 130.45);
+  // kod je našao lift, kat i godinu u oglasu: bez lifta 5. kat −6 %, gradnja 2024. +8 %, površina 130,45 m² −4 %; zbroj −2 %
+  assert.deepEqual(f.izracun.korekcije, [{ razlog: 'bez lifta, 5. kat', postotak: -6 }, { razlog: 'gradnja 2024.', postotak: 8 }, { razlog: 'površina 130,45 m²', postotak: -4 }]);
+  assert.equal(f.izracun.zbroj_posto, -2);
   assert.equal(f.obrazlozenje, obrazlozenjeFer(f.izracun));
-  // bez forme: površina koju je model prepisao iz oglasa
-  const b = parsirajIValidirajProcjenu(tijelo({ pouzdanost: 'niska' }), { medijan_eur_m2: 3312, najvisaPouzdanost: 'srednja' });
+  assert.deepEqual(a.cinjenice.lift, { vrijednost: 'ne', izvor: 'kod' });
+  // bez pouzdanosti iz reference: "niska" (±10 %); bez forme: površina koju je model prepisao, jer stoji u oglasu
+  const b = parsirajIValidirajProcjenu(tijelo(), { ...ctx, najvisaPouzdanost: null });
+  assert.equal(b.procjena.fer_vrijednost.pouzdanost, 'niska');
   assert.equal(b.procjena.fer_vrijednost.izracun.povrsina_m2, 100);
   assert.equal(b.procjena.fer_vrijednost.izracun.sirina_posto, 10);
-  // model koji unatoč shemi pošalje min_eur/max_eur: ignorira se
-  const c = parsirajIValidirajProcjenu(tijelo({ min_eur: 1, max_eur: 2, fer_vrijednost: { min_eur: 1, max_eur: 2 } }), { medijan_eur_m2: 3312, povrsina_m2: 130.45 });
+  // model koji unatoč shemi pošalje min_eur/max_eur ili vlastite korekcije: ignorira se
+  const c = parsirajIValidirajProcjenu(tijelo({ min_eur: 1, max_eur: 2, fer_vrijednost: { min_eur: 1, max_eur: 2 }, korekcije: [{ razlog: 'x', postotak: 15 }] }), { ...ctx, povrsina_m2: 130.45 });
   assert.notEqual(c.procjena.fer_vrijednost.min_eur, 1);
-  assert.ok(c.procjena.fer_vrijednost.min_eur < c.procjena.fer_vrijednost.max_eur);
-  // korekcije kao JSON-kodiran tekst se raspakiraju, ali ista pravila vrijede
-  const d = parsirajIValidirajProcjenu(tijelo({ korekcije: JSON.stringify(SREDISCE) }), { medijan_eur_m2: 3312, povrsina_m2: 130.45 });
+  assert.deepEqual(c.procjena.fer_vrijednost.izracun.korekcije, f.izracun.korekcije);
+  // činjenice kao JSON-kodiran tekst se raspakiraju, ali ista pravila vrijede
+  const d = parsirajIValidirajProcjenu(tijelo({ cinjenice: JSON.stringify(bezCinjenica()) }), { ...ctx, povrsina_m2: 130.45 });
   assert.equal(d.ok, true);
-  // nevaljano: nema pouzdanosti / korekcije nisu popis / stavka bez razloga
-  for (const lose of [{ pouzdanost: 'jako' }, { korekcije: 'puno' }, { korekcije: [{ razlog: '', postotak: 2 }] }, { korekcije: [{ razlog: 'a', postotak: 'x' }] }]) {
-    assert.equal(parsirajIValidirajProcjenu(tijelo(lose), { medijan_eur_m2: 3312, povrsina_m2: 130.45 }).ok, false, JSON.stringify(lose));
+  // nevaljano: činjenice nisu objekt / nedostaju
+  for (const lose of [{ cinjenice: 'puno' }, { cinjenice: null }, { cinjenice: [] }]) {
+    assert.equal(parsirajIValidirajProcjenu(tijelo(lose), ctx).ok, false, JSON.stringify(lose));
   }
 });
 
@@ -167,7 +180,7 @@ test('bez medijana za grad: raniji oblik (model daje ukupni raspon), jasno ozna�
 });
 
 test('ponovna validacija u izvještaju ne mijenja izračun; izracuni.fer_po_m2 slijedi isti izračun', () => {
-  const a = parsirajIValidirajProcjenu(JSON.stringify({ korekcije: SREDISCE, pouzdanost: 'srednja', povrsina_m2: 130.45, najam }), { medijan_eur_m2: 3312, naziv: 'Zagreb' }).procjena;
+  const a = parsirajIValidirajProcjenu(JSON.stringify({ cinjenice: bezCinjenica(), povrsina_m2: 130.45, najam }), { medijan_eur_m2: 3312, povrsina_m2: 130.45, najvisaPouzdanost: 'srednja', naziv: 'Zagreb', sada: SADA }).procjena;
   const osnova = {
     naslov: 'Stan', lokacija: { grad: 'Zagreb', kvart: 'Središće' }, povrsina_m2: 130.45, cijena_eur: 694896, preporuka: 'oprez', ocjena: 2,
     sazetak: 'x', fer_vrijednost: a.fer_vrijednost, najam: a.najam, prednosti: [], rizici: [],
@@ -183,22 +196,17 @@ test('ponovna validacija u izvještaju ne mijenja izračun; izracuni.fer_po_m2 s
   assert.deepEqual(potvrda.analiza.fer_vrijednost, a.fer_vrijednost);
 });
 
-// ── k.o. kao polazište: korekcija za lokaciju/kvart se odbacuje u kodu ──
-test('korekcija za lokaciju se odbacuje kad postoji medijan k.o.; ostale korekcije ostaju', () => {
-  const kontekst = { medijan_eur_m2: 3345, povrsina_m2: 130.45, naziv: 'k.o. Zaprudski Otok', bezLokacije: true, lokacijaRijeci: ['Središće', 'Zaprudski Otok', 'Zagreb', 'sredisce'] };
-  const tijelo = JSON.stringify({ korekcije: SREDISCE, pouzdanost: 'srednja', povrsina_m2: 130.45, najam });
+// ── lokacija: tablica nema pravila za lokaciju/kvart, pa je model ne može dodati ──
+test('model ne može dodati korekciju lokacije ni vlastite postotke: računaju se samo pravila iz tablice', () => {
+  const kontekst = { medijan_eur_m2: 3345, povrsina_m2: 130.45, naziv: 'k.o. Zaprudski Otok', bezLokacije: true, lokacijaRijeci: ['Središće', 'Zaprudski Otok', 'Zagreb', 'sredisce'], najvisaPouzdanost: 'srednja', sada: SADA, izvori: { oglas: 'Stan, Središće, bez parkinga.', podaci: { povrsina_m2: 130.45 } } };
+  const tijelo = JSON.stringify({ cinjenice: bezCinjenica(), korekcije: SREDISCE, pouzdanost: 'visoka', povrsina_m2: 130.45, najam });
   const a = parsirajIValidirajProcjenu(tijelo, kontekst);
   assert.equal(a.ok, true);
   const iz = a.procjena.fer_vrijednost.izracun;
-  assert.deepEqual(a.odbaceno, [{ razlog: 'Središće', postotak: 5 }]);
-  assert.deepEqual(iz.korekcije.map((k) => k.razlog), ['renovacija', 'parking', 'veliki stan', 'lift/kat']);
-  assert.equal(iz.zbroj_posto, 2, '+8 −5 −3 +2, bez +5 za Središće');
+  assert.deepEqual(iz.korekcije, [{ razlog: 'površina 130,45 m²', postotak: -4 }], 'korekcije iz modela (Središće +5, renovacija +8...) ne ulaze u račun');
+  assert.equal(iz.zbroj_posto, -4);
   assert.match(a.procjena.fer_vrijednost.obrazlozenje, /^Polazište: medijan k\.o\. Zaprudski Otok \(usklađen DZS indeksom\) 3\.345 €\/m²\./);
   assert.ok(a.procjena.fer_vrijednost.obrazlozenje.length <= 350);
-  // isto bez filtra (gradski medijan) ostavlja korekciju kvarta
-  const b = parsirajIValidirajProcjenu(tijelo, { ...kontekst, bezLokacije: false });
-  assert.equal(b.procjena.fer_vrijednost.izracun.zbroj_posto, 7);
-  assert.equal(b.odbaceno, undefined);
   // stabilno: dva ista ulaza = isti raspon
   assert.deepEqual(parsirajIValidirajProcjenu(tijelo, kontekst).procjena, a.procjena);
 });
@@ -216,7 +224,7 @@ test('jeKorekcijaLokacije: opći izrazi lokacije i imena kvarta (s padežima), n
 test('obrazloženje s gradskim medijanom nosi napomenu zašto nije korišten k.o.', () => {
   const r = izracunajFer(ulaz({ naziv: 'Zagreb', napomena: 'Kvart „Utrine” nije mapiran na k.o.: gradski medijan.' }));
   const t = obrazlozenjeFer(r.izracun);
-  assert.ok(t.startsWith('Polazište: usklađeni medijan Zagreb 3.312 €/m². Kvart „Utrine” nije mapiran na k.o.: gradski medijan. Korekcije:'), t);
+  assert.ok(t.startsWith('Polazište: usklađeni medijan Zagreb 3.312 €/m². Kvart „Utrine” nije mapiran na k.o.: gradski medijan. Korekcije (pravila PropIQ-a):'), t);
   assert.ok(t.length <= 350, `${t.length}`);
 });
 
@@ -258,55 +266,4 @@ test('sažetak s krivim postotkom ili iznosom pada validaciju; točne brojke pro
   assert.equal(v.ok, false);
   assert.match(v.razlog, /postotak "25 %"/);
   assert.equal(validirajAnalizu({ ...osnova, sazetak: 'Cijena je 40,4 % iznad raspona.' }).ok, true);
-});
-
-// ── izvor korekcije: korekcija bez citata iz oglasa / polja forme odbacuje se ──
-import { provjeriIzvorKorekcije } from '../netlify/lib/izvjestaj.mjs';
-
-const ZADAR_OGLAS = 'Stan u Zadru, Relja, 64 m², izgrađen 1963., 2. kat. Potpuno namješten i odmah useljiv. Javni parking u blizini.';
-const izvori = { oglas: ZADAR_OGLAS, podaci: { grad: 'Zadar', kvart: 'Relja', povrsina_m2: 64 } };
-const kor = (razlog, izvor, postotak = -3) => ({ razlog, postotak, izvor });
-
-test('izvor korekcije: izmišljeni lift, "renovirano" iz "namješten i useljiv" i vlasništvo parkinga se odbacuju', () => {
-  assert.equal(provjeriIzvorKorekcije(kor('bez lifta', 'stara zgrada bez lifta'), izvori), false, 'citata nema u oglasu');
-  assert.equal(provjeriIzvorKorekcije(kor('bez lifta', 'izgrađen 1963'), izvori), false, 'citat postoji, ali ne govori o liftu');
-  assert.equal(provjeriIzvorKorekcije(kor('renovirano', 'Potpuno namješten i odmah useljiv', 8), izvori), false, 'namješten nije renovirano');
-  assert.equal(provjeriIzvorKorekcije(kor('bez parkinga u vlasništvu', 'Javni parking u blizini'), izvori), true, 'javni parking jest u oglasu i govori o parkingu (nije izmišljeno)');
-  assert.equal(provjeriIzvorKorekcije(kor('bez parkinga u vlasništvu', 'parking nije u vlasništvu'), izvori), false, 'tvrdnja o vlasništvu nije u oglasu');
-  assert.equal(provjeriIzvorKorekcije(kor('2. kat', ''), izvori), false, 'prazan izvor');
-  assert.equal(provjeriIzvorKorekcije({ razlog: '2. kat', postotak: -2 }, izvori), false, 'bez izvora');
-});
-
-test('izvor korekcije: točan citat iz oglasa (neosjetljiv na velika slova i dijakritike) i polje forme prolaze', () => {
-  assert.equal(provjeriIzvorKorekcije(kor('starost zgrade 1963.', 'IZGRAĐEN 1963.'), izvori), true);
-  assert.equal(provjeriIzvorKorekcije(kor('2. kat', '2. kat'), izvori), true);
-  assert.equal(provjeriIzvorKorekcije(kor('veličina', 'forma: povrsina_m2'), izvori), true);
-  assert.equal(provjeriIzvorKorekcije(kor('veličina', 'forma: godina_gradnje'), izvori), false, 'polje nije upisano u formu');
-  const sLiftom = { ...izvori, podaci: { ...izvori.podaci, lift: 'ne' } };
-  assert.equal(provjeriIzvorKorekcije(kor('bez lifta', 'forma: lift'), sLiftom), true);
-  assert.equal(provjeriIzvorKorekcije(kor('bez lifta', 'forma: lift'), izvori), false, 'lift nije upisan u formu');
-  assert.equal(provjeriIzvorKorekcije(kor('bez lifta', 'forma: kat'), sLiftom), false, 'krivo polje za temu lifta');
-  const samoForma = { oglas: '', podaci: { lift: 'da' } };
-  assert.equal(provjeriIzvorKorekcije(kor('lift', 'lift'), samoForma), false, 'bez teksta oglasa citat ne može stajati');
-  assert.equal(provjeriIzvorKorekcije(kor('lift', 'forma: lift', 3), samoForma), true);
-});
-
-test('parsirajIValidirajProcjenu s izvorima: korekcije bez izvora ne ulaze u račun, ostale ostaju; uzrok je u rezultat.odbaceno', () => {
-  const tijelo = (korekcije) => JSON.stringify({ korekcije, pouzdanost: 'niska', povrsina_m2: 64, najam });
-  const ctx = { medijan_eur_m2: 3117, povrsina_m2: 64, naziv: 'Zadar', izvori };
-  const d = parsirajIValidirajProcjenu(tijelo([
-    kor('bez lifta', 'stara zgrada bez lifta'), kor('renovirano', 'Potpuno namješten i odmah useljiv', 8),
-    kor('bez parkinga u vlasništvu', 'parking nije u vlasništvu', -3), kor('starost zgrade 1963.', 'izgrađen 1963.', -4),
-  ]), ctx);
-  assert.equal(d.ok, true);
-  assert.deepEqual(d.procjena.fer_vrijednost.izracun.korekcije, [{ razlog: 'starost zgrade 1963.', postotak: -4 }]);
-  assert.equal(d.procjena.fer_vrijednost.izracun.zbroj_posto, -4);
-  assert.deepEqual(d.odbaceno.map((k) => k.razlog), ['bez lifta', 'renovirano', 'bez parkinga u vlasništvu']);
-  assert.ok(d.odbaceno.every((k) => /izvor/.test(k.uzrok)));
-  // sve odbačeno → bez korekcija, polazište = medijan
-  const nista = parsirajIValidirajProcjenu(tijelo([kor('bez lifta', 'nema lifta')]), ctx);
-  assert.equal(nista.procjena.fer_vrijednost.izracun.sredina_m2, 3117);
-  // bez zadanih izvora ponašanje je kao prije (nema provjere)
-  const stari = parsirajIValidirajProcjenu(tijelo([{ razlog: 'bez lifta', postotak: -3 }]), { medijan_eur_m2: 3117, povrsina_m2: 64 });
-  assert.equal(stari.procjena.fer_vrijednost.izracun.korekcije.length, 1);
 });

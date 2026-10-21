@@ -11,14 +11,13 @@
   const POREZ_NA_PROMET = 0.03;
   const MAX_CIJENA = 1e9;
 
-  // ── fer vrijednost: sva matematika je ovdje, model samo predlaže korekcije u postocima ──
+  // ── fer vrijednost: sva matematika je ovdje; korekcije u postocima daje tablica pravila PropIQ-a (netlify/lib/korekcije.mjs) ──
   // Središnja €/m² = usklađeni medijan × (1 + zbroj korekcija / 100); raspon = središnja ± širina po pouzdanosti.
   const FER = {
     MAX_KOREKCIJA: 15,            // svaka pojedina korekcija: −15…+15 (%)
     MAX_STAVKI: 6,                // najviše korekcija po procjeni
-    MAX_ZBROJ: 30,                // zbroj korekcija: −30…+30 (%)
+    MAX_ZBROJ: 15,                // zbroj korekcija: −15…+15 (%)
     MAX_RAZLOG: 40,               // znakova po razlogu korekcije (tvrdi rez)
-    CILJ_RAZLOG: 35,              // koliko model smije tražiti, da rez na MAX_RAZLOG ne odsiječe smisao
     SIRINA_POSTO: { visoka: 5, srednja: 7, niska: 10 }, // ± oko središnje €/m², po pouzdanosti
     ZAOKRUZENJE_EUR: 5000,        // ukupni € zaokružen na ovaj korak
   };
@@ -123,7 +122,7 @@
 
   const stezi = (v, min, max) => Math.min(max, Math.max(min, v));
 
-  // Očisti popis korekcija koji je predložio model: najviše MAX_STAVKI, postotak zaokružen na cijeli broj i
+  // Očisti popis korekcija: najviše MAX_STAVKI, postotak zaokružen na cijeli broj i
   // ograničen na ±MAX_KOREKCIJA, razlog skraćen. Vraća null ako oblik nije valjan (nije popis, stavka bez
   // razloga ili bez konačnog broja). Isti ulaz uvijek daje isti izlaz (idempotentno).
   // Skrati razlog na najviše `max` znakova na granici riječi, bez viseće interpunkcije na kraju. Ako nema
@@ -212,7 +211,7 @@
       ? `Polazište: medijan ${iz.naziv} (usklađen DZS indeksom) ${cijeliHr(iz.polaziste_m2)} €/m².`
       : `Polazište: usklađeni medijan${iz.naziv ? ` ${iz.naziv}` : ''} ${cijeliHr(iz.polaziste_m2)} €/m².${iz.napomena ? ` ${iz.napomena}` : ''}`;
     return `${polaziste} ` +
-      `Korekcije: ${kor}; zbroj ${predznak(iz.zbroj_primijenjen_posto)}%${ogranicen}. ` +
+      `Korekcije (pravila PropIQ-a): ${kor}; zbroj ${predznak(iz.zbroj_primijenjen_posto)}%${ogranicen}. ` +
       `Središnja ${cijeliHr(iz.sredina_m2)} €/m², raspon ±${iz.sirina_posto}%: ` +
       `${cijeliHr(iz.raspon_m2.min)}–${cijeliHr(iz.raspon_m2.max)} €/m².`;
   }

@@ -33,7 +33,7 @@ test('tool shema traži sva polja iz specifikacije i ne dopušta višak', () => 
   const { fer_vrijednost: _f, najam: _n, ...bezProcjene } = osnova();
   assert.deepEqual([...sh.required].sort(), Object.keys(bezProcjene).sort(), 'fer_vrijednost i najam nisu u shemi analize');
   assert.ok(!('fer_vrijednost' in sh.properties) && !('najam' in sh.properties));
-  assert.deepEqual([...TOOL_PROCJENA.input_schema.required].sort(), ['korekcije', 'najam', 'pouzdanost', 'povrsina_m2'], 'model ne vraća min_eur/max_eur');
+  assert.deepEqual([...TOOL_PROCJENA.input_schema.required].sort(), ['cinjenice', 'najam', 'povrsina_m2'], 'model vraća činjenice: ne min_eur/max_eur, korekcije ni pouzdanost');
   assert.deepEqual([...TOOL_PROCJENA_BEZ_REFERENCE.input_schema.required].sort(), ['fer_vrijednost', 'najam'], 'bez medijana: raniji oblik');
   assert.equal(TOOL_PROCJENA.input_schema.additionalProperties, false);
   assert.equal(TOOL_PROCJENA_BEZ_REFERENCE.input_schema.additionalProperties, false);
