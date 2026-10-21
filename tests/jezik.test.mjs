@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ocistiCirilicu, ukloniPonovljeneRijeci, zamijeniStranePojmove, obradiTekst, provjeriOmjere, provjeriPonudu, recenice, POJMOVNIK_TEKST } from '../netlify/lib/jezik.mjs';
-import { omjerCijene, prvaRecenicaSazetka, tekstCinjenicaSazetka, validirajAnalizu, parsirajIValidiraj, parsirajIValidirajProcjenu, TOOL, TOOL_PROCJENA } from '../netlify/lib/izvjestaj.mjs';
+import { omjerCijene, prvaRecenicaSazetka, tekstCinjenicaSazetka, validirajAnalizu, parsirajIValidiraj, TOOL } from '../netlify/lib/izvjestaj.mjs';
 import zajednicki from '../public/assets/js/izracuni.js';
 
 const FER = { min_eur: 350000, max_eur: 400000, pouzdanost: 'srednja', obrazlozenje: 'Usporedive prodaje.' };
@@ -151,25 +151,10 @@ test('validirajAnalizu: obrada čisti sva polja i vraća popis promjena za log',
   assert.ok(v.obrada.some((o) => o.polje === 'prednosti[0]'));
 });
 
-// ── B7 razlog korekcije ──
-test('razlog korekcije: shema i konstanta traže najviše ~35 znakova, rez ostaje na 40', () => {
-  assert.equal(zajednicki.FER.CILJ_RAZLOG, 35);
+// ── razlog korekcije slaže kod iz tablice (korekcije.mjs), pa jezičnu obradu ne treba; sažetak ostaje model ──
+test('razlog korekcije: rez ostaje na 40 znakova; sažetak je JEDNA rečenica', () => {
   assert.equal(zajednicki.FER.MAX_RAZLOG, 40);
-  const opis = TOOL_PROCJENA.input_schema.properties.korekcije.items.properties.razlog.description;
-  assert.match(opis, /35/);
-  assert.match(opis, /starost zgrade ~46 god\., energetski/);
-  assert.ok('starost zgrade ~46 god., energetski'.length <= 35);
   assert.match(TOOL.input_schema.properties.sazetak.description, /JEDNA rečenica/);
-});
-
-test('procjena: razlog korekcije prolazi jezičnu obradu (ćirilica, HOA)', () => {
-  const r = parsirajIValidirajProcjenu(JSON.stringify({
-    korekcije: [{ razlog: 'visoka HOA', postotak: -3 }, { razlog: 'bez lifta у zgradi', postotak: -4 }],
-    pouzdanost: 'srednja', povrsina_m2: 60, najam: { dugorocni_mj_eur: 800, turisticki_godisnje_eur: null },
-  }), { medijan_eur_m2: 3000, povrsina_m2: 60 });
-  assert.equal(r.ok, true, r.razlog);
-  assert.deepEqual(r.procjena.fer_vrijednost.izracun.korekcije.map((k) => k.razlog), ['visoka pričuva', 'bez lifta u zgradi']);
-  assert.equal(r.obrada.length, 2);
 });
 
 test('recenice: kratice ne prekidaju rečenicu', () => {
