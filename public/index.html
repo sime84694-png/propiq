@@ -2178,13 +2178,13 @@
         </div>
 
         <div class="korak" id="korak-2" hidden>
-          <h4 class="korak-naslov" id="korak-2-naslov">Gdje ti pošaljemo izvještaj?</h4>
+          <h4 class="korak-naslov" id="korak-2-naslov">Upiši svoj email</h4>
           <div class="form-group">
             <label for="email">Email</label>
             <input type="email" id="email" name="email" placeholder="ime.prezime@primjer.hr" maxlength="254" inputmode="email" autocomplete="email" required>
           </div>
           <div class="form-greska" id="email-greska" role="alert"></div>
-          <p class="form-note">Prve 3 analize besplatno · bez kartice</p>
+          <p class="form-note">Prve 3 analize besplatno · bez kartice · izvještaj se prikazuje u pregledniku</p>
           <div class="form-akcija">
             <button type="submit" class="form-submit" id="form-submit-btn">
               <div class="spinner"></div>
@@ -2608,7 +2608,7 @@
     function provjeriEmail() {
       const e = $('email');
       $('email-greska').classList.remove('visible');
-      if (!e.value.trim()) { prikaziGreskuEmaila('Upiši email na koji ti šaljemo izvještaj.'); return false; }
+      if (!e.value.trim()) { prikaziGreskuEmaila('Upiši svoj email. Po njemu brojimo analize i provjeravamo plan.'); return false; }
       if (!e.validity.valid) { prikaziGreskuEmaila('Ovaj email ne izgleda ispravno. Provjeri ga, npr. ime.prezime@primjer.hr.'); return false; }
       return true;
     }
@@ -2631,7 +2631,7 @@
       posalji(pv, $('form-submit-btn'));
     });
 
-    async function posalji(pv, btn) {
+    function posalji(pv, btn) {
       btn.disabled = true;
       btn.classList.add('loading');
 
@@ -2653,25 +2653,6 @@
         sessionStorage.removeItem('propiq_analiza_rezultat');
         sessionStorage.setItem('propiq_analiza_data', JSON.stringify(data));
       } catch {}
-
-      // Email notifikacija korisniku putem Formspree. Čeka se odgovor (najviše 4 s) jer bi
-      // preusmjeravanje na rezultat.html prekinulo zahtjev; greška ili timeout ne blokiraju analizu.
-      const formspreeCtrl = new AbortController();
-      const formspreeTimer = setTimeout(() => formspreeCtrl.abort(), 4000);
-      await fetch('https://formspree.io/f/mjgpakbd', {
-        method: 'POST',
-        signal: formspreeCtrl.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email:   data.email,
-          message: `Zaprimili smo tvoj zahtjev za analizu oglasa. Analiza se otvara izravno u tvom pregledniku.\n\nNapomena: analiza ostaje dostupna samo dok je kartica preglednika otvorena. Ako će ti trebati kasnije, obavezno je spremi.\n\nHvala što koristiš PropIQ.`,
-          _subject: 'Potvrda zahtjeva za PropIQ analizu',
-          _replyto: data.email,
-        }),
-      })
-        .then((res) => { if (!res.ok) console.error('Formspree slanje nije uspjelo: HTTP', res.status); })
-        .catch((err) => { console.error('Formspree slanje nije uspjelo:', err); })
-        .finally(() => clearTimeout(formspreeTimer));
 
       // Mjerenje (poštuje pristanak — vidi assets/js/consent.js). GA4 šalje događaje u paketima pa bi se
       // izgubio pri prelasku na rezultat.html; defer() ga sprema i šalje ga rezultat.html pri učitavanju.
