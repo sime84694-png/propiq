@@ -24,10 +24,11 @@ import crypto from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 // Plan (Standard/Pro) se određuje isključivo prema aktivnoj Stripe pretplati za upisani email.
 import stripePlan from '../lib/stripe-plan.js';
+import { normalizirajEmail, jeJednokratnaAdresa, PORUKA_JEDNOKRATNA } from '../lib/email.mjs';
 import cjenik from '../lib/cjenik.js';
 import { krediti, rezervirajKredit, vratiKredit, aktivirajPaket } from '../lib/paket.mjs';
 import {
-  corsZaglavlja, dopustenOrigin, ipKlijenta, jakiStore, azurirajCas, rezervirajBrojac, vratiBrojac, potrosiLimitIp, porukaRateLimita,
+  corsZaglavlja, dopustenOrigin, ipKlijenta, jakiStore, azurirajCas, rezervirajBrojac, vratiBrojac, potrosiLimitIp, porukaRateLimita, porukaDnevnogLimita,
 } from '../lib/zastita.mjs';
 import {
   TOOL, TOOL_NAME, TOOL_CIJENA, TOOL_RIZICI, parsirajIValidirajDio, TOOL_PROCJENA, TOOL_PROCJENA_BEZ_REFERENCE, TOOL_PROCJENA_NAME, parsirajIValidiraj, parsirajIValidirajProcjenu,
@@ -268,7 +269,13 @@ async function rezervirajJedinicu(email, verificiraniPlan, stripeNedostupan) {
   if (verificiraniPlan !== 'standard') {
     // Free: 3 analize ukupno po emailu (ne i za aktivnog Standard pretplatnika s iscrpljenim mjesečnim limitom).
     // Poruka o isteklom paketu ima prednost pred porukom o besplatnom limitu.
-    if (await rezervirajBrojac(jakiStore('propiq-free-quota'), email, LIM.FREE_UKUPNO)) return { ok: true, izvor: 'free', qk: email };
+    if (jeJednokratnaAdresa(email)) {
+      if (!porukaLimita) porukaLimita = { status: 400, error: PORUKA_JEDNOKRATNA };
+    } else {
+      // Ključ besplatne kvote je normaliziran (Gmail točke, +alias), da se limit ne zaobilazi varijantama iste adrese.
+      const qk = normalizirajEmail(email);
+      if (await rezervirajBrojac(jakiStore('propiq-free-quota'), qk, LIM.FREE_UKUPNO)) return { ok: true, izvor: 'free', qk };
+    }
     if (!porukaLimita) {
       porukaLimita = stripeNedostupan
         ? { status: 503, error: 'Trenutno ne možemo provjeriti tvoju pretplatu. Pokušaj ponovo za minutu ili nam se javi na sime.zubcic23@gmail.com.' }
@@ -280,7 +287,7 @@ async function rezervirajJedinicu(email, verificiraniPlan, stripeNedostupan) {
 
 // Vraća rezerviranu jedinicu u izvor iz kojeg je uzeta (analiza nije isporučena).
 // Ključ brojača kvote iz izvora i emaila (sirovi email se ne sprema u zapis analize).
-const kljucBrojaca = (izvor, email, mjesec) => (izvor === 'standard' ? `${email}:${mjesec}` : email);
+const kljucBrojaca = (izvor, email, mjesec) => (izvor === 'standard' ? `${email}:${mjesec}` : izvor === 'free' ? normalizirajEmail(email) : email);
 
 async function vratiJedinicu({ izvor, qk, kk }) {
   if (izvor === 'paket') await vratiKredit(kk);
@@ -425,6 +432,22 @@ export default async (req, context) => {
     const r = await rezervirajJedinicu(email, verificiraniPlan, stripeNedostupan);
     if (!r.ok) return json(r.status, { error: r.error });
     rez = { izvor: r.izvor, qk: r.qk, kk: r.kk };
+
+    // Dnevni limit besplatnih analiza po IP-u (uz satni). Ako je dosegnut, rezervirana jedinica se vraća.
+    if (rez.izvor === 'free') {
+      let dnevni;
+      try {
+        dnevni = await potrosiLimitIp(ipHash, 'free-dan');
+      } catch (err) {
+        console.error('Dnevni limit nije provjeren:', err);
+        await vratiJedinicu(rez);
+        return json(503, { error: 'Provjera ograničenja trenutno nije dostupna. Pokušaj ponovo za minutu.' });
+      }
+      if (!dnevni.ok) {
+        await vratiJedinicu(rez);
+        return json(429, { error: porukaDnevnogLimita(dnevni.ponovnoZaS) }, { 'Retry-After': String(dnevni.ponovnoZaS) });
+      }
+    }
 
     analizaId = crypto.randomBytes(16).toString('hex');
     analizaKey = `${analizaId}:${Date.now()}`;

@@ -71,18 +71,23 @@ export async function vratiBrojac(store, key) {
 // Koraci: 10 analiza × (procjena + rizici + cijena) × najviše 2 pokušaja = 60.
 export const SATNI_LIMITI = { start: 10, koraci: 60, paket: 10 };
 const SAT_MS = 60 * 60 * 1000;
+// Dnevni limit besplatnih analiza po IP-u (dodatno uz satni): ista IP adresa ne može iskoristiti besplatni plan
+// s neograničeno novih e-mail adresa. Računa se samo kad se jedinica uzima iz Free kvote.
+const DAN_MS = 24 * SAT_MS;
+export const DNEVNI_LIMITI = { 'free-dan': 5 };
 
 // Troši jedan zahtjev iz limita. Vraća { ok: true } ili { ok: false, ponovnoZaS }.
 // Odbijeni zahtjev ništa ne upisuje. Baca grešku ako Blobs nije dostupan (pozivatelj odbija zahtjev).
-export async function potrosiLimitIp(ipHash, vrsta, max = SATNI_LIMITI[vrsta], sada = Date.now()) {
+export async function potrosiLimitIp(ipHash, vrsta, max = SATNI_LIMITI[vrsta] ?? DNEVNI_LIMITI[vrsta], sada = Date.now()) {
   const store = jakiStore('propiq-ratelimit');
-  const prozor = Math.floor(sada / SAT_MS);
+  const SAT = vrsta in DNEVNI_LIMITI ? DAN_MS : SAT_MS; // trajanje prozora (sat ili dan)
+  const prozor = Math.floor(sada / SAT);
   const key = `${ipHash}:${vrsta}:${prozor}`;
   const r = await azurirajCas(store, key, (v) => {
     const n = parseInt(v || '0', 10) || 0;
     return n >= max ? undefined : { nova: String(n + 1), rezultat: n + 1 };
   });
-  if (!r.ok) return { ok: false, ponovnoZaS: Math.max(1, Math.ceil(((prozor + 1) * SAT_MS - sada) / 1000)) };
+  if (!r.ok) return { ok: false, ponovnoZaS: Math.max(1, Math.ceil(((prozor + 1) * SAT - sada) / 1000)) };
   if (r.rezultat === 1) {
     // Prvi zahtjev u novom prozoru: obriši prozore iste IP adrese i vrste koji su prošli (ne smije srušiti zahtjev).
     try {
@@ -97,3 +102,6 @@ export async function potrosiLimitIp(ipHash, vrsta, max = SATNI_LIMITI[vrsta], s
 
 export const porukaRateLimita = (ponovnoZaS) =>
   `Previše zahtjeva s tvoje adrese. Pokušaj ponovo za ${Math.ceil(ponovnoZaS / 60)} min.`;
+
+export const porukaDnevnogLimita = (ponovnoZaS) =>
+  `Dosegnut je dnevni limit besplatnih analiza s tvoje adrese. Pokušaj ponovo za ${Math.ceil(ponovnoZaS / 3600)} h ili odaberi plan za daljnje analize.`;
