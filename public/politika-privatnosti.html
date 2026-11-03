@@ -162,7 +162,7 @@
           <ul>
             <li><strong>Podaci koje sami unesete:</strong> e-mail adresa, tekst oglasa nekretnine koji šaljete na analizu te neobavezna polja o nekretnini (cijena, površina, grad, kvart, kat, godina gradnje, lift, parking). Tekst oglasa može sadržavati osobne podatke trećih osoba (npr. ime i telefon prodavatelja ili agenta). Molimo vas da takve podatke ne unosite i da prije slanja uklonite kontakte iz teksta oglasa.</li>
             <li><strong>Podaci o pretplati:</strong> odabrani plan (Free/Paket/Standard/Pro), status pretplate; za Paket i preostali broj analiza i datum isteka (vezano uz sažetak vaše e-mail adrese) — same podatke o transakciji i broju kartice obrađuje i pohranjuje isključivo Stripe, mi im nemamo pristup.</li>
-            <li><strong>Tehnički podaci:</strong> standardni podaci poslužitelja (IP adresa, vrijeme pristupa) automatski bilježi naš hosting davatelj (Netlify) radi rada i sigurnosti stranice. Radi ograničavanja broja zahtjeva pohranjujemo i sažetak (hash) vaše IP adrese, a ne samu adresu.</li>
+            <li><strong>Tehnički podaci:</strong> standardni podaci poslužitelja (IP adresa, vrijeme pristupa) automatski bilježi naš hosting davatelj (Netlify) radi rada i sigurnosti stranice. Radi ograničavanja broja zahtjeva pohranjujemo i sažetak (hash) vaše IP adrese, a ne samu adresu i čuvamo ga najviše 48 sati.</li>
           </ul>
         </section>
 
@@ -194,7 +194,7 @@
 
         <section id="s5">
           <div class="sec-head"><span class="sec-num">5.</span><h2 class="sec-title">Razdoblje čuvanja podataka</h2></div>
-          <p>Podatke čuvamo onoliko dugo koliko je potrebno za pružanje usluge i ispunjenje zakonskih obveza (npr. računovodstvenih). Brojač besplatnih/mjesečnih analiza vezan uz vašu e-mail adresu čuva se dok koristite uslugu; na zahtjev ga možemo obrisati. Radi zaštite od zlouporabe besplatnog limita (npr. kad se ista analiza ponovno pošalje osvježavanjem stranice) kratko bilježimo tehnički zapis o zahtjevu, koji sadrži samo sažetak (hash) vaše e-mail adrese i teksta oglasa i čuva se najviše 24 sata.</p>
+          <p>Podatke čuvamo onoliko dugo koliko je potrebno za pružanje usluge i ispunjenje zakonskih obveza (npr. računovodstvenih). Brojač besplatnih/mjesečnih analiza vezan uz vašu e-mail adresu čuva se dok koristite uslugu; na zahtjev ga možemo obrisati. Radi zaštite od zlouporabe besplatnog limita (npr. kad se ista analiza ponovno pošalje osvježavanjem stranice) kratko bilježimo tehnički zapis o zahtjevu, koji sadrži samo sažetak (hash) vaše e-mail adrese i teksta oglasa i čuva se najviše 24 sata. Sažetak (hash) IP adrese za ograničenje broja zahtjeva čuva se najviše 48 sati.</p>
         </section>
 
         <section id="s6">

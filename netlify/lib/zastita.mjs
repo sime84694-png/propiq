@@ -105,3 +105,20 @@ export const porukaRateLimita = (ponovnoZaS) =>
 
 export const porukaDnevnogLimita = (ponovnoZaS) =>
   `Dosegnut je dnevni limit besplatnih analiza s tvoje adrese. Pokušaj ponovo za ${Math.ceil(ponovnoZaS / 3600)} h ili odaberi plan za daljnje analize.`;
+
+// Briše zapise brojača po IP-u čiji je prozor (satni ili dnevni) istekao. Ključ je {ipHash}:{vrsta}:{prozor}.
+// Zapis je nepotreban čim prozor završi: novi prozor počinje od nule. Zakazana funkcija ovo radi jednom na sat,
+// pa sažetak IP adrese ostaje najviše: trajanje prozora (do 24 h) + do sat vremena do sljedećeg čišćenja.
+// Vraća broj obrisanih zapisa.
+export async function obrisiIstekleLimite(store, sada = Date.now()) {
+  const { blobs } = await store.list();
+  const istekli = blobs.filter((b) => {
+    const dijelovi = b.key.split(':');
+    const prozor = parseInt(dijelovi[dijelovi.length - 1], 10);
+    if (!Number.isFinite(prozor)) return false;
+    const trajanje = dijelovi[dijelovi.length - 2] in DNEVNI_LIMITI ? DAN_MS : SAT_MS;
+    return (prozor + 1) * trajanje <= sada;
+  });
+  await Promise.all(istekli.map((b) => store.delete(b.key)));
+  return istekli.length;
+}

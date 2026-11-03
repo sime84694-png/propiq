@@ -477,7 +477,7 @@ test('zakazana funkcija: briše samo istekle zapise zahtjeva, svježe ostavlja; 
   const stari = `propiq-procjene/${'a'.repeat(32)}:${sada - 2 * 60 * 60 * 1000}`;
   const rub = `propiq-procjene/${'b'.repeat(32)}:${sada - 61 * 60 * 1000}`;
   const svjez = `propiq-procjene/${'c'.repeat(32)}:${sada - 5 * 60 * 1000}`;
-  const drugi = `propiq-ratelimit/xyz:start:1`;
+  const drugi = `propiq-ratelimit/xyz:start:${Math.floor(sada / (60 * 60 * 1000))}`; // aktivan satni prozor
   for (const k of [stari, rub, svjez, drugi]) blobs.set(k, '{}');
   await ocisti();
   assert.deepEqual([stari, rub].map((k) => blobs.has(k)), [false, false]);
@@ -1764,4 +1764,22 @@ test('free limit: dnevni limit po IP-u (5 besplatnih), jedinica se vraća, plać
     Date.now = () => pravi() + 25 * 60 * 60 * 1000;
     assert.equal((await pokreni('dan6@primjer.hr', 7)).status, 200);
   } finally { Date.now = pravi; }
+});
+
+test('zakazana funkcija: briše istekle satne i dnevne brojače po IP-u, aktivne ostavlja', async () => {
+  const { default: ocisti } = await import('../netlify/functions/ocisti-zapise.mjs');
+  const SAT = 60 * 60 * 1000;
+  const DAN = 24 * SAT;
+  const sada = Date.now();
+  const h = 'a'.repeat(64);
+  const satni = (prozor) => `propiq-ratelimit/${h}:start:${prozor}`;
+  const dnevni = (prozor) => `propiq-ratelimit/${h}:free-dan:${prozor}`;
+  const tekuciSat = Math.floor(sada / SAT);
+  const tekuciDan = Math.floor(sada / DAN);
+  const obrisati = [satni(tekuciSat - 1), satni(tekuciSat - 100), dnevni(tekuciDan - 1), dnevni(tekuciDan - 5)];
+  const ostaju = [satni(tekuciSat), dnevni(tekuciDan), `propiq-ratelimit/${h}:koraci:${tekuciSat}`];
+  for (const k of [...obrisati, ...ostaju]) blobs.set(k, '1');
+  await ocisti();
+  assert.deepEqual(obrisati.map((k) => blobs.has(k)), [false, false, false, false]);
+  assert.deepEqual(ostaju.map((k) => blobs.has(k)), [true, true, true]);
 });
