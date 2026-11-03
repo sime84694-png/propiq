@@ -31,6 +31,7 @@
   <meta property="og:image" content="https://propiq-hr.netlify.app/assets/hero.jpg">
   <meta property="og:image:width" content="1600">
   <meta property="og:image:height" content="1066">
+  <meta property="og:image:alt" content="Moderna bijela kuća s drvenim stropom terase i bazenom u prvom planu">
   <meta property="og:locale" content="hr_HR">
   <meta property="og:site_name" content="PropIQ">
 
@@ -52,7 +53,7 @@
       --bg: #0a0806;
       --cream: #f0ece4;
       --cream-70: rgba(240,236,228,0.7);
-      --cream-40: rgba(240,236,228,0.4);
+      --cream-40: rgba(240,236,228,0.55);
       --cream-15: rgba(240,236,228,0.15);
       --cream-08: rgba(240,236,228,0.08);
       --cream-04: rgba(240,236,228,0.04);
@@ -1128,14 +1129,15 @@
       list-style: none;
     }
 
-    .footer-links a {
+    .link-btn { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; text-align: inherit; }
+    .footer-links a, .footer-links .link-btn {
       font-size: 0.82rem;
       color: var(--cream-40);
       text-decoration: none;
       transition: color 0.2s;
     }
 
-    .footer-links a:hover { color: var(--cream); }
+    .footer-links a:hover, .footer-links .link-btn:hover { color: var(--cream); }
 
     .footer-copy {
       font-size: 0.78rem;
@@ -1678,7 +1680,7 @@
 
   <!-- NAV -->
   <nav id="navbar">
-    <a href="#" class="nav-logo">
+    <a href="/" class="nav-logo">
       <svg width="26" height="26" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <rect x="4" y="4" width="8" height="24" rx="1" fill="#f0ece4"/>
         <path d="M15 4H27Q28 4 28 5V21Q28 22 27 22H23Q22 22 22 21V10H15Q14 10 14 9V5Q14 4 15 4Z" fill="#f0ece4"/>
@@ -1698,7 +1700,9 @@
   <!-- HERO -->
   <section class="hero" id="heroSection">
     <picture>
+      <source media="(max-width: 768px)" type="image/webp" srcset="assets/hero-mobile-640.webp 640w, assets/hero-mobile.webp 900w" sizes="100vw">
       <source media="(max-width: 768px)" srcset="assets/hero-mobile.jpg">
+      <source type="image/webp" srcset="assets/hero.webp">
       <img src="assets/hero.jpg" alt="" width="1600" height="1066" fetchpriority="high" decoding="async" class="hero-bg" id="heroBg">
     </picture>
     <div class="hero-overlay"></div>
@@ -2062,7 +2066,7 @@
 
   <!-- FOOTER -->
   <footer>
-    <a href="#" class="footer-logo">
+    <a href="/" class="footer-logo">
       <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <rect x="4" y="4" width="8" height="24" rx="1" fill="#f0ece4"/>
         <path d="M15 4H27Q28 4 28 5V21Q28 22 27 22H23Q22 22 22 21V10H15Q14 10 14 9V5Q14 4 15 4Z" fill="#f0ece4"/>
@@ -2076,7 +2080,7 @@
       <li><a href="#cijene">Cijene</a></li>
       <li><a href="uvjeti-koristenja.html">Uvjeti korištenja</a></li>
       <li><a href="politika-privatnosti.html">Politika privatnosti</a></li>
-      <li><a href="#" data-cookie-settings>Postavke kolačića</a></li>
+      <li><button type="button" class="link-btn" data-cookie-settings>Postavke kolačića</button></li>
       <li><a href="mailto:sime.zubcic23@gmail.com">sime.zubcic23@gmail.com</a></li>
     </ul>
     <span class="footer-copy">&copy; 2026 PropIQ</span>
@@ -2221,17 +2225,15 @@
 
   <!-- EXIT INTENT POPUP -->
   <div class="exit-overlay" id="exitPopup" onclick="closeExit(event)">
-    <div class="exit-modal">
+    <div class="exit-modal" role="dialog" aria-modal="true" aria-labelledby="exitTitle" aria-describedby="exitSub">
       <button class="exit-close" onclick="dismissExit()" aria-label="Zatvori">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
-      <div class="exit-eyebrow">Posebna ponuda</div>
-      <h2 class="exit-title">Čekaj!</h2>
-      <p class="exit-sub">Prve 3 analize potpuno besplatno —<br>bez kreditne kartice.</p>
+      <h2 class="exit-title" id="exitTitle">Čekaj!</h2>
+      <p class="exit-sub" id="exitSub">Prve 3 analize su besplatne. Bez kartice.</p>
       <button class="exit-cta" onclick="dismissExit(); openModal();">Počni besplatno</button>
-      <p class="exit-note">Bez obaveza. Otkaži kad god želiš.</p>
     </div>
   </div>
 
@@ -2306,9 +2308,12 @@
 
       function showExit() {
         sessionStorage.setItem('propiq_exit', '1');
+        exitZadnjiFokus = document.activeElement;
         document.getElementById('exitPopup').classList.add('open');
         document.body.style.overflow = 'hidden';
         document.removeEventListener('mouseleave', onMouseLeave);
+        // Fokus na prvi gumb u dijalogu (Zatvori).
+        document.querySelector('#exitPopup .exit-close').focus({ preventScroll: true });
       }
 
       function onMouseLeave(e) {
@@ -2321,9 +2326,16 @@
       }, 3000);
     })();
 
+    let exitZadnjiFokus = null;
+    function exitOtvoren() { return document.getElementById('exitPopup').classList.contains('open'); }
     function dismissExit() {
       document.getElementById('exitPopup').classList.remove('open');
       document.body.style.overflow = '';
+      // Vraća fokus na element koji ga je imao prije otvaranja prozora.
+      if (exitZadnjiFokus && document.contains(exitZadnjiFokus) && typeof exitZadnjiFokus.focus === 'function') {
+        exitZadnjiFokus.focus({ preventScroll: true });
+      }
+      exitZadnjiFokus = null;
     }
 
     function closeExit(e) {
@@ -2485,6 +2497,18 @@
     }
 
     document.addEventListener('keydown', e => {
+      if (exitOtvoren()) {
+        // Dok je prozor "Čekaj!" otvoren: Esc ga zatvara, Tab kruži između njegova dva gumba.
+        if (e.key === 'Escape') { dismissExit(); return; }
+        if (e.key === 'Tab') {
+          const g = [...document.querySelectorAll('#exitPopup button')];
+          const prvi = g[0], zadnji = g[g.length - 1];
+          if (!g.includes(document.activeElement)) { e.preventDefault(); prvi.focus(); }
+          else if (e.shiftKey && document.activeElement === prvi) { e.preventDefault(); zadnji.focus(); }
+          else if (!e.shiftKey && document.activeElement === zadnji) { e.preventDefault(); prvi.focus(); }
+        }
+        return;
+      }
       if (e.key === 'Escape') closeModal();
       // Fokus ostaje unutar modala (Tab / Shift+Tab kruži po njegovim kontrolama).
       if (e.key !== 'Tab' || !modalOtvoren()) return;
