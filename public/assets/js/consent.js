@@ -23,6 +23,10 @@
   var HAS_GA4 = isSet(CFG.GA4_ID);
   var HAS_ADS = isSet(CFG.ADS_ID);
   var HAS_META = isSet(CFG.META_PIXEL_ID);
+  // Dok su SVI ID-jevi u tracking-config.js placeholderi (XXXX), ne učitava se nijedan alat za mjerenje pa nema
+  // što tražiti pristankom: banner se ne prikazuje, a "Postavke kolačića" otvara informativni panel.
+  // Upisom pravog ID-ja (bilo kojeg alata) banner i kategorije vraćaju se sami, bez izmjene koda.
+  var TRACKING_ACTIVE = HAS_GA4 || HAS_ADS || HAS_META;
 
   // ── 1. Consent Mode v2: default denied (samo dataLayer, bez mrežnih zahtjeva) ──
   window.dataLayer = window.dataLayer || [];
@@ -207,6 +211,7 @@
   // GA4 šalje u paketima. defer() ga sprema u sessionStorage, a šalje ga sljedeća stranica.
   var DEFER_KEY = 'propiq_deferred_events';
   window.propiqTrack.defer = function (name, params) {
+    if (!TRACKING_ACTIVE) return; // bez alata za mjerenje ne sprema se ništa
     try {
       var q = JSON.parse(sessionStorage.getItem(DEFER_KEY) || '[]');
       q.push([name, params || {}]);
@@ -264,6 +269,21 @@
       '<div class="pq-cc-save"><button type="button" class="pq-solid" data-pq="save">Spremi izbor</button></div>' +
     '</div>';
 
+  var INFO_HTML =
+    '<div class="pq-cc-row">' +
+      '<div class="pq-cc-text" id="pq-cc-desc">' +
+        '<p style="margin:0 0 8px"><b style="color:#f0ece4">Pohrana u pregledniku.</b> Ova stranica trenutno koristi samo nužnu pohranu. ' +
+        'Ne koristimo kolačiće za analitiku ni marketing, pa nema što prihvatiti ni odbiti.</p>' +
+        '<ul style="margin:0 0 8px;padding-left:18px">' +
+          '<li><code>propiq_analiza_data</code>, <code>propiq_analiza_rezultat</code>, <code>propiq_analiza_id</code>: podaci vaše analize dok je kartica otvorena.</li>' +
+          '<li><code>propiq_exit</code>: bilježi da je prozor „Čekaj!” već prikazan.</li>' +
+        '</ul>' +
+        '<p style="margin:0">Statistiku posjeta mjeri Cloudflare Web Analytics bez kolačića. ' +
+        'Više u <a href="politika-privatnosti.html#s7">politici privatnosti</a>.</p>' +
+      '</div>' +
+      '<div class="pq-cc-btns"><button type="button" class="pq-solid" data-pq="close">Zatvori</button></div>' +
+    '</div>';
+
   var banner = null;
 
   function build() {
@@ -277,14 +297,15 @@
     banner.setAttribute('aria-label', 'Postavke kolačića');
     banner.setAttribute('aria-describedby', 'pq-cc-desc');
     banner.hidden = true;
-    banner.innerHTML = HTML;
+    banner.innerHTML = TRACKING_ACTIVE ? HTML : INFO_HTML;
     document.body.appendChild(banner);
 
     banner.addEventListener('click', function (e) {
       var b = e.target.closest('[data-pq]');
       if (!b) return;
       var a = b.getAttribute('data-pq');
-      if (a === 'all') close({ analytics: true, marketing: true });
+      if (a === 'close') banner.hidden = true;
+      else if (a === 'all') close({ analytics: true, marketing: true });
       else if (a === 'none') close({ analytics: false, marketing: false });
       else if (a === 'save') close({
         analytics: document.getElementById('pq-cc-analytics').checked,
@@ -310,8 +331,8 @@
   function open(withSettings) {
     build();
     banner.hidden = false;
-    if (withSettings) togglePanel(true);
-    var first = banner.querySelector('[data-pq="all"]');
+    if (withSettings && TRACKING_ACTIVE) togglePanel(true);
+    var first = banner.querySelector('[data-pq="all"]') || banner.querySelector('[data-pq="close"]');
     if (first) first.focus({ preventScroll: true });
   }
 
@@ -323,12 +344,13 @@
   }
 
   window.propiqConsent = {
+    active: TRACKING_ACTIVE,
     open: function () { open(true); },
     get: function () { return consent ? { analytics: consent.analytics, marketing: consent.marketing } : null; },
   };
 
   function init() {
-    if (!consent) open(false);
+    if (!consent && TRACKING_ACTIVE) open(false);
     document.addEventListener('click', function (e) {
       var t = e.target.closest('[data-cookie-settings]');
       if (!t) return;

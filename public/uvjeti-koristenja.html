@@ -27,7 +27,7 @@
       --bg: #0a0806;
       --cream: #f0ece4;
       --cream-70: rgba(240,236,228,0.7);
-      --cream-40: rgba(240,236,228,0.4);
+      --cream-40: rgba(240,236,228,0.55);
       --cream-15: rgba(240,236,228,0.15);
       --cream-08: rgba(240,236,228,0.08);
       --cream-04: rgba(240,236,228,0.04);
@@ -85,10 +85,12 @@
     footer { border-top: 1px solid var(--cream-08); padding: 48px; display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 40px; }
     .footer-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--cream); }
     .footer-logo-text { font-size: 1rem; font-weight: 700; }
-    .footer-logo-text span { opacity: 0.45; }
+    .footer-logo-text span { opacity: 0.62; }
     .footer-links { display: flex; gap: 32px; list-style: none; }
-    .footer-links a { font-size: 0.82rem; color: var(--cream-40); text-decoration: none; transition: color 0.2s; }
-    .footer-links a:hover { color: var(--cream); }
+    .link-btn { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; text-align: inherit; }
+    .footer-links a, .footer-links .link-btn { font-size: 0.82rem; color: var(--cream-40); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover, .footer-links .link-btn:hover { color: var(--cream); }
+    p .link-btn { text-decoration: underline; }
     .footer-copy { font-size: 0.78rem; color: var(--cream-40); }
 
     @media (max-width: 860px) {
@@ -206,7 +208,7 @@
       <li><a href="index.html#cijene">Cijene</a></li>
       <li><a href="uvjeti-koristenja.html">Uvjeti korištenja</a></li>
       <li><a href="politika-privatnosti.html">Politika privatnosti</a></li>
-      <li><a href="#" data-cookie-settings>Postavke kolačića</a></li>
+      <li><button type="button" class="link-btn" data-cookie-settings>Postavke kolačića</button></li>
       <li><a href="mailto:sime.zubcic23@gmail.com">sime.zubcic23@gmail.com</a></li>
     </ul>
     <span class="footer-copy">&copy; 2026 PropIQ</span>

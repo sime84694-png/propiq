@@ -24,10 +24,12 @@ import crypto from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 // Plan (Standard/Pro) se određuje isključivo prema aktivnoj Stripe pretplati za upisani email.
 import stripePlan from '../lib/stripe-plan.js';
+import { PROCJENE_CUVANJE_MS, vrijemeKljuca, jeIstekao, obrisiIstekle } from '../lib/zapisi.mjs';
+import { normalizirajEmail, jeJednokratnaAdresa, PORUKA_JEDNOKRATNA } from '../lib/email.mjs';
 import cjenik from '../lib/cjenik.js';
 import { krediti, rezervirajKredit, vratiKredit, aktivirajPaket } from '../lib/paket.mjs';
 import {
-  corsZaglavlja, dopustenOrigin, ipKlijenta, jakiStore, azurirajCas, rezervirajBrojac, vratiBrojac, potrosiLimitIp, porukaRateLimita,
+  corsZaglavlja, dopustenOrigin, ipKlijenta, jakiStore, azurirajCas, rezervirajBrojac, vratiBrojac, potrosiLimitIp, porukaRateLimita, porukaDnevnogLimita,
 } from '../lib/zastita.mjs';
 import {
   TOOL, TOOL_NAME, TOOL_CIJENA, TOOL_RIZICI, parsirajIValidirajDio, TOOL_PROCJENA, TOOL_PROCJENA_BEZ_REFERENCE, TOOL_PROCJENA_NAME, parsirajIValidiraj, parsirajIValidirajProcjenu,
@@ -172,7 +174,6 @@ async function incrementStats(source, plan) {
 //   i: izvor kvote (pro|standard|paket|free), m: mjesec Standard brojača, kk: ključ kredita (hash), r: je li jedinica
 //   trenutno rezervirana (ključ brojača se ne sprema jer sadrži email: izvodi se iz emaila zahtjeva),
 //   z: analiza je isporučena (cijena uspjela; više se ne vraća), a: broj poziva po koraku.
-const PROCJENE_CUVANJE_MS = 60 * 60 * 1000;
 // Svaki korak za isti ID: poziv + jedan ponovni pokušaj (klijent ponavlja jednom na 5xx ili prekid veze).
 const MAX_POKUSAJA_KORAKA = 2;
 const PROCJENA_ID_FORMAT = /^[0-9a-f]{32}$/;
@@ -183,7 +184,6 @@ function hashEmaila(email) {
   return crypto.createHmac('sha256', sol).update(email).digest('hex');
 }
 
-const vrijemeKljuca = (key) => parseInt(key.slice(key.lastIndexOf(':') + 1), 10) || 0;
 
 async function procitajZahtjev(store, prefix) {
   try {
@@ -200,9 +200,7 @@ async function procitajZahtjev(store, prefix) {
 async function zapisiBlob(store, key, vrijednost, cuvanjeMs) {
   await store.set(key, JSON.stringify(vrijednost));
   try {
-    const granica = Date.now() - cuvanjeMs;
-    const { blobs } = await store.list();
-    await Promise.all(blobs.filter((b) => vrijemeKljuca(b.key) < granica).map((b) => store.delete(b.key)));
+    await obrisiIstekle(store, cuvanjeMs);
   } catch (err) {
     console.error('Brisanje starih zapisa nije uspjelo:', err);
   }
@@ -268,7 +266,13 @@ async function rezervirajJedinicu(email, verificiraniPlan, stripeNedostupan) {
   if (verificiraniPlan !== 'standard') {
     // Free: 3 analize ukupno po emailu (ne i za aktivnog Standard pretplatnika s iscrpljenim mjesečnim limitom).
     // Poruka o isteklom paketu ima prednost pred porukom o besplatnom limitu.
-    if (await rezervirajBrojac(jakiStore('propiq-free-quota'), email, LIM.FREE_UKUPNO)) return { ok: true, izvor: 'free', qk: email };
+    if (jeJednokratnaAdresa(email)) {
+      if (!porukaLimita) porukaLimita = { status: 400, error: PORUKA_JEDNOKRATNA };
+    } else {
+      // Ključ besplatne kvote je normaliziran (Gmail točke, +alias), da se limit ne zaobilazi varijantama iste adrese.
+      const qk = normalizirajEmail(email);
+      if (await rezervirajBrojac(jakiStore('propiq-free-quota'), qk, LIM.FREE_UKUPNO)) return { ok: true, izvor: 'free', qk };
+    }
     if (!porukaLimita) {
       porukaLimita = stripeNedostupan
         ? { status: 503, error: 'Trenutno ne možemo provjeriti tvoju pretplatu. Pokušaj ponovo za minutu ili nam se javi na sime.zubcic23@gmail.com.' }
@@ -280,7 +284,7 @@ async function rezervirajJedinicu(email, verificiraniPlan, stripeNedostupan) {
 
 // Vraća rezerviranu jedinicu u izvor iz kojeg je uzeta (analiza nije isporučena).
 // Ključ brojača kvote iz izvora i emaila (sirovi email se ne sprema u zapis analize).
-const kljucBrojaca = (izvor, email, mjesec) => (izvor === 'standard' ? `${email}:${mjesec}` : email);
+const kljucBrojaca = (izvor, email, mjesec) => (izvor === 'standard' ? `${email}:${mjesec}` : izvor === 'free' ? normalizirajEmail(email) : email);
 
 async function vratiJedinicu({ izvor, qk, kk }) {
   if (izvor === 'paket') await vratiKredit(kk);
@@ -426,6 +430,22 @@ export default async (req, context) => {
     if (!r.ok) return json(r.status, { error: r.error });
     rez = { izvor: r.izvor, qk: r.qk, kk: r.kk };
 
+    // Dnevni limit besplatnih analiza po IP-u (uz satni). Ako je dosegnut, rezervirana jedinica se vraća.
+    if (rez.izvor === 'free') {
+      let dnevni;
+      try {
+        dnevni = await potrosiLimitIp(ipHash, 'free-dan');
+      } catch (err) {
+        console.error('Dnevni limit nije provjeren:', err);
+        await vratiJedinicu(rez);
+        return json(503, { error: 'Provjera ograničenja trenutno nije dostupna. Pokušaj ponovo za minutu.' });
+      }
+      if (!dnevni.ok) {
+        await vratiJedinicu(rez);
+        return json(429, { error: porukaDnevnogLimita(dnevni.ponovnoZaS) }, { 'Retry-After': String(dnevni.ponovnoZaS) });
+      }
+    }
+
     analizaId = crypto.randomBytes(16).toString('hex');
     analizaKey = `${analizaId}:${Date.now()}`;
     try {
@@ -440,11 +460,13 @@ export default async (req, context) => {
   } else {
     // Nepoznat i tuđi ID daju isti odgovor (404), da se ID-jevi ne mogu provjeravati.
     zapis = await procitajZahtjev(procjene, `${procjenaId}:`);
+    // Istekao zapis je kao da ne postoji: briše se i vraća isti odgovor kao za nepoznat ID.
+    if (zapis && jeIstekao(zapis.key)) {
+      try { await procjene.delete(zapis.key); } catch (err) { console.error('Brisanje isteklog zapisa nije uspjelo:', err); }
+      zapis = null;
+    }
     if (!zapis || zapis.e !== hashEmaila(email)) {
       return json(404, { error: 'Procjena nije pronađena. Pokreni analizu ponovo.' });
-    }
-    if (Date.now() - zapis.t >= PROCJENE_CUVANJE_MS) {
-      return json(410, { error: 'Procjena je istekla. Pokreni analizu ponovo.' });
     }
     if (zapis.h !== tekstHash) {
       return json(400, { error: 'Procjena ne pripada ovom oglasu. Pokreni analizu ponovo.' });
