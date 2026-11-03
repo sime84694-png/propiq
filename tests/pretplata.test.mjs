@@ -454,18 +454,34 @@ test('ID procjene ne vrijedi za drugi oglas (tekst ili podaci)', async () => {
   assert.equal(iskoristeno('drugi@primjer.hr'), 1, 'samo jedinica rezervirana u koraku procjena');
 });
 
-test('istekao ID procjene (stariji od 1 h): 410, bez poziva prema Anthropicu', async () => {
+test('istekao zapis procjene (stariji od 1 h) je kao nepostojeći: 404, zapis se briše, bez poziva prema Anthropicu', async () => {
   mockFetch({});
   const a = await korak({ email: 'istek@primjer.hr', oglas_tekst: 'Stan E', korak: 'procjena' });
   const [kljuc, vrijednost] = procjeneBlobs()[0];
   blobs.delete(kljuc);
-  blobs.set(`propiq-procjene/${a.body.procjena_id}:${Date.now() - 61 * 60 * 1000}`, vrijednost);
+  const istekliKljuc = `propiq-procjene/${a.body.procjena_id}:${Date.now() - 61 * 60 * 1000}`;
+  blobs.set(istekliKljuc, vrijednost);
   const pozivi = bilježiPozive();
   const r = await korak({ email: 'istek@primjer.hr', oglas_tekst: 'Stan E', korak: 'cijena', procjena_id: a.body.procjena_id });
-  assert.equal(r.status, 410);
-  assert.match(r.body.error, /istekla/);
+  assert.equal(r.status, 404);
+  assert.match(r.body.error, /nije pronađena/);
   assert.equal(pozivi.length, 0);
+  assert.equal(blobs.has(istekliKljuc), false, 'istekao zapis je obrisan pri čitanju');
   assert.equal(iskoristeno('istek@primjer.hr'), 1, 'napuštena analiza zadržava jedinicu (poziv 1 je već potrošen)');
+});
+
+test('zakazana funkcija: briše samo istekle zapise zahtjeva, svježe ostavlja; raspored je @hourly', async () => {
+  const { default: ocisti, config } = await import('../netlify/functions/ocisti-zapise.mjs');
+  assert.equal(config.schedule, '@hourly');
+  const sada = Date.now();
+  const stari = `propiq-procjene/${'a'.repeat(32)}:${sada - 2 * 60 * 60 * 1000}`;
+  const rub = `propiq-procjene/${'b'.repeat(32)}:${sada - 61 * 60 * 1000}`;
+  const svjez = `propiq-procjene/${'c'.repeat(32)}:${sada - 5 * 60 * 1000}`;
+  const drugi = `propiq-ratelimit/xyz:start:1`;
+  for (const k of [stari, rub, svjez, drugi]) blobs.set(k, '{}');
+  await ocisti();
+  assert.deepEqual([stari, rub].map((k) => blobs.has(k)), [false, false]);
+  assert.deepEqual([svjez, drugi].map((k) => blobs.has(k)), [true, true]);
 });
 
 test('upis nove procjene briše procjene starije od 1 h', async () => {

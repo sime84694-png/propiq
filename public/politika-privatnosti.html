@@ -171,7 +171,7 @@
           <ul>
             <li><strong>Izvršenje ugovora</strong> — obrada teksta oglasa radi generiranja AI analize koju ste naručili; upravljanje pretplatom i naplatom, uključujući provjeru aktivne pretplate kod Stripea prema e-mail adresi koju upišete.</li>
             <li><strong>Legitimni interes</strong> — sprječavanje zlouporabe besplatnog plana (brojanje broja iskorištenih besplatnih analiza po e-mail adresi i ograničavanje broja zahtjeva po sažetku IP adrese), sigurnost i stabilnost usluge.</li>
-            <li><strong>Privola</strong> — pohrana u pregledniku koja nije nužna za rad stranice (izvor posjeta i oznaka već izmjerenih kupnji), samo ako je dopustite u postavkama kolačića. Privolu možete u svakom trenutku povući putem poveznice „Postavke kolačića” u podnožju stranice, bez utjecaja na zakonitost obrade prije povlačenja.</li>
+            <li><strong>Privola</strong> — pohrana u pregledniku koja nije nužna za rad stranice (izvor posjeta i oznaka već izmjerenih kupnji) tražila bi vašu privolu; trenutno je ne koristimo.</li>
           </ul>
         </section>
 
@@ -213,21 +213,21 @@
 
         <section id="s7">
           <div class="sec-head"><span class="sec-num">7.</span><h2 class="sec-title">Kolačići</h2></div>
-          <p>Ne postavljamo kolačiće za analitiku ni marketing. Stranica koristi pohranu u pregledniku (lokalna pohrana i pohrana sesije) navedenu u tablici. Pri prvom posjetu možete odabrati dopuštate li pohranu koja nije nužna; izbor pamtimo 12 mjeseci i možete ga promijeniti ili povući u bilo kojem trenutku putem gumba „<button type="button" class="link-btn" data-cookie-settings>Postavke kolačića</button>” u podnožju stranice.</p>
+          <p>Ne postavljamo kolačiće za analitiku ni marketing. Stranica koristi samo pohranu u pregledniku (lokalna pohrana i pohrana sesije) navedenu u tablici. Trenutno ne koristimo pohranu koja nije nužna, pa ne prikazujemo obavijest za odabir. Što se pohranjuje možete vidjeti putem gumba „<button type="button" class="link-btn" data-cookie-settings>Postavke kolačića</button>” u podnožju stranice.</p>
           <table class="subproc">
             <thead>
               <tr><th scope="col">Naziv</th><th scope="col">Svrha</th><th scope="col">Vrsta</th><th scope="col">Trajanje</th></tr>
             </thead>
             <tbody>
               <tr><td data-label="Naziv"><code>propiq_consent</code></td><td data-label="Svrha">Pamti vaš izbor u vezi s kolačićima (nužno)</td><td data-label="Vrsta">Lokalna pohrana</td><td data-label="Trajanje">12 mjeseci</td></tr>
-              <tr><td data-label="Naziv"><code>propiq_analiza_data</code>, <code>propiq_analiza_rezultat</code></td><td data-label="Svrha">Privremeni podaci za prikaz vaše analize u pregledniku (nužno)</td><td data-label="Vrsta">Pohrana sesije</td><td data-label="Trajanje">Do zatvaranja kartice</td></tr>
+              <tr><td data-label="Naziv"><code>propiq_analiza_data</code>, <code>propiq_analiza_rezultat</code>, <code>propiq_analiza_id</code></td><td data-label="Svrha">Privremeni podaci za prikaz vaše analize u pregledniku (nužno)</td><td data-label="Vrsta">Pohrana sesije</td><td data-label="Trajanje">Do zatvaranja kartice</td></tr>
               <tr><td data-label="Naziv"><code>propiq_exit</code></td><td data-label="Svrha">Bilježi da je prozor „Čekaj!” već prikazan, da se ne prikazuje ponovno (funkcionalno)</td><td data-label="Vrsta">Pohrana sesije</td><td data-label="Trajanje">Do zatvaranja kartice</td></tr>
-              <tr><td data-label="Naziv"><code>propiq_src</code></td><td data-label="Svrha">Pamti izvor posjeta (npr. poveznicu s koje ste došli); sprema se samo uz vašu privolu za analitiku</td><td data-label="Vrsta">Pohrana sesije</td><td data-label="Trajanje">Do zatvaranja kartice</td></tr>
-              <tr><td data-label="Naziv"><code>propiq_purchases</code></td><td data-label="Svrha">Pamti koje su kupnje već izmjerene, da se ne broje dvaput; sprema se samo uz vašu privolu</td><td data-label="Vrsta">Lokalna pohrana</td><td data-label="Trajanje">Dok ne obrišete podatke preglednika</td></tr>
+              <tr><td data-label="Naziv"><code>propiq_src</code></td><td data-label="Svrha">Pamti izvor posjeta (npr. poveznicu s koje ste došli). Tražila bi vašu privolu za analitiku, pa se trenutno ne postavlja</td><td data-label="Vrsta">Pohrana sesije</td><td data-label="Trajanje">Do zatvaranja kartice</td></tr>
+              <tr><td data-label="Naziv"><code>propiq_purchases</code></td><td data-label="Svrha">Pamti koje su kupnje već izmjerene, da se ne broje dvaput. Tražila bi vašu privolu, pa se trenutno ne postavlja</td><td data-label="Vrsta">Lokalna pohrana</td><td data-label="Trajanje">Dok ne obrišete podatke preglednika</td></tr>
               <tr><td data-label="Naziv"><code>propiq_cookie</code></td><td data-label="Svrha">Oznaka iz prethodne verzije obavijesti o kolačićima; stranica je pri učitavanju briše</td><td data-label="Vrsta">Lokalna pohrana</td><td data-label="Trajanje">Briše se automatski</td></tr>
             </tbody>
           </table>
-          <p>Za osnovnu statistiku posjeta koristimo Cloudflare Web Analytics, koji ne postavlja kolačiće. Ako ubuduće uvedemo alate za analitiku ili oglašavanje, učitavat će se tek uz vašu privolu, a ovu politiku ažurirat ćemo prije toga.</p>
+          <p>Za osnovnu statistiku posjeta koristimo Cloudflare Web Analytics, koji ne postavlja kolačiće. Ako ubuduće uvedemo alate za analitiku ili oglašavanje, prikazat ćemo obavijest s izborom, učitavat će se tek uz vašu privolu, a ovu politiku ažurirat ćemo prije toga.</p>
         </section>
 
         <section id="s8">
