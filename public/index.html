@@ -1240,61 +1240,6 @@
       color: var(--ink-500);
     }
 
-    /* ─── MOBILE STICKY BAR ─── */
-    .sticky-bar {
-      display: none;
-    }
-
-    @media (max-width: 768px) {
-      .sticky-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 80;
-        background: rgba(6,20,27,0.92);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-top: 1px solid var(--ink-200);
-        padding: 14px 20px;
-        padding-bottom: calc(14px + env(safe-area-inset-bottom));
-        transform: translateY(0);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .sticky-bar.hidden {
-        transform: translateY(110%);
-      }
-
-      .sticky-bar-text {
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: var(--ink-700);
-        line-height: 1.3;
-      }
-
-      .sticky-bar-btn {
-        background: var(--ink-900);
-        color: var(--page-bg);
-        border: none;
-        padding: 12px 22px;
-        border-radius: 100px;
-        font-size: 0.83rem;
-        font-weight: 500;
-        font-family: inherit;
-        cursor: pointer;
-        white-space: nowrap;
-        flex-shrink: 0;
-        transition: opacity 0.2s;
-      }
-
-      .sticky-bar-btn:hover { opacity: 0.88; }
-    }
-
     /* ─── SCROLL OFFSET ─── */
     [id] { scroll-margin-top: 80px; }
 
@@ -1696,17 +1641,9 @@
     .hero-title { font-weight: 500; letter-spacing: -1px; }
     .hero-title .line2 { font-weight: 500; font-style: italic; }
     .hero-sub, .hero-note { color: var(--on-dark-70); }
-    /* Glavni CTA na heru: svijetlo staklo */
-    .hero .btn-primary {
-      --glass-alpha: 0.82;
-      background: rgba(255, 255, 255, 0.82); color: var(--ink-900);
-      -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
-      border: 1px solid rgba(255, 255, 255, 0.65);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 8px 24px rgba(6, 20, 27, 0.12);
-    }
-    .hero .btn-primary:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 12px 28px rgba(6, 20, 27, 0.2); }
-    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .hero .btn-primary { background: var(--white); } }
-    @media (prefers-reduced-transparency: reduce) { .hero .btn-primary { background: var(--white); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+    /* Glavni CTA na heru: puna bijela pilula */
+    .hero .btn-primary { background: #FFFFFF; color: var(--ink-900); border: 1px solid #FFFFFF; box-shadow: none; }
+    .hero .btn-primary:hover { background: #FFFFFF; box-shadow: 0 10px 24px rgba(6,20,27,0.25); }
 
     /* Gumbi na svijetloj podlozi */
     .btn-primary { background: var(--ink-800); color: var(--white); }
@@ -1719,7 +1656,7 @@
     /* Sekcije */
     .how-it-works, .trusted, .testimonials, .pricing, .faq { border-color: var(--ink-200); }
     .how-num { color: var(--ink-500); font-weight: 500; font-size: 2.4rem; letter-spacing: -1px; }
-    .how-title, .feature-title, .plan-tier { font-family: var(--font-serif); }
+    .how-title, .feature-title { font-family: var(--font-serif); }
     .how-title, .feature-title { color: var(--ink-700); font-weight: 500; letter-spacing: 0; }
     .how-step { border-color: var(--ink-200); }
     .how-divider::after { background: linear-gradient(to bottom, var(--ink-300), transparent); }
@@ -1741,7 +1678,7 @@
     .plan.featured { background: var(--white); color: var(--ink-900); border: 1.5px solid var(--ink-800); box-shadow: none; }
     .plan.featured:hover { border-color: var(--ink-800); }
     .plan-badge { background: var(--ink-800); color: var(--white); box-shadow: none; }
-    .plan-tier { opacity: 1; color: var(--ink-500); letter-spacing: 0.08em; }
+    .plan-tier { opacity: 1; color: var(--ink-500); }
     .plan.featured .plan-tier { opacity: 1; }
     .plan-price { font-weight: 500; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
     .plan-period { opacity: 1; color: var(--ink-500); }
@@ -1824,19 +1761,15 @@
     .modal .form-submit:focus-visible { outline-color: var(--ink-900); }
     .korak-naslov { font-weight: 500; }
 
-    /* Mobilna donja traka: svijetlo staklo */
-    @media (max-width: 768px) {
-      .sticky-bar {
-        background: rgba(255, 255, 255, 0.72);
-        -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
-        border-top: 1px solid rgba(255, 255, 255, 0.65);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 -8px 24px rgba(6, 20, 27, 0.08);
-      }
-      .sticky-bar-text { color: var(--ink-900); }
-      .sticky-bar-btn { background: var(--ink-800); color: var(--white); }
+    /* Male oznake velikim slovima: Inter 500, blagi razmak slova */
+    .trusted-label, .section-label, .feature-num, .plan-badge, .plan-tier, .exit-eyebrow, .recommendation-badge {
+      font-family: var(--font-sans); font-weight: 500; letter-spacing: 0.08em;
     }
-    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .sticky-bar { background: var(--white); } }
-    @media (prefers-reduced-transparency: reduce) { .sticky-bar { background: var(--white); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+
+    /* Modal: dovoljan donji razmak da se zadnje polje odskrola iznad fiksnog gumba */
+    .modal { scroll-padding-bottom: 180px; }
+    .modal .korak { padding-bottom: 32px; }
+    .modal .kp-body { padding-bottom: 16px; }
 
     /* Rezultat u modalu */
     .form-success { border-top-color: var(--ink-200); }
@@ -1948,7 +1881,7 @@
         <div class="fer">
           <div class="fer-label">Fer raspon vrijednosti</div>
           <div class="fer-raspon"><span data-do="410000">410.000</span> – <span data-do="470000">470.000</span>&nbsp;€</div>
-          <div class="fer-m2">3.142 – 3.614&nbsp;€/m²</div>
+          <div class="fer-m2">3.143 – 3.603&nbsp;€/m²</div>
         </div>
 
         <div class="oznaka-red">
@@ -1957,13 +1890,13 @@
           <span class="oznaka-opis">Tražena cijena je iznad fer raspona.</span>
         </div>
 
-        <div class="traka" role="img" aria-label="Tražena cijena 694.896&nbsp;€ je iznad fer raspona 410.000 – 470.000&nbsp;€">
-          <div class="traka-trazena">Tražena 694.896&nbsp;€</div>
+        <div class="traka" role="img" aria-label="Tražena cijena 695.000&nbsp;€ je iznad fer raspona 410.000 – 470.000&nbsp;€">
+          <div class="traka-trazena">Tražena 695.000&nbsp;€</div>
           <div class="traka-os">
-            <span class="traka-fer" style="left:26.19%;width:14.29%"></span>
-            <span class="traka-marker" style="left:94.03%"></span>
+            <span class="traka-fer" style="left:25%;width:50%"></span>
+            <span class="traka-marker" style="left:100%"></span>
           </div>
-          <div class="traka-fer-oznaka" style="left:26.19%">Fer raspon</div>
+          <div class="traka-fer-oznaka" style="left:25%">Fer raspon</div>
         </div>
 
         <div class="report-mali-h">Korekcije polazišta</div>
@@ -2393,11 +2326,6 @@
     </div>
   </div>
 
-  <!-- MOBILE STICKY BAR -->
-  <div class="sticky-bar" id="stickyBar">
-    <span class="sticky-bar-text">AI analiza nekretnina</span>
-    <button class="sticky-bar-btn" onclick="openModal()">Počni besplatno</button>
-  </div>
 
   <!-- EXIT INTENT POPUP -->
   <div class="exit-overlay" id="exitPopup" onclick="closeExit(event)">
@@ -2466,17 +2394,6 @@
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
-
-    // ── Mobile sticky bar ──
-    (function() {
-      const bar = document.getElementById('stickyBar');
-      let lastY = 0;
-      window.addEventListener('scroll', () => {
-        const y = window.scrollY;
-        bar.classList.toggle('hidden', y < lastY || y < 100);
-        lastY = y;
-      }, { passive: true });
-    })();
 
     // ── Exit intent ──
     (function() {
