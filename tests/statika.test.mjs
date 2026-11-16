@@ -161,14 +161,20 @@ test('index.html: primjer analize je označen kao primjer i odgovara izračunu (
   assert.ok(!/monospace|class="mono"/.test(sirovo), 'brojke nisu u monospace fontu');
   const primjer = sirovo.replace(/&nbsp;|[\u00A0\u202F]/g, ' ');
   assert.match(primjer, /Primjer analize/);
-  for (const t of ['Zagreb, Središće, 130,45 m²', '694.896 €', '410.000', '470.000 €', '3.142', '3.614 €/m²', 'OPREZ', '1/10', 'Zaprudski Otok', '3.345 €/m²', 'MPGI/DZS', '440.000 €']) assert.ok(primjer.includes(t), t);
+  for (const t of ['Zagreb, Središće, 130,45 m²', '695.000 €', '410.000', '470.000 €', '3.143', '3.603 €/m²', 'OPREZ', '1/10', 'Zaprudski Otok', '3.345 €/m²', 'MPGI/DZS', '440.000 €']) assert.ok(primjer.includes(t), t);
   for (const k of ['+8 %', '−7 %', '+4 %', '+2 %', '−4 %', '−2 %']) assert.ok(primjer.includes(k), k);
   // isti brojevi iz zajedničkog koda
   const { default: z } = await import('../public/assets/js/izracuni.js');
   const kor = [8, -7, 4, 2, -4, -2].map((postotak, i) => ({ razlog: `k${i}`, postotak }));
   const fer = z.izracunajFer({ medijan_eur_m2: 3345, korekcije: kor, pouzdanost: 'srednja', povrsina_m2: 130.45, naziv: 'k.o. Zaprudski Otok' });
   assert.deepEqual([fer.min_eur, fer.max_eur, fer.izracun.raspon_m2.min, fer.izracun.raspon_m2.max], [410000, 470000, 3142, 3614]);
-  assert.equal(z.izracunajPonudu(694896, fer.min_eur, fer.max_eur).ponuda_eur, 440000);
+  assert.equal(z.izracunajPonudu(695000, fer.min_eur, fer.max_eur).ponuda_eur, 440000);
+  // Prikazani €/m² i traka su kao u pravom izvještaju: €/m² iz zaokruženih ukupnih iznosa, traka iz izracunaj()
+  const iz = z.izracunaj({ cijena_eur: 695000, povrsina_m2: 130.45, najam: { dugorocni_mj_eur: null, turisticki_godisnje_eur: null },
+    fer_vrijednost: { min_eur: fer.min_eur, max_eur: fer.max_eur, izracun: null } });
+  assert.deepEqual([iz.fer_po_m2.min, iz.fer_po_m2.max], [3143, 3603]);
+  assert.deepEqual([iz.traka.fer_od_posto, iz.traka.fer_do_posto, iz.traka.cijena_posto], [25, 75, 100]);
+  assert.ok(sirovo.includes('left:25%;width:50%') && sirovo.includes('left:100%'), 'traka u primjeru prati izračun');
 });
 
 test('index.html: meta keywords bez "tržišni trendovi", nema mrtvog koda detectRecommendation, trajanje bez točne brojke', () => {
