@@ -100,7 +100,7 @@ test('null vrijednosti nose klasu .nd, a ta je manja i prigušena (ne velika kur
   const css = html.match(/\.nd, \.metrika-vrijednost\.nd[^{]*\{([^}]*)\}/)[1];
   assert.match(css, /font-size:\s*0\.8\d*rem/);
   assert.match(css, /font-style:\s*normal/);
-  assert.match(css, /color:\s*var\(--cream-40\)/);
+  assert.match(css, /color:\s*var\(--ink-500\)/);
 });
 
 test('bez cijene: siva značka "Nedovoljno podataka" s objašnjenjem, bez ocjene i preporuke', () => {
