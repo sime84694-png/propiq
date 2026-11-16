@@ -27,7 +27,7 @@
       --bg: #0a0806;
       --cream: #f0ece4;
       --cream-70: rgba(240,236,228,0.7);
-      --cream-40: rgba(240,236,228,0.4);
+      --cream-40: rgba(240,236,228,0.55);
       --cream-15: rgba(240,236,228,0.15);
       --cream-08: rgba(240,236,228,0.08);
       --cream-04: rgba(240,236,228,0.04);
@@ -91,10 +91,12 @@
     footer { border-top: 1px solid var(--cream-08); padding: 48px; display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 40px; }
     .footer-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--cream); }
     .footer-logo-text { font-size: 1rem; font-weight: 700; }
-    .footer-logo-text span { opacity: 0.45; }
+    .footer-logo-text span { opacity: 0.62; }
     .footer-links { display: flex; gap: 32px; list-style: none; }
-    .footer-links a { font-size: 0.82rem; color: var(--cream-40); text-decoration: none; transition: color 0.2s; }
-    .footer-links a:hover { color: var(--cream); }
+    .link-btn { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; text-align: inherit; }
+    .footer-links a, .footer-links .link-btn { font-size: 0.82rem; color: var(--cream-40); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover, .footer-links .link-btn:hover { color: var(--cream); }
+    p .link-btn { text-decoration: underline; }
     .footer-copy { font-size: 0.78rem; color: var(--cream-40); }
 
     @media (max-width: 860px) {
@@ -128,7 +130,7 @@
 
     <div class="page-head">
       <h1>Politika privatnosti</h1>
-      <p class="updated">Zadnja izmjena: listopad 2026.</p>
+      <p class="updated">Zadnja izmjena: 3. studenoga 2026.</p>
     </div>
 
 
@@ -158,9 +160,9 @@
         <section id="s2">
           <div class="sec-head"><span class="sec-num">2.</span><h2 class="sec-title">Koje podatke prikupljamo</h2></div>
           <ul>
-            <li><strong>Podaci koje sami unesete:</strong> ime i prezime, e-mail adresa, naziv agencije (neobavezno), tekst oglasa nekretnine koji šaljete na analizu.</li>
+            <li><strong>Podaci koje sami unesete:</strong> e-mail adresa, tekst oglasa nekretnine koji šaljete na analizu te neobavezna polja o nekretnini (cijena, površina, grad, kvart, kat, godina gradnje, lift, parking). Tekst oglasa može sadržavati osobne podatke trećih osoba (npr. ime i telefon prodavatelja ili agenta). Molimo vas da takve podatke ne unosite i da prije slanja uklonite kontakte iz teksta oglasa.</li>
             <li><strong>Podaci o pretplati:</strong> odabrani plan (Free/Paket/Standard/Pro), status pretplate; za Paket i preostali broj analiza i datum isteka (vezano uz sažetak vaše e-mail adrese) — same podatke o transakciji i broju kartice obrađuje i pohranjuje isključivo Stripe, mi im nemamo pristup.</li>
-            <li><strong>Tehnički podaci:</strong> standardni podaci poslužitelja (IP adresa, vrijeme pristupa) automatski bilježi naš hosting davatelj (Netlify) radi rada i sigurnosti stranice.</li>
+            <li><strong>Tehnički podaci:</strong> standardni podaci poslužitelja (IP adresa, vrijeme pristupa) automatski bilježi naš hosting davatelj (Netlify) radi rada i sigurnosti stranice. Radi ograničavanja broja zahtjeva pohranjujemo i sažetak (hash) vaše IP adrese, a ne samu adresu i čuvamo ga najviše 48 sati.</li>
           </ul>
         </section>
 
@@ -168,8 +170,8 @@
           <div class="sec-head"><span class="sec-num">3.</span><h2 class="sec-title">Svrha i pravna osnova obrade</h2></div>
           <ul>
             <li><strong>Izvršenje ugovora</strong> — obrada teksta oglasa radi generiranja AI analize koju ste naručili; upravljanje pretplatom i naplatom, uključujući provjeru aktivne pretplate kod Stripea prema e-mail adresi koju upišete.</li>
-            <li><strong>Legitimni interes</strong> — sprječavanje zlouporabe besplatnog plana (brojanje broja iskorištenih besplatnih analiza po e-mail adresi), sigurnost i stabilnost usluge.</li>
-            <li><strong>Privola</strong> — kolačići i slične tehnologije za analitiku (Google Analytics) i marketing (Google Ads, Meta), samo ako ih prihvatite u postavkama kolačića. Privolu možete u svakom trenutku povući putem poveznice „Postavke kolačića” u podnožju stranice, bez utjecaja na zakonitost obrade prije povlačenja.</li>
+            <li><strong>Legitimni interes</strong> — sprječavanje zlouporabe besplatnog plana (brojanje broja iskorištenih besplatnih analiza po e-mail adresi i ograničavanje broja zahtjeva po sažetku IP adrese), sigurnost i stabilnost usluge.</li>
+            <li><strong>Privola</strong> — pohrana u pregledniku koja nije nužna za rad stranice (izvor posjeta i oznaka već izmjerenih kupnji) tražila bi vašu privolu; trenutno je ne koristimo.</li>
           </ul>
         </section>
 
@@ -181,21 +183,18 @@
               <tr><th scope="col">Pružatelj</th><th scope="col">Svrha</th><th scope="col">Koji podaci</th></tr>
             </thead>
             <tbody>
-              <tr><td data-label="Pružatelj">Anthropic (Claude API)</td><td data-label="Svrha">Generiranje AI analize nekretnine</td><td data-label="Koji podaci">Tekst oglasa, ime, naziv agencije (unutar upita)</td></tr>
+              <tr><td data-label="Pružatelj">Anthropic (Claude API)</td><td data-label="Svrha">Generiranje AI analize nekretnine</td><td data-label="Koji podaci">Tekst oglasa i podaci o nekretnini (unutar upita)</td></tr>
               <tr><td data-label="Pružatelj">Stripe</td><td data-label="Svrha">Obrada plaćanja i pretplata</td><td data-label="Koji podaci">E-mail, podaci o transakciji, podaci kartice (mi ih ne vidimo)</td></tr>
               <tr><td data-label="Pružatelj">Netlify</td><td data-label="Svrha">Hosting stranice, pohrana brojača korištenja</td><td data-label="Koji podaci">E-mail (za brojač), tehnički podaci poslužitelja</td></tr>
-              <tr><td data-label="Pružatelj">Formspree</td><td data-label="Svrha">Potvrda o zaprimljenom zahtjevu za analizu</td><td data-label="Koji podaci">Ime, e-mail adresa</td></tr>
               <tr><td data-label="Pružatelj">Cloudflare, Inc.</td><td data-label="Svrha">Anonimna statistika posjeta (Web Analytics)</td><td data-label="Koji podaci">Tehnički podaci o posjetu (posjećena stranica, preglednik, država), bez kolačića</td></tr>
-              <tr><td data-label="Pružatelj">Google Ireland Limited (Google Analytics, Google Ads)</td><td data-label="Svrha">Statistika posjeta i mjerenje uspješnosti oglasa — samo uz vašu privolu</td><td data-label="Koji podaci">Identifikatori kolačića, podaci o posjetu i uređaju, događaji na stranici (npr. pokrenuta analiza, kupnja pretplate i njezin iznos)</td></tr>
-              <tr><td data-label="Pružatelj">Meta Platforms Ireland Limited (Meta Pixel)</td><td data-label="Svrha">Mjerenje uspješnosti oglasa na Facebooku i Instagramu i prikaz oglasa posjetiteljima — samo uz vašu privolu</td><td data-label="Koji podaci">Identifikatori kolačića, podaci o posjetu i uređaju, događaji na stranici (npr. pokrenuta analiza, kupnja pretplate i njezin iznos)</td></tr>
             </tbody>
           </table>
-          <p>Google i Meta mogu podatke prenositi u SAD. Prijenos se temelji na Okviru EU-SAD za privatnost podataka (EU-U.S. Data Privacy Framework) i standardnim ugovornim klauzulama.</p>
+          <p>Anthropic, Stripe, Netlify i Cloudflare mogu podatke obrađivati u SAD-u. Prijenos podataka izvan Europskog gospodarskog prostora temelji se na standardnim ugovornim klauzulama (SCC) koje je donijela Europska komisija.</p>
         </section>
 
         <section id="s5">
           <div class="sec-head"><span class="sec-num">5.</span><h2 class="sec-title">Razdoblje čuvanja podataka</h2></div>
-          <p>Podatke čuvamo onoliko dugo koliko je potrebno za pružanje usluge i ispunjenje zakonskih obveza (npr. računovodstvenih). Brojač besplatnih/mjesečnih analiza vezan uz vašu e-mail adresu čuva se dok koristite uslugu; na zahtjev ga možemo obrisati. Radi zaštite od zlouporabe besplatnog limita (npr. kad se ista analiza ponovno pošalje osvježavanjem stranice) kratko bilježimo tehnički zapis o zahtjevu, koji sadrži samo sažetak (hash) vaše e-mail adrese i teksta oglasa i čuva se najviše 24 sata. Podatke prikupljene putem Google Analyticsa čuvamo do 14 mjeseci. Rok čuvanja podataka kod Mete određen je Metinim pravilima.</p>
+          <p>Podatke čuvamo onoliko dugo koliko je potrebno za pružanje usluge i ispunjenje zakonskih obveza (npr. računovodstvenih). Brojač besplatnih/mjesečnih analiza vezan uz vašu e-mail adresu čuva se dok koristite uslugu; na zahtjev ga možemo obrisati. Radi zaštite od zlouporabe besplatnog limita (npr. kad se ista analiza ponovno pošalje osvježavanjem stranice) kratko bilježimo tehnički zapis o zahtjevu, koji sadrži samo sažetak (hash) vaše e-mail adrese i teksta oglasa i čuva se najviše 24 sata. Sažetak (hash) IP adrese za ograničenje broja zahtjeva čuva se najviše 48 sati.</p>
         </section>
 
         <section id="s6">
@@ -214,18 +213,21 @@
 
         <section id="s7">
           <div class="sec-head"><span class="sec-num">7.</span><h2 class="sec-title">Kolačići</h2></div>
-          <p>Koristimo tri kategorije kolačića. Pri prvom posjetu sami birate koje dopuštate; izbor pamtimo 12 mjeseci i možete ga promijeniti ili povući u bilo kojem trenutku putem poveznice „<a href="#" data-cookie-settings>Postavke kolačića</a>” u podnožju svake stranice. Povlačenjem privole brišemo kolačiće iz kategorija analitike i marketinga koje smo postavili.</p>
+          <p>Ne postavljamo kolačiće za analitiku ni marketing. Stranica koristi samo pohranu u pregledniku (lokalna pohrana i pohrana sesije) navedenu u tablici. Trenutno ne koristimo pohranu koja nije nužna, pa ne prikazujemo obavijest za odabir. Što se pohranjuje možete vidjeti putem gumba „<button type="button" class="link-btn" data-cookie-settings>Postavke kolačića</button>” u podnožju stranice.</p>
           <table class="subproc">
             <thead>
-              <tr><th scope="col">Kategorija</th><th scope="col">Svrha</th><th scope="col">Kolačići / pohrana</th><th scope="col">Trajanje</th></tr>
+              <tr><th scope="col">Naziv</th><th scope="col">Svrha</th><th scope="col">Vrsta</th><th scope="col">Trajanje</th></tr>
             </thead>
             <tbody>
-              <tr><td data-label="Kategorija">Nužni (uvijek uključeni)</td><td data-label="Svrha">Rad stranice i pamćenje vašeg izbora kolačića</td><td data-label="Kolačići / pohrana"><span><code>propiq_consent</code> (lokalna pohrana preglednika), privremeni podaci sesije za prikaz analize</span></td><td data-label="Trajanje">12 mjeseci / do zatvaranja kartice</td></tr>
-              <tr><td data-label="Kategorija">Analitika (uz privolu)</td><td data-label="Svrha">Google Analytics — broj posjeta i korištenje stranice</td><td data-label="Kolačići / pohrana"><span><code>_ga</code>, <code>_ga_&lt;ID&gt;</code></span></td><td data-label="Trajanje">do 2 godine</td></tr>
-              <tr><td data-label="Kategorija">Marketing (uz privolu)</td><td data-label="Svrha">Google Ads i Meta — mjerenje oglasa i prikaz oglasa posjetiteljima</td><td data-label="Kolačići / pohrana"><span><code>_gcl_au</code>, <code>_fbp</code>, <code>_fbc</code></span></td><td data-label="Trajanje">do 90 dana</td></tr>
+              <tr><td data-label="Naziv"><code>propiq_consent</code></td><td data-label="Svrha">Pamti vaš izbor u vezi s kolačićima (nužno)</td><td data-label="Vrsta">Lokalna pohrana</td><td data-label="Trajanje">12 mjeseci</td></tr>
+              <tr><td data-label="Naziv"><code>propiq_analiza_data</code>, <code>propiq_analiza_rezultat</code>, <code>propiq_analiza_id</code></td><td data-label="Svrha">Privremeni podaci za prikaz vaše analize u pregledniku (nužno)</td><td data-label="Vrsta">Pohrana sesije</td><td data-label="Trajanje">Do zatvaranja kartice</td></tr>
+              <tr><td data-label="Naziv"><code>propiq_exit</code></td><td data-label="Svrha">Bilježi da je prozor „Čekaj!” već prikazan, da se ne prikazuje ponovno (funkcionalno)</td><td data-label="Vrsta">Pohrana sesije</td><td data-label="Trajanje">Do zatvaranja kartice</td></tr>
+              <tr><td data-label="Naziv"><code>propiq_src</code></td><td data-label="Svrha">Pamti izvor posjeta (npr. poveznicu s koje ste došli). Tražila bi vašu privolu za analitiku, pa se trenutno ne postavlja</td><td data-label="Vrsta">Pohrana sesije</td><td data-label="Trajanje">Do zatvaranja kartice</td></tr>
+              <tr><td data-label="Naziv"><code>propiq_purchases</code></td><td data-label="Svrha">Pamti koje su kupnje već izmjerene, da se ne broje dvaput. Tražila bi vašu privolu, pa se trenutno ne postavlja</td><td data-label="Vrsta">Lokalna pohrana</td><td data-label="Trajanje">Dok ne obrišete podatke preglednika</td></tr>
+              <tr><td data-label="Naziv"><code>propiq_cookie</code></td><td data-label="Svrha">Oznaka iz prethodne verzije obavijesti o kolačićima; stranica je pri učitavanju briše</td><td data-label="Vrsta">Lokalna pohrana</td><td data-label="Trajanje">Briše se automatski</td></tr>
             </tbody>
           </table>
-          <p>Alati za analitiku i marketing (Google, Meta) ne učitavaju se uopće dok ne date privolu za odgovarajuću kategoriju. Za osnovnu statistiku posjeta koristimo i Cloudflare Web Analytics, koji ne postavlja kolačiće.</p>
+          <p>Za osnovnu statistiku posjeta koristimo Cloudflare Web Analytics, koji ne postavlja kolačiće. Ako ubuduće uvedemo alate za analitiku ili oglašavanje, prikazat ćemo obavijest s izborom, učitavat će se tek uz vašu privolu, a ovu politiku ažurirat ćemo prije toga.</p>
         </section>
 
         <section id="s8">
@@ -261,7 +263,7 @@
       <li><a href="index.html#cijene">Cijene</a></li>
       <li><a href="uvjeti-koristenja.html">Uvjeti korištenja</a></li>
       <li><a href="politika-privatnosti.html">Politika privatnosti</a></li>
-      <li><a href="#" data-cookie-settings>Postavke kolačića</a></li>
+      <li><button type="button" class="link-btn" data-cookie-settings>Postavke kolačića</button></li>
       <li><a href="mailto:sime.zubcic23@gmail.com">sime.zubcic23@gmail.com</a></li>
     </ul>
     <span class="footer-copy">&copy; 2026 PropIQ</span>

@@ -28,7 +28,7 @@
       --bg: #0a0806;
       --cream: #f0ece4;
       --cream-70: rgba(240,236,228,0.7);
-      --cream-40: rgba(240,236,228,0.4);
+      --cream-40: rgba(240,236,228,0.55);
       --cream-15: rgba(240,236,228,0.15);
       --cream-08: rgba(240,236,228,0.08);
       --cream-04: rgba(240,236,228,0.04);
@@ -366,6 +366,11 @@
     .ponuda { font-family: var(--font-serif); font-size: 1.7rem; font-weight: 700; }
     .usteda { color: #6fcf97; font-weight: 700; font-size: 0.92rem; }
 
+    .link-btn { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; text-align: inherit; }
+    .rez-footer { text-align: center; font-size: 0.8rem; color: var(--cream-40); margin: 40px 0 0; padding-bottom: 32px; }
+    .rez-footer .link-btn { text-decoration: underline; }
+    .rez-footer .link-btn:hover { color: var(--cream); }
+
     /* h) footer */
     .footer-napomena { text-align: center; font-size: 0.8rem; color: var(--cream-40); margin: 28px 0 0; }
 
@@ -645,6 +650,10 @@
 
     <!-- UPSELL PLACEHOLDER (Pro plan) — za sad prazno, popuniti kasnije -->
     <section id="upsell-pro"></section>
+
+    <footer class="rez-footer">
+      <a href="politika-privatnosti.html">Politika privatnosti</a> · <a href="uvjeti-koristenja.html">Uvjeti korištenja</a> · <button type="button" class="link-btn" data-cookie-settings>Postavke kolačića</button>
+    </footer>
   </div>
 
   <script>

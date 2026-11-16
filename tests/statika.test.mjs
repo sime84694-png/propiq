@@ -68,12 +68,12 @@ test('CSP dopušta sve vanjske izvore koje stranice stvarno koriste', () => {
     ['script-src', 'static.cloudflareinsights.com'],
     ['script-src', 'www.googletagmanager.com'],
     ['script-src', 'connect.facebook.net'],
-    ['connect-src', 'formspree.io'],
     ['connect-src', 'cloudflareinsights.com'],
     ['connect-src', 'region1.google-analytics.com'],
     ['img-src', 'www.facebook.com'],
   ];
   for (const [dir, host] of zahtjevi) assert.ok(pokriveno(host, direktiva(dir)), `${dir} → ${host}`);
+  assert.ok(!csp.includes('formspree'), 'Formspree se više ne koristi pa nije u CSP-u');
   assert.ok(direktiva('script-src').includes("'self'") && direktiva('script-src').includes("'unsafe-inline'"),
     'inline skripte na stranicama traže unsafe-inline');
   assert.ok(direktiva('style-src').includes("'unsafe-inline'"));
