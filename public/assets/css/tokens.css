@@ -1,0 +1,83 @@
+/* PropIQ — zajednički dizajn tokeni (boje, fontovi, staklo). Uključeno na svim stranicama. */
+
+/* ─── Fontovi (samoprezentirani, latin + latin-ext: č ć đ š ž) ─── */
+@font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 400 900; font-display: swap;
+  src: url(../fonts/playfair-display-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 400 900; font-display: swap;
+  src: url(../fonts/playfair-display-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 500; font-display: swap;
+  src: url(../fonts/inter-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 500; font-display: swap;
+  src: url(../fonts/inter-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+:root {
+  /* Paleta */
+  --ink-900: #06141B;   /* glavni tekst, tamne sekcije */
+  --ink-800: #11212D;   /* glavni gumbi */
+  --ink-700: #253745;   /* naslovi kartica */
+  --ink-500: #4A5C6A;   /* sporedni tekst */
+  --ink-300: #9BA8AB;   /* linije, obrubi */
+  --ink-200: #CCD0CF;   /* pozadine kartica, obrubi kartica */
+  --page-bg: #F5F6F6;   /* pozadina stranice */
+  --white: #FFFFFF;
+
+  /* Tekst na tamnoj podlozi (hero, tamne sekcije) */
+  --on-dark: #F5F6F6;
+  --on-dark-70: rgba(245, 246, 246, 0.78);
+  --on-dark-line: rgba(245, 246, 246, 0.18);
+
+  /* Ocjene (semantičke, meke: svijetla pozadina + tamni tekst iste boje) */
+  --ok-bg: #E7F3EC;   --ok-fg: #1B5E3B;   --ok-line: #BBDCC8;     /* povoljno */
+  --warn-bg: #FBF2D9; --warn-fg: #6E5200; --warn-line: #E8D49A;   /* pregovaraj */
+  --bad-bg: #FBE5E2;  --bad-fg: #8A261C;  --bad-line: #EBBDB7;    /* oprez */
+
+  /* Fontovi */
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+
+  /* Kartice */
+  --card-border: 0.5px solid var(--ink-200);
+  --radius-card: 18px;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html { background: var(--page-bg); }
+body { font-family: var(--font-sans); font-weight: 400; color: var(--ink-900); background: var(--page-bg); }
+button, input, select, textarea { font-family: inherit; }
+h1, h2, h3, .font-serif { font-family: var(--font-serif); font-weight: 500; }
+strong, b { font-weight: 500; }
+
+/* Cijene i brojke */
+.num, .tabular { font-variant-numeric: tabular-nums; }
+
+/* ─── Staklo (samo navigacija i glavni CTA na početnoj) ─── */
+.glass-light {
+  background: rgba(255, 255, 255, 0.42);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 8px 24px rgba(6, 20, 27, 0.12);
+}
+.glass-dark {
+  background: rgba(17, 33, 45, 0.72);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid rgba(245, 246, 246, 0.16);
+  box-shadow: inset 0 1px 0 rgba(245, 246, 246, 0.12), 0 8px 24px rgba(6, 20, 27, 0.25);
+}
+
+/* Bez podrške za backdrop-filter: neprozirna pozadina */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-light { background: rgba(255, 255, 255, 0.96); }
+  .glass-dark  { background: var(--ink-800); }
+}
+/* Korisnik traži manje prozirnosti: neprozirna pozadina */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-light { background: var(--white); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .glass-dark  { background: var(--ink-800); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
