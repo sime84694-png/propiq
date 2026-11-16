@@ -227,22 +227,23 @@
   // ── 5. Banner ──
   var CSS = [
     '.pq-cc{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9000;width:calc(100% - 48px);max-width:780px;',
-    'background:#111;color:rgba(255,255,255,.65);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:18px 24px;',
-    'box-shadow:0 16px 48px rgba(0,0,0,.6);font-size:.85rem;line-height:1.6;font-family:inherit}',
+    'background:var(--white,#fff);color:var(--ink-700,#253745);border:.5px solid var(--ink-200,#CCD0CF);border-radius:16px;padding:18px 24px;',
+    'box-shadow:0 8px 24px rgba(6,20,27,.12);font-size:.85rem;line-height:1.6;font-family:inherit}',
     '.pq-cc[hidden]{display:none!important}',
     '.pq-cc-row{display:flex;align-items:center;gap:24px}',
     '.pq-cc-text{flex:1;margin:0}',
-    '.pq-cc a{color:rgba(255,255,255,.85);text-decoration:underline;text-underline-offset:2px}',
+    '.pq-cc a{color:var(--ink-900,#06141B);text-decoration:underline;text-underline-offset:2px}',
     '.pq-cc-btns{display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap}',
-    '.pq-cc button{font-family:inherit;font-size:.83rem;font-weight:700;line-height:1;padding:11px 20px;border-radius:100px;cursor:pointer;white-space:nowrap}',
-    '.pq-cc .pq-solid{background:#f0ece4;color:#0a0806;border:1.5px solid #f0ece4}',
-    '.pq-cc .pq-ghost{background:transparent;color:rgba(255,255,255,.8);border:1.5px solid rgba(255,255,255,.25)}',
-    '.pq-cc .pq-link{background:none;border:none;color:rgba(255,255,255,.6);text-decoration:underline;padding:11px 6px}',
-    '.pq-cc button:focus-visible{outline:2px solid #d4af37;outline-offset:2px}',
-    '.pq-cc-panel{margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:12px}',
+    '.pq-cc button{font-family:inherit;font-size:.83rem;font-weight:500;line-height:1;padding:11px 20px;border-radius:100px;cursor:pointer;white-space:nowrap}',
+    '.pq-cc .pq-solid{background:var(--ink-800,#11212D);color:var(--white,#fff);border:1.5px solid var(--ink-800,#11212D)}',
+    '.pq-cc .pq-ghost{background:transparent;color:var(--ink-700,#253745);border:1.5px solid var(--ink-300,#9BA8AB)}',
+    '.pq-cc .pq-link{background:none;border:none;color:var(--ink-500,#4A5C6A);text-decoration:underline;padding:11px 6px}',
+    '.pq-cc button:focus-visible{outline:2px solid var(--ink-700,#253745);outline-offset:2px}',
+    '.pq-cc-panel{margin-top:14px;border-top:1px solid var(--ink-200,#CCD0CF);padding-top:12px}',
     '.pq-cc-opt{display:flex;gap:12px;align-items:flex-start;padding:8px 0}',
-    '.pq-cc-opt input{margin-top:4px;width:18px;height:18px;accent-color:#d4af37;flex-shrink:0}',
-    '.pq-cc-opt b{color:#f0ece4;font-weight:600}',
+    '.pq-cc-opt input{margin-top:4px;width:18px;height:18px;accent-color:var(--ink-700,#253745);flex-shrink:0}',
+    '.pq-cc-opt b{color:var(--ink-900,#06141B);font-weight:500}',
+    '.pq-cc code{font-family:inherit;font-size:.95em;color:var(--ink-900,#06141B)}',
     '.pq-cc-save{margin-top:8px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}',
     '@media (max-width:600px){.pq-cc{bottom:16px;width:calc(100% - 32px);padding:16px}',
     '.pq-cc-row{flex-direction:column;align-items:stretch;gap:12px}.pq-cc-btns button{flex:1}}',
@@ -272,7 +273,7 @@
   var INFO_HTML =
     '<div class="pq-cc-row">' +
       '<div class="pq-cc-text" id="pq-cc-desc">' +
-        '<p style="margin:0 0 8px"><b style="color:#f0ece4">Pohrana u pregledniku.</b> Ova stranica trenutno koristi samo nužnu pohranu. ' +
+        '<p style="margin:0 0 8px"><b style="color:var(--ink-900,#06141B)">Pohrana u pregledniku.</b> Ova stranica trenutno koristi samo nužnu pohranu. ' +
         'Ne koristimo kolačiće za analitiku ni marketing, pa nema što prihvatiti ni odbiti.</p>' +
         '<ul style="margin:0 0 8px;padding-left:18px">' +
           '<li><code>propiq_analiza_data</code>, <code>propiq_analiza_rezultat</code>, <code>propiq_analiza_id</code>: podaci vaše analize dok je kartica otvorena.</li>' +
